@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dev-dist/
+*.local
+*.tsbuildinfo
+
+# Client documents kept locally for testing - never commit or publish these
+samples/
+test-output/

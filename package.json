@@ -1,0 +1,31 @@
+{
+  "name": "survey-report-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "extract-library": "node scripts/extract-library.mjs",
+    "test-parse": "tsx scripts/test-parse.ts",
+    "test-e2e": "tsx scripts/test-e2e.ts",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "fast-xml-parser": "^5.2.5",
+    "jszip": "^3.10.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "tsx": "^4.23.11",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.0.1"
+  }
+}
