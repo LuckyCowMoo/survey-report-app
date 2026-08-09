@@ -7,3 +7,4 @@ dev-dist/
 # Client documents kept locally for testing - never commit or publish these
 samples/
 test-output/
+scripts/extracted/
