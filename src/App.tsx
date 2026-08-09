@@ -5,6 +5,7 @@ import DetailsScreen from "./components/DetailsScreen";
 import GenerateScreen from "./components/GenerateScreen";
 import SettingsSheet from "./components/SettingsSheet";
 import KeywordGuide from "./components/KeywordGuide";
+import IntroSplash, { useIntroSplash } from "./components/IntroSplash";
 import { parseShorthandDocx } from "./lib/docxParser";
 import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
@@ -45,6 +46,7 @@ const defaultExtras: ReportExtras = {
 };
 
 export default function App() {
+  const { showIntro, dismissIntro } = useIntroSplash();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -183,7 +185,8 @@ export default function App() {
   }, [settings]);
 
   return (
-    <div className="app">
+    <div className={`app${showIntro ? " intro-locked" : ""}`}>
+      {showIntro && <IntroSplash onDone={dismissIntro} />}
       <header className="topbar">
         {step !== "home" ? (
           <button

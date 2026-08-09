@@ -1505,3 +1505,195 @@ html[data-theme="dark"] .chip.kw {
   background: rgba(125, 180, 220, 0.16);
   color: inherit;
 }
+
+/* ---- Opening intro ---- */
+
+.app.intro-locked {
+  overflow: hidden;
+}
+
+.intro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: #050505;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.intro-splash.intro-play {
+  animation: intro-splash-out 2.6s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
+}
+
+.intro-splash.intro-hold,
+.intro-splash.intro-hold.intro-play {
+  opacity: 1;
+  animation: none;
+}
+
+.intro-splash.intro-hold .intro-logo {
+  opacity: 1;
+  transform: scale(1);
+  animation: none;
+}
+
+.intro-splash.intro-hold .intro-shine {
+  opacity: 1;
+  animation: intro-shine-loop 1.8s ease-in-out infinite;
+}
+
+.intro-logo {
+  position: relative;
+  width: min(72vw, 430px);
+  transform: scale(0.92);
+  opacity: 0;
+}
+
+.intro-splash.intro-play .intro-logo {
+  animation: intro-logo-fly 2.6s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
+}
+
+.intro-logo-glyph {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 360 / 150;
+  color: #e31c23;
+  filter: drop-shadow(0 0 28px rgba(227, 28, 35, 0.28));
+}
+
+.intro-logo-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.intro-shine {
+  position: absolute;
+  inset: -8%;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0.08) 44%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.08) 56%,
+    transparent 68%
+  );
+  background-size: 240% 100%;
+  background-position: 120% 0;
+  mix-blend-mode: screen;
+  -webkit-mask-image: url("/brand/logo-mark.svg");
+  mask-image: url("/brand/logo-mark.svg");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: 84% auto;
+  mask-size: 84% auto;
+  opacity: 0;
+}
+
+.intro-splash.intro-play .intro-shine {
+  animation: intro-shine 2.6s ease-in-out forwards;
+}
+
+.intro-skip {
+  position: absolute;
+  right: 18px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.intro-splash.intro-play .intro-skip {
+  animation: intro-skip-in 0.5s ease 0.35s forwards;
+}
+
+@keyframes intro-splash-out {
+  0%,
+  58% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes intro-logo-fly {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(14);
+  }
+}
+
+@keyframes intro-shine {
+  0%,
+  14% {
+    opacity: 0;
+    background-position: 120% 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+    background-position: -20% 0;
+  }
+  58%,
+  100% {
+    opacity: 0;
+    background-position: -20% 0;
+  }
+}
+
+@keyframes intro-shine-loop {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
+}
+
+@keyframes intro-skip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-splash,
+  .intro-logo,
+  .intro-shine,
+  .intro-skip {
+    animation: none !important;
+  }
+}
