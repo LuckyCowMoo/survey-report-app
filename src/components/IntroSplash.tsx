@@ -80,7 +80,13 @@ export default function IntroSplash({ onDone }: Props) {
       <div className="intro-logo" aria-hidden>
         <div className="intro-logo-glyph">
           <BrandMark className="intro-logo-mark" />
-          <span className="intro-shine" />
+          <span
+            className="intro-shine"
+            style={{
+              WebkitMaskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`,
+              maskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`
+            }}
+          />
         </div>
       </div>
       {!hold && (

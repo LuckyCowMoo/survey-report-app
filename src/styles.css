@@ -497,6 +497,11 @@ body {
   color: var(--muted);
 }
 
+.placeholders label.needs-value input {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+
 .placeholders input {
   width: 130px;
   border: 1px solid var(--line);
@@ -1558,9 +1563,9 @@ html[data-theme="dark"] .chip.kw {
 .intro-logo-glyph {
   position: relative;
   width: 100%;
-  aspect-ratio: 360 / 150;
-  color: #e31c23;
-  filter: drop-shadow(0 0 28px rgba(227, 28, 35, 0.28));
+  aspect-ratio: 129.92 / 42.97;
+  color: #d12d26;
+  filter: drop-shadow(0 0 28px rgba(209, 45, 38, 0.28));
 }
 
 .intro-logo-mark {
@@ -1584,14 +1589,12 @@ html[data-theme="dark"] .chip.kw {
   background-size: 240% 100%;
   background-position: 120% 0;
   mix-blend-mode: screen;
-  -webkit-mask-image: url("/brand/logo-mark.svg");
-  mask-image: url("/brand/logo-mark.svg");
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
-  -webkit-mask-size: 84% auto;
-  mask-size: 84% auto;
+  -webkit-mask-size: 100% auto;
+  mask-size: 100% auto;
   opacity: 0;
 }
 
