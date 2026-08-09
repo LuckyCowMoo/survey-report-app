@@ -62,11 +62,29 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
         </label>
 
         <label className="field">
-          <span>Surveyor name (optional)</span>
+          <span>Surveyor name (header "Contact")</span>
           <input
             type="text"
             value={draft.surveyorName}
             onChange={(e) => set("surveyorName", e.target.value)}
+          />
+        </label>
+
+        <label className="field">
+          <span>Phone (shown in the page header)</span>
+          <input
+            type="tel"
+            value={draft.phone}
+            onChange={(e) => set("phone", e.target.value)}
+          />
+        </label>
+
+        <label className="field">
+          <span>Email (shown in the page header)</span>
+          <input
+            type="email"
+            value={draft.email}
+            onChange={(e) => set("email", e.target.value)}
           />
         </label>
 

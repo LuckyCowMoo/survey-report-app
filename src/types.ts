@@ -45,6 +45,12 @@ export interface ReportMetadata {
   weatherDesc: string;
   temperature: string;
   skyDesc: string;
+  /** Shown as "Contact:" in the page header. */
+  contactName: string;
+  phone: string;
+  email: string;
+  /** Document id shown in the footer, e.g. "112.1". */
+  docId: string;
 }
 
 export interface CostLine {

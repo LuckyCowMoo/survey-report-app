@@ -1,17 +1,28 @@
 /**
  * Builds the finished survey report .docx, mirroring the layout of the firm's
- * completed example: cover page, contents, introduction, numbered photo
- * sections, damp-type explainers, recommendations, costed project plan and
- * limitations.
+ * completed example: cover page with logo, header/footer on every page (except
+ * the cover), contents, introduction, numbered photo sections laid out as
+ * image-beside-text tables, damp-type explainers, recommendations, costed
+ * project plan (with the finance graphic) and limitations.
  */
 import {
   AlignmentType,
+  BorderStyle,
   Document,
+  Footer,
+  Header,
   ImageRun,
   PageBreak,
+  PageNumber,
   Packer,
   Paragraph,
-  TextRun
+  Table,
+  TableBorders,
+  TableCell,
+  TableRow,
+  TextRun,
+  VerticalAlign,
+  WidthType
 } from "docx";
 import {
   CONTENTS_SECTIONS,
@@ -23,6 +34,13 @@ import {
   SERVICES_INTRO,
   fillPlaceholders
 } from "../data/boilerplate";
+import {
+  COVER_LOGO,
+  FINANCE_IMAGE,
+  FOOTER_LOGO,
+  HEADER_LOGO,
+  type EmbeddedAsset
+} from "../data/assets";
 import { library } from "./matcher";
 import type { DocImage } from "./imageUtils";
 import type { ReportExtras, ReportMetadata, SectionState } from "../types";
@@ -36,15 +54,55 @@ export interface ReportInput {
 }
 
 const FONT = "Calibri";
-/** Usable content width in pixels at 96dpi for A4 with 1" margins. */
-const MAX_IMAGE_WIDTH = 560;
-const MAX_IMAGE_HEIGHT = 620;
+/** Body text: 12pt, matching the example document's default. */
+const BODY_SIZE = 24;
+/** Blue used for the services paragraph in the example. */
+const SERVICES_BLUE = "0070C0";
 
-function body(text: string, opts: { bold?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}): Paragraph {
+// Photo cell in the entry table is 4892 twips wide with a 200 twip gutter;
+// at 15 twips/px that gives ~312px of usable width. Height cap matches the
+// example's portrait photos (~342px).
+const ENTRY_IMAGE_MAX_WIDTH = 310;
+const ENTRY_IMAGE_MAX_HEIGHT = 342;
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function assetRun(asset: EmbeddedAsset, width?: number, height?: number): ImageRun {
+  return new ImageRun({
+    data: base64ToBytes(asset.base64),
+    type: asset.type,
+    transformation: {
+      width: width ?? asset.width,
+      height: height ?? asset.height
+    }
+  });
+}
+
+function body(
+  text: string,
+  opts: {
+    bold?: boolean;
+    color?: string;
+    align?: (typeof AlignmentType)[keyof typeof AlignmentType];
+  } = {}
+): Paragraph {
   return new Paragraph({
-    alignment: opts.align ?? AlignmentType.JUSTIFIED,
+    alignment: opts.align ?? AlignmentType.LEFT,
     spacing: { after: 160 },
-    children: [new TextRun({ text, bold: opts.bold, font: FONT, size: 22 })]
+    children: [
+      new TextRun({
+        text,
+        bold: opts.bold,
+        color: opts.color,
+        font: FONT,
+        size: BODY_SIZE
+      })
+    ]
   });
 }
 
@@ -80,49 +138,183 @@ function bulletParagraphs(text: string): Paragraph[] {
   return parts.map(
     (t, i) =>
       new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
+        alignment: AlignmentType.LEFT,
         spacing: { after: i === parts.length - 1 ? 200 : 80 },
         indent: { left: 360, hanging: i === 0 ? 360 : 0 },
         children: [
           new TextRun({
             text: (i === 0 ? "•    " : "") + t.trim(),
             font: FONT,
-            size: 22
+            size: BODY_SIZE
           })
         ]
       })
   );
 }
 
-function imageParagraph(img: DocImage): Paragraph {
-  const scale = Math.min(
-    1,
-    MAX_IMAGE_WIDTH / img.width,
-    MAX_IMAGE_HEIGHT / img.height
-  );
-  const width = Math.round(img.width * scale);
-  const height = Math.round(img.height * scale);
+/** Thin paragraph carrying a horizontal rule (as in the example hdr/ftr). */
+function ruleParagraph(): Paragraph {
   return new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { before: 120, after: 120 },
+    border: {
+      bottom: { style: BorderStyle.SINGLE, size: 6, space: 1 }
+    },
+    children: [new TextRun({ text: "", size: 10 })]
+  });
+}
+
+function headerLabelCell(text: string, width: number): TableCell {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
     children: [
-      new ImageRun({
-        data: img.bytes,
-        type: img.type,
-        transformation: { width, height }
+      new Paragraph({
+        children: [new TextRun({ text, bold: true, font: FONT, size: BODY_SIZE })]
+      })
+    ]
+  });
+}
+
+function headerValueCell(text: string, width: number): TableCell {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    children: [
+      new Paragraph({
+        children: [new TextRun({ text, font: FONT, size: BODY_SIZE })]
+      })
+    ]
+  });
+}
+
+/**
+ * Page header: logo on the left, then a grid of report details, with a rule
+ * underneath - replicating the example document's header table.
+ */
+function pageHeader(meta: ReportMetadata, itemCount: number): Header {
+  const widths = [1540, 1219, 3053, 994, 2854];
+  const rows: Array<[string, string, string, string]> = [
+    ["Created:", meta.surveyDate, "Contact:", meta.contactName],
+    ["Location:", meta.propertyAddress, "Company:", meta.companyName],
+    ["Title:", "Damp Survey Report", "Phone:", meta.phone],
+    ["No. Items:", String(itemCount), "Email:", meta.email]
+  ];
+  const tableRows = rows.map(
+    (cells, i) =>
+      new TableRow({
+        children: [
+          ...(i === 0
+            ? [
+                new TableCell({
+                  width: { size: widths[0], type: WidthType.DXA },
+                  rowSpan: rows.length,
+                  verticalAlign: VerticalAlign.TOP,
+                  margins: { top: 0, left: 0, bottom: 0, right: 100 },
+                  children: [
+                    new Paragraph({ children: [assetRun(HEADER_LOGO)] })
+                  ]
+                })
+              ]
+            : []),
+          headerLabelCell(cells[0], widths[1]),
+          headerValueCell(cells[1], widths[2]),
+          headerLabelCell(cells[2], widths[3]),
+          headerValueCell(cells[3], widths[4])
+        ]
+      })
+  );
+  return new Header({
+    children: [
+      new Table({
+        borders: TableBorders.NONE,
+        width: { size: 9660, type: WidthType.DXA },
+        columnWidths: widths,
+        rows: tableRows
+      }),
+      ruleParagraph()
+    ]
+  });
+}
+
+/**
+ * Page footer: rule on top, then logo left and "Doc. Id." / "page N of M"
+ * on the right - replicating the example document's footer.
+ */
+function pageFooter(meta: ReportMetadata): Footer {
+  const rightLines: Paragraph[] = [];
+  if (meta.docId.trim()) {
+    rightLines.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [
+          new TextRun({
+            text: `Doc. Id.: ${meta.docId.trim()}`,
+            font: FONT,
+            size: BODY_SIZE
+          })
+        ]
+      })
+    );
+  }
+  rightLines.push(
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      children: [
+        new TextRun({
+          children: ["page ", PageNumber.CURRENT, " of ", PageNumber.TOTAL_PAGES],
+          font: FONT,
+          size: BODY_SIZE
+        })
+      ]
+    })
+  );
+  return new Footer({
+    children: [
+      ruleParagraph(),
+      new Table({
+        borders: TableBorders.NONE,
+        width: { size: 9660, type: WidthType.DXA },
+        columnWidths: [1926, 4845, 2889],
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 1926, type: WidthType.DXA },
+                margins: { top: 0, left: 0, bottom: 0, right: 100 },
+                children: [new Paragraph({ children: [assetRun(FOOTER_LOGO)] })]
+              }),
+              new TableCell({
+                width: { size: 4845, type: WidthType.DXA },
+                children: [new Paragraph({ children: [] })]
+              }),
+              new TableCell({
+                width: { size: 2889, type: WidthType.DXA },
+                children: rightLines
+              })
+            ]
+          })
+        ]
       })
     ]
   });
 }
 
 function coverPage(meta: ReportMetadata): Paragraph[] {
+  // Content width is 9660 twips = 644px; the example's cover logo fills it.
+  const logoWidth = 644;
+  const logoHeight = Math.round(
+    (COVER_LOGO.height / COVER_LOGO.width) * logoWidth
+  );
   return [
-    new Paragraph({ spacing: { after: 2000 }, children: [] }),
-    centered("Damp Survey Report", 72),
-    new Paragraph({ spacing: { after: 800 }, children: [] }),
+    new Paragraph({ spacing: { after: 1200 }, children: [] }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 400 },
+      children: [assetRun(COVER_LOGO, logoWidth, logoHeight)]
+    }),
+    new Paragraph({ spacing: { after: 400 }, children: [] }),
+    centered("Damp Survey Report", 48),
+    new Paragraph({ spacing: { after: 600 }, children: [] }),
     centered(`Property Address: ${meta.propertyAddress}`, 32, true),
     meta.surveyDate ? centered(`Survey date: ${meta.surveyDate}`, 26, false) : null,
-    new Paragraph({ spacing: { after: 1600 }, children: [] }),
+    new Paragraph({ spacing: { after: 1200 }, children: [] }),
     centered(meta.website, 28, false),
     pageBreak()
   ].filter((p): p is Paragraph => p !== null);
@@ -131,7 +323,7 @@ function coverPage(meta: ReportMetadata): Paragraph[] {
 function contentsPage(): Paragraph[] {
   const out: Paragraph[] = [heading("CONTENTS", 36)];
   for (const s of CONTENTS_SECTIONS) {
-    out.push(body(s.title, { bold: true, align: AlignmentType.LEFT }));
+    out.push(body(s.title, { bold: true }));
     out.push(body(s.blurb));
   }
   out.push(pageBreak());
@@ -156,51 +348,134 @@ function introductionPage(meta: ReportMetadata): Paragraph[] {
     ["Weather Conditions During Survey:", INTRO_BLOCKS.weather]
   ];
   for (const [label, template] of blocks) {
-    out.push(body(label, { bold: true, align: AlignmentType.LEFT }));
+    out.push(body(label, { bold: true }));
     out.push(body(fillPlaceholders(template, values)));
   }
   out.push(pageBreak());
   return out;
 }
 
-function photoSections(
-  sections: SectionState[],
-  images: Map<number, DocImage>
-): Paragraph[] {
-  const out: Paragraph[] = [heading("INSPECTION DETAILS, OBSERVATIONS & FINDINGS", 32)];
-  for (const s of sections) {
-    out.push(
-      new Paragraph({
-        spacing: { before: 240, after: 60 },
+/** The nested "Created: <date>" mini-table in an entry's text column. */
+function createdTable(created: string): Table {
+  return new Table({
+    borders: TableBorders.NONE,
+    columnWidths: [1534, 2772],
+    rows: [
+      new TableRow({
         children: [
-          new TextRun({ text: `(${s.entry.number})`, bold: true, font: FONT, size: 24 })
+          new TableCell({
+            width: { size: 1534, type: WidthType.DXA },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "Created:",
+                    bold: true,
+                    font: FONT,
+                    size: BODY_SIZE
+                  })
+                ]
+              })
+            ]
+          }),
+          new TableCell({
+            width: { size: 2772, type: WidthType.DXA },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: created, font: FONT, size: BODY_SIZE })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  });
+}
+
+/**
+ * One photo entry as a borderless three-column table, matching the example:
+ * "(N)" | photo | Created-date + descriptive text.
+ */
+function entryTable(s: SectionState, img: DocImage | undefined): Table {
+  const numberCell = new TableCell({
+    width: { size: 462, type: WidthType.DXA },
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ text: `(${s.entry.number})`, font: FONT, size: 18 })
+        ]
+      })
+    ]
+  });
+
+  const imageChildren: Paragraph[] = [];
+  if (img) {
+    const scale = Math.min(
+      1,
+      ENTRY_IMAGE_MAX_WIDTH / img.width,
+      ENTRY_IMAGE_MAX_HEIGHT / img.height
+    );
+    imageChildren.push(
+      new Paragraph({
+        children: [
+          new ImageRun({
+            data: img.bytes,
+            type: img.type,
+            transformation: {
+              width: Math.round(img.width * scale),
+              height: Math.round(img.height * scale)
+            }
+          })
         ]
       })
     );
-    const img = images.get(s.entry.number);
-    if (img) out.push(imageParagraph(img));
-    if (s.entry.created) {
-      out.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 120 },
-          children: [
-            new TextRun({
-              text: `Created: ${s.entry.created}`,
-              italics: true,
-              font: FONT,
-              size: 18
-            })
-          ]
-        })
-      );
-    }
-    if (s.headingLine) {
-      out.push(body(s.headingLine, { bold: true, align: AlignmentType.LEFT }));
-    }
-    if (s.text.trim().length > 0) {
-      out.push(...multiParagraph(s.text));
-    }
+  } else {
+    imageChildren.push(new Paragraph({ children: [] }));
+  }
+  const imageCell = new TableCell({
+    width: { size: 4892, type: WidthType.DXA },
+    margins: { top: 0, left: 0, bottom: 0, right: 200 },
+    children: imageChildren
+  });
+
+  const textChildren: Array<Paragraph | Table> = [];
+  if (s.entry.created) textChildren.push(createdTable(s.entry.created));
+  textChildren.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
+  if (s.headingLine) textChildren.push(body(s.headingLine, { bold: true }));
+  if (s.text.trim().length > 0) textChildren.push(...multiParagraph(s.text));
+  if (textChildren.length === 1) textChildren.push(body(""));
+  const textCell = new TableCell({
+    width: { size: 4306, type: WidthType.DXA },
+    verticalAlign: VerticalAlign.TOP,
+    children: textChildren
+  });
+
+  return new Table({
+    borders: TableBorders.NONE,
+    width: { size: 9660, type: WidthType.DXA },
+    columnWidths: [462, 4892, 4306],
+    rows: [
+      new TableRow({
+        cantSplit: true,
+        children: [numberCell, imageCell, textCell]
+      })
+    ]
+  });
+}
+
+function photoSections(
+  sections: SectionState[],
+  images: Map<number, DocImage>
+): Array<Paragraph | Table> {
+  const out: Array<Paragraph | Table> = [
+    heading("INSPECTION DETAILS, OBSERVATIONS & FINDINGS", 32)
+  ];
+  for (const s of sections) {
+    out.push(entryTable(s, images.get(s.entry.number)));
+    out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
   }
   return out;
 }
@@ -218,7 +493,7 @@ function dampTypePages(extras: ReportExtras): Paragraph[] {
     if (!dt) continue;
     out.push(heading(dt.title, 30));
     for (const p of dt.paragraphs) out.push(body(p));
-    out.push(centered(dt.flagLine, 24, true));
+    out.push(centered(dt.flagLine, BODY_SIZE, true));
   }
   if (out.length > 0) out.unshift(pageBreak());
   return out;
@@ -250,7 +525,7 @@ function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
   out.push(heading(PROJECT_PLAN_HEADING, 26));
   if (extras.projectPlanLines.trim()) {
     for (const line of extras.projectPlanLines.split(/\n+/)) {
-      if (line.trim()) out.push(body(line.trim(), { align: AlignmentType.LEFT }));
+      if (line.trim()) out.push(body(line.trim()));
     }
   }
 
@@ -267,39 +542,40 @@ function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
     else total += n;
   }
   if (extras.costLines.length > 0) {
-    out.push(
-      body(allNumeric ? `Total: £${total} + VAT` : "Total: £", {
-        bold: true,
-        align: AlignmentType.LEFT
-      })
-    );
+    out.push(body(allNumeric ? `Total: £${total} + VAT` : "Total: £", { bold: true }));
   }
-  out.push(body(COST_FOOTNOTES.vatNote, { align: AlignmentType.LEFT }));
+  out.push(body(COST_FOOTNOTES.vatNote));
   if (extras.surveyDiscount.trim()) {
     out.push(
-      body(`• -£${extras.surveyDiscount.trim()} Cost for survey if damp proofing work is completed`, {
-        align: AlignmentType.LEFT
-      })
+      body(`• -£${extras.surveyDiscount.trim()} Cost for survey if damp proofing work is completed`)
     );
   }
   if (extras.timeEstimate.trim()) {
     out.push(
-      body(`Time to complete the job estimated between ${extras.timeEstimate.trim()}`, {
-        align: AlignmentType.LEFT
-      })
+      body(`Time to complete the job estimated between ${extras.timeEstimate.trim()}`)
     );
   }
-  out.push(body(COST_FOOTNOTES.skirtingNote));
-  out.push(body(COST_FOOTNOTES.financeNote, { bold: true, align: AlignmentType.LEFT }));
-  out.push(body(COST_FOOTNOTES.contactNote, { align: AlignmentType.LEFT }));
-  out.push(body(SERVICES_FULL));
+  // Bold in the example document.
+  out.push(body(COST_FOOTNOTES.skirtingNote, { bold: true }));
+  // Finance: plain text line followed by the centred finance graphic.
+  out.push(body(COST_FOOTNOTES.financeNote));
+  out.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120, after: 200 },
+      children: [assetRun(FINANCE_IMAGE)]
+    })
+  );
+  // Blue in the example document.
+  out.push(body(SERVICES_FULL, { color: SERVICES_BLUE }));
+  out.push(body(COST_FOOTNOTES.contactNote));
   return out;
 }
 
 function limitationsPages(): Paragraph[] {
   const out: Paragraph[] = [pageBreak(), heading(LIMITATIONS_TITLE, 30)];
   for (const l of library.limitations) {
-    out.push(body(l.heading, { bold: true, align: AlignmentType.LEFT }));
+    out.push(body(l.heading, { bold: true }));
     out.push(body(l.text));
   }
   return out;
@@ -307,7 +583,7 @@ function limitationsPages(): Paragraph[] {
 
 export function buildReportDocument(input: ReportInput): Document {
   const { sections, metadata, extras, images } = input;
-  const children: Paragraph[] = [
+  const children: Array<Paragraph | Table> = [
     ...coverPage(metadata),
     ...contentsPage(),
     ...introductionPage(metadata),
@@ -321,17 +597,29 @@ export function buildReportDocument(input: ReportInput): Document {
   return new Document({
     styles: {
       default: {
-        document: { run: { font: FONT, size: 22 } }
+        document: { run: { font: FONT, size: BODY_SIZE } }
       }
     },
     sections: [
       {
         properties: {
+          // Matches the example document: A4, its margins, and a title page
+          // so the cover shows no header/footer.
           page: {
-            size: { width: 11906, height: 16838 }, // A4 in twips
-            margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }
-          }
+            size: { width: 11900, height: 16840 },
+            margin: {
+              top: 840,
+              right: 1120,
+              bottom: 360,
+              left: 1120,
+              header: 708,
+              footer: 708
+            }
+          },
+          titlePage: true
         },
+        headers: { default: pageHeader(metadata, sections.length) },
+        footers: { default: pageFooter(metadata) },
         children
       }
     ]

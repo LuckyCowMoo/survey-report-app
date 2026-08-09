@@ -6,6 +6,8 @@ export interface AppSettings {
   companyName: string;
   website: string;
   surveyorName: string;
+  phone: string;
+  email: string;
 }
 
 export const DEFAULT_MODEL = "claude-sonnet-5";
@@ -18,7 +20,9 @@ export function loadSettings(): AppSettings {
     model: DEFAULT_MODEL,
     companyName: "DampMaster",
     website: "www.dampmaster.com",
-    surveyorName: ""
+    surveyorName: "David Reed",
+    phone: "07399 364953",
+    email: "d.reed@dampmaster.com"
   };
   try {
     const raw = localStorage.getItem(KEY);

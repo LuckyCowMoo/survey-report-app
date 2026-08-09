@@ -26,7 +26,11 @@ function defaultMetadata(settings: AppSettings): ReportMetadata {
     }),
     weatherDesc: "dry conditions",
     temperature: "",
-    skyDesc: "intermittent cloud cover"
+    skyDesc: "intermittent cloud cover",
+    contactName: settings.surveyorName,
+    phone: settings.phone,
+    email: settings.email,
+    docId: ""
   };
 }
 
@@ -63,7 +67,10 @@ export default function App() {
     setMetadata((m) => ({
       ...m,
       companyName: next.companyName,
-      website: next.website
+      website: next.website,
+      contactName: next.surveyorName,
+      phone: next.phone,
+      email: next.email
     }));
     setShowSettings(false);
   }, []);

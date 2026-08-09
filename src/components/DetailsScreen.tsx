@@ -117,6 +117,15 @@ export default function DetailsScreen({
             onChange={(e) => setMeta("surveyDate", e.target.value)}
           />
         </label>
+        <label className="field">
+          <span>Document id (footer, optional)</span>
+          <input
+            type="text"
+            value={metadata.docId}
+            placeholder="112.1"
+            onChange={(e) => setMeta("docId", e.target.value)}
+          />
+        </label>
         <div className="field-row">
           <label className="field">
             <span>Weather</span>

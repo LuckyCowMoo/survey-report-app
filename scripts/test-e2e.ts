@@ -61,7 +61,11 @@ const metadata: ReportMetadata = {
   surveyDate: "6 August 2026",
   weatherDesc: "dry conditions",
   temperature: "18",
-  skyDesc: "intermittent cloud cover"
+  skyDesc: "intermittent cloud cover",
+  contactName: "David Reed",
+  phone: "07399 364953",
+  email: "d.reed@dampmaster.com",
+  docId: "112.1"
 };
 
 const extras: ReportExtras = {
@@ -115,11 +119,63 @@ for (const needle of mustContain) {
     failed++;
   }
 }
-const imageCount = Object.keys(zip.files).filter(
+// Layout checks: blue services paragraph, bold skirting note, entry tables.
+if (!/<w:color w:val="0070C0"\/>/.test(xml)) {
+  console.error("MISSING: blue (0070C0) services paragraph");
+  failed++;
+}
+const skirtIdx = xml.indexOf("new skirting boards");
+const skirtChunk = xml.slice(xml.lastIndexOf("<w:p>", skirtIdx), skirtIdx);
+if (!skirtChunk.includes("<w:b/>")) {
+  console.error("MISSING: bold formatting on the skirting-boards note");
+  failed++;
+}
+if (!xml.includes("<w:tbl>")) {
+  console.error("MISSING: entry layout tables");
+  failed++;
+}
+
+// Header/footer present and populated.
+const files = Object.keys(zip.files);
+const headerFile = files.find((f) => /word\/header\d+\.xml/.test(f));
+const footerFile = files.find((f) => /word\/footer\d+\.xml/.test(f));
+if (!headerFile || !footerFile) {
+  console.error("MISSING: header/footer parts in the package");
+  failed++;
+} else {
+  const headerXml = await zip.file(headerFile)!.async("string");
+  const footerXml = await zip.file(footerFile)!.async("string");
+  for (const needle of ["Created:", "Contact:", "Company:", "Phone:", "Email:", "No. Items:"]) {
+    if (!headerXml.includes(needle)) {
+      console.error(`MISSING from header: ${JSON.stringify(needle)}`);
+      failed++;
+    }
+  }
+  if (!headerXml.includes("<w:drawing>")) {
+    console.error("MISSING: logo image in header");
+    failed++;
+  }
+  if (!footerXml.includes("NUMPAGES") || !footerXml.includes("Doc. Id.: 112.1")) {
+    console.error("MISSING: page numbering / doc id in footer");
+    failed++;
+  }
+  if (!footerXml.includes("<w:drawing>")) {
+    console.error("MISSING: logo image in footer");
+    failed++;
+  }
+}
+if (!xml.includes("<w:titlePg/>")) {
+  console.error("MISSING: title-page flag (cover should have no header/footer)");
+  failed++;
+}
+
+// Photos + cover logo + finance graphic + header logo + footer logo.
+const expectedImages = images.size + 4;
+const imageCount = files.filter(
   (f) => f.startsWith("word/media/") && !zip.files[f].dir
 ).length;
-console.log(`Embedded images in output: ${imageCount} (expected ${images.size})`);
-if (failed === 0 && imageCount === images.size) {
+console.log(`Embedded images in output: ${imageCount} (expected ${expectedImages})`);
+if (failed === 0 && imageCount === expectedImages) {
   console.log("E2E CHECK PASSED");
 } else {
   console.error("E2E CHECK FAILED");

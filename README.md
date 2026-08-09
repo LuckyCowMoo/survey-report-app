@@ -34,10 +34,13 @@ from the Files app. The app:
 | `src/lib/imageUtils.ts` | Image compression / dimension handling |
 | `src/data/content-library.json` | Curated standard wording (from the template doc) |
 | `src/data/boilerplate.ts` | Fixed report scaffolding text |
+| `src/data/assets.ts` | Embedded branding (logos, finance graphic) - regenerate with `scripts/embed-assets.mjs` |
 | `src/components/` | The review/details/generate UI |
 | `scripts/extract-library.mjs` | Re-extracts raw paragraphs from a template `.docx` |
+| `scripts/embed-assets.mjs` | Re-extracts branding images from the example `.docx` |
 | `scripts/test-parse.ts` | Parses a sample shorthand file and prints the result |
 | `scripts/test-e2e.ts` | Full pipeline test: shorthand in, report out |
+| `scripts/verify-output.ts` | Structural check of a generated report `.docx` |
 | `samples/` | Local test documents (gitignored - client data) |
 
 ## Development (Windows, no Mac needed)
@@ -95,6 +98,10 @@ To let the AI resolve them (it reads the photos too):
 
 Without a key everything still works - flagged sections are simply edited by
 hand or via the standard-wording picker.
+
+Settings also holds the company details (name, website, surveyor/contact
+name, phone, email) that appear on the cover page and in the header printed
+on every page of the report.
 
 ## Updating the standard wording
 
