@@ -1,5 +1,5 @@
 /**
- * Direct-from-browser Claude client.
+ * Direct-from-browser AI client (Claude or Gemini, chosen in Settings).
  *
  * Only sections the rule-based matcher could not confidently resolve are sent
  * here. Each call includes the photo (downscaled), the surveyor's note, the
@@ -8,9 +8,11 @@
  */
 import { library, renderLibraryText } from "./matcher";
 import { imageToAiBase64 } from "./imageUtils";
+import type { AiProvider } from "./settings";
 import type { SectionState } from "../types";
 
-const API_URL = "https://api.anthropic.com/v1/messages";
+const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export interface AiResolution {
   action: "library" | "bespoke" | "crossref" | "skip";
@@ -86,7 +88,7 @@ async function callClaude(
   }
   content.push({ type: "text", text: userText });
 
-  const res = await fetch(API_URL, {
+  const res = await fetch(CLAUDE_API_URL, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -118,6 +120,60 @@ async function callClaude(
   return data.content.find((b) => b.type === "text")?.text ?? "";
 }
 
+async function callGemini(
+  apiKey: string,
+  model: string,
+  imageB64: string | null,
+  userText: string
+): Promise<string> {
+  const parts: unknown[] = [];
+  if (imageB64) {
+    parts.push({ inlineData: { mimeType: "image/jpeg", data: imageB64 } });
+  }
+  parts.push({ text: userText });
+
+  const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        maxOutputTokens: 1200,
+        responseMimeType: "application/json"
+      }
+    })
+  });
+
+  if (!res.ok) {
+    let detail = `${res.status}`;
+    try {
+      const err = (await res.json()) as { error?: { message?: string } };
+      if (err.error?.message) detail = `${res.status}: ${err.error.message}`;
+    } catch {
+      /* keep status only */
+    }
+    throw new Error(`Gemini API error ${detail}`);
+  }
+  const data = (await res.json()) as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+      finishReason?: string;
+    }>;
+    promptFeedback?: { blockReason?: string };
+  };
+  if (data.promptFeedback?.blockReason) {
+    throw new Error(`Gemini blocked the request (${data.promptFeedback.blockReason}).`);
+  }
+  const text = (data.candidates?.[0]?.content?.parts ?? [])
+    .map((p) => p.text ?? "")
+    .join("");
+  return text;
+}
+
 function parseResolution(raw: string): AiResolution | null {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
@@ -139,10 +195,12 @@ export function applyResolution(
   const next = { ...section };
   if (r.headingLine) next.headingLine = r.headingLine;
   if (r.action === "library" && r.libraryId) {
+    // Still credited to AI: the model chose (and filled) this paragraph.
+    // "library" as a source is reserved for the matcher / manual picker.
     next.libraryId = r.libraryId;
     next.placeholderValues = r.placeholderValues ?? {};
     next.text = renderLibraryText(r.libraryId, next.placeholderValues);
-    next.source = "library";
+    next.source = "ai";
     next.needsAttention = false;
   } else if (r.action === "bespoke" && r.text) {
     next.libraryId = null;
@@ -159,15 +217,20 @@ export function applyResolution(
   return next;
 }
 
+export interface AiConfig {
+  provider: AiProvider;
+  apiKey: string;
+  model: string;
+}
+
 /**
- * Resolve one section with Claude. Returns the updated section.
- * Throws on network/API errors so the caller can surface them.
+ * Resolve one section with the configured AI provider. Returns the updated
+ * section. Throws on network/API errors so the caller can surface them.
  */
 export async function resolveSectionWithAi(
   sections: SectionState[],
   index: number,
-  apiKey: string,
-  model: string
+  ai: AiConfig
 ): Promise<SectionState> {
   const section = sections[index];
   const entry = section.entry;
@@ -190,10 +253,16 @@ export async function resolveSectionWithAi(
     earlierSectionsBlock(sections, index)
   ].filter(Boolean);
 
-  const raw = await callClaude(apiKey, model, imageB64, parts.join("\n"));
+  const userText = parts.join("\n");
+  const raw =
+    ai.provider === "gemini"
+      ? await callGemini(ai.apiKey, ai.model, imageB64, userText)
+      : await callClaude(ai.apiKey, ai.model, imageB64, userText);
   const resolution = parseResolution(raw);
   if (!resolution) {
-    throw new Error(`Claude returned an unexpected response for section ${entry.number}.`);
+    throw new Error(
+      `${ai.provider === "gemini" ? "Gemini" : "Claude"} returned an unexpected response for section ${entry.number}.`
+    );
   }
   return applyResolution(section, resolution);
 }

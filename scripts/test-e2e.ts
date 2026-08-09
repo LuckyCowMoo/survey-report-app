@@ -76,6 +76,7 @@ const extras: ReportExtras = {
     {
       id: "1",
       itemId: "cost-strip-walls",
+      label: "Strip walls back to substrate",
       description:
         "The first stage of the damp proofing process involves stripping back the walls to the original brick or substrate by removing all existing plaster and render to the required height.",
       amount: "575"
@@ -83,6 +84,7 @@ const extras: ReportExtras = {
     {
       id: "2",
       itemId: "cost-piv-unit",
+      label: "PIV units",
       description: "The supply and fitting of Positive Input Ventilation (PIV) units in the property.",
       amount: "1350"
     }
@@ -93,7 +95,8 @@ const extras: ReportExtras = {
 
 const bytes = await generateReportBuffer({ sections, metadata, extras, images });
 fs.mkdirSync(outDir, { recursive: true });
-const outFile = path.join(outDir, "report.docx");
+// Optional second arg: output file name (useful when report.docx is open in Word).
+const outFile = path.join(outDir, process.argv[3] ?? "report.docx");
 fs.writeFileSync(outFile, bytes);
 console.log(`\nGenerated ${outFile} (${(bytes.length / 1024 / 1024).toFixed(2)} MB)`);
 

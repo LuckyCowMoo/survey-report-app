@@ -8,6 +8,7 @@ interface Props {
   flaggedCount: number;
   aiConfigured: boolean;
   busy: boolean;
+  busySectionIndex: number | null;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
   onAskAiAll: () => void;
@@ -20,6 +21,7 @@ export default function ReviewScreen({
   flaggedCount,
   aiConfigured,
   busy,
+  busySectionIndex,
   onChange,
   onAskAi,
   onAskAiAll,
@@ -83,6 +85,7 @@ export default function ReviewScreen({
           sectionNumbers={sectionNumbers}
           aiConfigured={aiConfigured}
           busy={busy}
+          aiWorking={busySectionIndex === i}
           onChange={onChange}
           onAskAi={onAskAi}
         />

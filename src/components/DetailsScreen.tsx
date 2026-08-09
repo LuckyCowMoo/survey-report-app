@@ -55,11 +55,17 @@ export default function DetailsScreen({
     const line: CostLine = {
       id: `cost-${costIdCounter++}`,
       itemId: item?.id ?? "custom",
+      label: item?.label ?? "Custom item",
       description: item?.text ?? "",
       amount: ""
     };
     onExtras({ ...extras, costLines: [...extras.costLines, line] });
   };
+
+  const costLineLabel = (line: CostLine) =>
+    line.label ||
+    library.costItems.find((c) => c.id === line.itemId)?.label ||
+    (line.itemId === "custom" ? "Custom item" : "Cost item");
 
   const updateCostLine = (id: string, patch: Partial<CostLine>) =>
     onExtras({
@@ -96,6 +102,33 @@ export default function DetailsScreen({
             onChange={(e) => setMeta("clientName", e.target.value)}
           />
         </label>
+        <label className="field">
+          <span>Contact (page header)</span>
+          <input
+            type="text"
+            value={metadata.contactName}
+            placeholder="Property / client contact"
+            onChange={(e) => setMeta("contactName", e.target.value)}
+          />
+        </label>
+        <div className="field-row">
+          <label className="field">
+            <span>Phone (page header)</span>
+            <input
+              type="tel"
+              value={metadata.phone}
+              onChange={(e) => setMeta("phone", e.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>Email (page header)</span>
+            <input
+              type="email"
+              value={metadata.email}
+              onChange={(e) => setMeta("email", e.target.value)}
+            />
+          </label>
+        </div>
         <label className="field">
           <span>Property type</span>
           <select
@@ -227,6 +260,7 @@ export default function DetailsScreen({
 
         {extras.costLines.map((line) => (
           <div key={line.id} className="cost-line">
+            <div className="cost-line-label">{costLineLabel(line)}</div>
             <textarea
               rows={3}
               value={line.description}

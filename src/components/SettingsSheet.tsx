@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { DEFAULT_MODEL, type AppSettings } from "../lib/settings";
+import {
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_MODEL,
+  type AppSettings
+} from "../lib/settings";
+import ThemePicker from "./ThemeToggle";
 
 interface Props {
   settings: AppSettings;
@@ -18,30 +23,76 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <h2>Settings</h2>
 
+        <ThemePicker />
+
         <label className="field">
-          <span>Claude API key</span>
-          <input
-            type="password"
-            value={draft.apiKey}
-            placeholder="sk-ant-..."
-            autoComplete="off"
-            onChange={(e) => set("apiKey", e.target.value.trim())}
-          />
+          <span>AI service</span>
+          <select
+            value={draft.provider}
+            onChange={(e) => set("provider", e.target.value as AppSettings["provider"])}
+          >
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="gemini">Gemini (Google)</option>
+          </select>
           <small>
-            Used only for sections the app cannot match automatically. Stored
-            on this device only.
+            Used only for sections the app cannot match automatically. The key
+            is stored on this device only.
           </small>
         </label>
 
-        <label className="field">
-          <span>Claude model</span>
-          <input
-            type="text"
-            value={draft.model}
-            placeholder={DEFAULT_MODEL}
-            onChange={(e) => set("model", e.target.value.trim() || DEFAULT_MODEL)}
-          />
-        </label>
+        {draft.provider === "claude" ? (
+          <>
+            <label className="field">
+              <span>Claude API key</span>
+              <input
+                type="password"
+                value={draft.apiKey}
+                placeholder="sk-ant-..."
+                autoComplete="off"
+                onChange={(e) => set("apiKey", e.target.value.trim())}
+              />
+            </label>
+
+            <label className="field">
+              <span>Claude model</span>
+              <input
+                type="text"
+                value={draft.model}
+                placeholder={DEFAULT_MODEL}
+                onChange={(e) => set("model", e.target.value.trim() || DEFAULT_MODEL)}
+              />
+            </label>
+          </>
+        ) : (
+          <>
+            <label className="field">
+              <span>Gemini API key</span>
+              <input
+                type="password"
+                value={draft.geminiApiKey}
+                placeholder="AIza..."
+                autoComplete="off"
+                onChange={(e) => set("geminiApiKey", e.target.value.trim())}
+              />
+              <small>
+                Free to create at aistudio.google.com - handy for testing with
+                your own account.
+              </small>
+            </label>
+
+            <label className="field">
+              <span>Gemini model</span>
+              <input
+                type="text"
+                value={draft.geminiModel}
+                placeholder={DEFAULT_GEMINI_MODEL}
+                onChange={(e) =>
+                  set("geminiModel", e.target.value.trim() || DEFAULT_GEMINI_MODEL)
+                }
+              />
+            </label>
+          </>
+        )}
 
         <label className="field">
           <span>Company name</span>
@@ -58,33 +109,6 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
             type="text"
             value={draft.website}
             onChange={(e) => set("website", e.target.value)}
-          />
-        </label>
-
-        <label className="field">
-          <span>Surveyor name (header "Contact")</span>
-          <input
-            type="text"
-            value={draft.surveyorName}
-            onChange={(e) => set("surveyorName", e.target.value)}
-          />
-        </label>
-
-        <label className="field">
-          <span>Phone (shown in the page header)</span>
-          <input
-            type="tel"
-            value={draft.phone}
-            onChange={(e) => set("phone", e.target.value)}
-          />
-        </label>
-
-        <label className="field">
-          <span>Email (shown in the page header)</span>
-          <input
-            type="email"
-            value={draft.email}
-            onChange={(e) => set("email", e.target.value)}
           />
         </label>
 

@@ -85,23 +85,26 @@ Pages -> Source: GitHub Actions, then push to `main`.
    full-screen. After the first visit it also loads offline (AI calls need
    internet).
 
-## Claude API key
+## AI provider (Claude or Gemini)
 
 Sections the matcher can't confidently resolve are flagged "Needs attention".
-To let the AI resolve them (it reads the photos too):
+To let the AI resolve them (it reads the photos too), pick a provider in
+**Settings** and paste an API key. The key is stored only on the device
+(localStorage) and sent only to the chosen provider's API.
 
-1. Create an API key at <https://platform.claude.com/> (the client's own
-   account - usage costs pennies per report).
-2. In the app, open **Settings** and paste the key. It is stored only on the
-   device (localStorage) and sent only to `api.anthropic.com`.
-3. The model defaults to `claude-sonnet-5`; it can be changed in Settings.
+- **Claude (Anthropic)** - the intended production setup. Create a key at
+  <https://platform.claude.com/> (the client's own account - usage costs
+  pennies per report). Model defaults to `claude-sonnet-5`.
+- **Gemini (Google)** - useful for testing with your own account. Create a
+  free key at <https://aistudio.google.com/>. Model defaults to
+  `gemini-3.6-flash`. Calls go to `generativelanguage.googleapis.com`.
 
 Without a key everything still works - flagged sections are simply edited by
 hand or via the standard-wording picker.
 
-Settings also holds the company details (name, website, surveyor/contact
-name, phone, email) that appear on the cover page and in the header printed
-on every page of the report.
+Settings also holds the company name and website used on the cover page.
+Per-report contact details (Contact, Phone, Email) for the property/client
+are entered on the Report details screen and appear in the page header.
 
 ## Updating the standard wording
 

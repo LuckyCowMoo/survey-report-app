@@ -120,7 +120,12 @@ function specialRules(
   note: string,
   extracted: ExtractedValues
 ): { id: string; high: boolean } | null {
-  if (/\b999\b/.test(note)) return { id: "reading-999-saturation", high: true };
+  if (/\b999\b/.test(note)) {
+    if (/masonry|brick|mortar/.test(note)) {
+      return { id: "reading-999-resistance", high: true };
+    }
+    return { id: "reading-999-saturation", high: true };
+  }
   if (/\bbaseline\b/.test(note)) return { id: "baseline-reading", high: true };
   if (/\bdew point\b|\bdew\b/.test(note)) return { id: "dew-point", high: !!extracted.temperature };
   if (/\brh\b|humidity/.test(note)) {
@@ -133,6 +138,9 @@ function specialRules(
     return { id: "rh-high", high: false };
   }
   if (/\bair quality\b/.test(note)) {
+    if (/no issue|ok\b|fine\b|good\b|clear\b|pass/.test(note)) {
+      return { id: "air-quality-no-issues", high: true };
+    }
     return { id: "air-quality-high-humidity", high: false };
   }
   if (/\bpin(s)?\b|steel pin/.test(note)) {
@@ -145,7 +153,16 @@ function specialRules(
     return { id: "steel-pins-doorframe", high: false };
   }
   if (/infrared|laser/.test(note)) return { id: "infrared-detailed", high: false };
-  if (/thermal/.test(note)) return { id: "thermal-walls-damp", high: false };
+  if (/thermal/.test(note)) {
+    if (/ceiling|mould|mold/.test(note)) {
+      return { id: "thermal-ceiling-mould", high: true };
+    }
+    if (/heat loss|hallway/.test(note)) {
+      return { id: "thermal-heat-loss", high: true };
+    }
+    if (/wall/.test(note)) return { id: "thermal-walls-damp", high: true };
+    return { id: "thermal-walls-damp", high: false };
+  }
   // A bare measurement like "1.2m" refers to the three-readings pattern.
   if (/^\d+(\.\d+)?\s*(m|mm|cm|metres?|meters?)$/.test(note)) {
     return { id: "three-readings-heights", high: false };

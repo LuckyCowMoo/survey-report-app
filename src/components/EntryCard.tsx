@@ -10,6 +10,7 @@ interface Props {
   sectionNumbers: number[];
   aiConfigured: boolean;
   busy: boolean;
+  aiWorking: boolean;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
 }
@@ -31,7 +32,10 @@ function statusChip(s: SectionState): { label: string; cls: string } {
     case "library":
       return { label: "Standard wording", cls: "chip ok" };
     case "ai":
-      return { label: "AI written", cls: "chip ai" };
+      return {
+        label: s.libraryId ? "AI · standard wording" : "AI written",
+        cls: "chip ai"
+      };
     case "crossref":
       return { label: "Cross-reference", cls: "chip ref" };
     case "manual":
@@ -47,6 +51,7 @@ export default function EntryCard({
   sectionNumbers,
   aiConfigured,
   busy,
+  aiWorking,
   onChange,
   onAskAi
 }: Props) {
@@ -120,10 +125,20 @@ export default function EntryCard({
   };
 
   return (
-    <div className={`card ${section.needsAttention ? "attention" : ""}`}>
+    <div
+      className={`card${section.needsAttention ? " attention" : ""}${aiWorking ? " ai-working" : ""}`}
+      aria-busy={aiWorking}
+    >
       <div className="card-head">
         <span className="card-number">({section.entry.number})</span>
-        <span className={chip.cls}>{chip.label}</span>
+        {aiWorking ? (
+          <span className="chip ai writing">
+            <span className="ai-spinner" aria-hidden />
+            Writing…
+          </span>
+        ) : (
+          <span className={chip.cls}>{chip.label}</span>
+        )}
         {section.entry.created && (
           <span className="card-date">{section.entry.created}</span>
         )}
@@ -148,20 +163,32 @@ export default function EntryCard({
             type="text"
             placeholder="Optional heading (e.g. Reading 1)"
             value={section.headingLine}
+            disabled={aiWorking}
             onChange={(e) => onChange(index, { ...section, headingLine: e.target.value })}
           />
 
-          {section.source === "crossref" ? (
-            <p className="crossref-text">{section.text}</p>
-          ) : (
-            <textarea
-              className="section-text"
-              rows={6}
-              placeholder="Report text for this photo..."
-              value={section.text}
-              onChange={(e) => editText(e.target.value)}
-            />
-          )}
+          <div className="section-text-wrap">
+            {section.source === "crossref" ? (
+              <p className="crossref-text">{section.text}</p>
+            ) : (
+              <textarea
+                className="section-text"
+                rows={6}
+                placeholder="Report text for this photo..."
+                value={section.text}
+                disabled={aiWorking}
+                onChange={(e) => editText(e.target.value)}
+              />
+            )}
+            {aiWorking && (
+              <div className="ai-writing-overlay" aria-hidden>
+                <span className="ai-writing-pulse" />
+                <span className="ai-writing-pulse" />
+                <span className="ai-writing-pulse" />
+                <span className="ai-writing-label">Drafting section…</span>
+              </div>
+            )}
+          </div>
 
           {paragraph && paragraph.placeholders.length > 0 && (
             <div className="placeholders">
@@ -171,6 +198,7 @@ export default function EntryCard({
                   <input
                     type="text"
                     value={section.placeholderValues[ph.key] ?? ph.default}
+                    disabled={aiWorking}
                     onChange={(e) => setPlaceholder(ph.key, e.target.value)}
                   />
                 </label>
@@ -181,20 +209,28 @@ export default function EntryCard({
       </div>
 
       <div className="card-actions">
-        <button className="btn small" onClick={() => setShowPicker(true)}>
+        <button className="btn small" disabled={aiWorking} onClick={() => setShowPicker(true)}>
           Standard wording
         </button>
         <button
-          className="btn small"
+          className={`btn small${aiWorking ? " ai-busy" : ""}`}
           disabled={!aiConfigured || busy}
           title={aiConfigured ? "" : "Add your API key in Settings"}
           onClick={() => onAskAi(index)}
         >
-          Ask AI
+          {aiWorking ? (
+            <>
+              <span className="ai-spinner" aria-hidden />
+              Writing…
+            </>
+          ) : (
+            "Ask AI"
+          )}
         </button>
         <select
           className="crossref-select"
           value={section.crossrefSection ?? ""}
+          disabled={aiWorking}
           onChange={(e) => setCrossref(e.target.value)}
         >
           <option value="">Refer to section...</option>

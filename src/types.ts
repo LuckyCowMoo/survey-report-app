@@ -45,9 +45,11 @@ export interface ReportMetadata {
   weatherDesc: string;
   temperature: string;
   skyDesc: string;
-  /** Shown as "Contact:" in the page header. */
+  /** Property / client contact shown as "Contact:" in the page header. */
   contactName: string;
+  /** Property / client phone shown in the page header. */
   phone: string;
+  /** Property / client email shown in the page header. */
   email: string;
   /** Document id shown in the footer, e.g. "112.1". */
   docId: string;
@@ -57,6 +59,8 @@ export interface CostLine {
   id: string;
   /** Library cost item id, or "custom". */
   itemId: string;
+  /** Short label shown in the UI (matches the dropdown option). */
+  label: string;
   description: string;
   amount: string;
 }

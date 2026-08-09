@@ -4,10 +4,11 @@ import ReviewScreen from "./components/ReviewScreen";
 import DetailsScreen from "./components/DetailsScreen";
 import GenerateScreen from "./components/GenerateScreen";
 import SettingsSheet from "./components/SettingsSheet";
+import KeywordGuide from "./components/KeywordGuide";
 import { parseShorthandDocx } from "./lib/docxParser";
 import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
-import { loadSettings, saveSettings, type AppSettings } from "./lib/settings";
+import { activeAi, loadSettings, saveSettings, type AppSettings } from "./lib/settings";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
 type Step = "home" | "review" | "details" | "generate";
@@ -27,9 +28,9 @@ function defaultMetadata(settings: AppSettings): ReportMetadata {
     weatherDesc: "dry conditions",
     temperature: "",
     skyDesc: "intermittent cloud cover",
-    contactName: settings.surveyorName,
-    phone: settings.phone,
-    email: settings.email,
+    contactName: "",
+    phone: "",
+    email: "",
     docId: ""
   };
 }
@@ -46,6 +47,7 @@ const defaultExtras: ReportExtras = {
 export default function App() {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [step, setStep] = useState<Step>("home");
   const [sections, setSections] = useState<SectionState[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -54,6 +56,7 @@ export default function App() {
   );
   const [extras, setExtras] = useState<ReportExtras>(defaultExtras);
   const [busy, setBusy] = useState<string | null>(null);
+  const [busySectionIndex, setBusySectionIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const flaggedCount = useMemo(
@@ -67,10 +70,7 @@ export default function App() {
     setMetadata((m) => ({
       ...m,
       companyName: next.companyName,
-      website: next.website,
-      contactName: next.surveyorName,
-      phone: next.phone,
-      email: next.email
+      website: next.website
     }));
     setShowSettings(false);
   }, []);
@@ -109,33 +109,36 @@ export default function App() {
 
   const runAiForSection = useCallback(
     async (index: number) => {
-      if (!settings.apiKey) {
-        setError("Add your Claude API key in Settings first.");
+      const ai = activeAi(settings);
+      if (!ai.apiKey) {
+        setError(
+          `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
+        );
         setShowSettings(true);
         return;
       }
       setBusy(`Asking AI about section ${sections[index].entry.number}...`);
+      setBusySectionIndex(index);
       setError(null);
       try {
-        const resolved = await resolveSectionWithAi(
-          sections,
-          index,
-          settings.apiKey,
-          settings.model
-        );
+        const resolved = await resolveSectionWithAi(sections, index, ai);
         updateSection(index, resolved);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setBusy(null);
+        setBusySectionIndex(null);
       }
     },
     [sections, settings, updateSection]
   );
 
   const runAiForAllFlagged = useCallback(async () => {
-    if (!settings.apiKey) {
-      setError("Add your Claude API key in Settings first.");
+    const ai = activeAi(settings);
+    if (!ai.apiKey) {
+      setError(
+        `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
+      );
       setShowSettings(true);
       return;
     }
@@ -152,17 +155,14 @@ export default function App() {
       setBusy(
         `AI reviewing section ${current[index].entry.number} (${done}/${flagged.length})...`
       );
+      setBusySectionIndex(index);
       try {
-        const resolved = await resolveSectionWithAi(
-          current,
-          index,
-          settings.apiKey,
-          settings.model
-        );
+        const resolved = await resolveSectionWithAi(current, index, ai);
         current = current.map((s, i) => (i === index ? resolved : s));
         setSections(current);
       } catch (err) {
         setBusy(null);
+        setBusySectionIndex(null);
         setError(
           `${err instanceof Error ? err.message : String(err)} - stopped; earlier sections were kept.`
         );
@@ -170,6 +170,7 @@ export default function App() {
       }
     }
     setBusy(null);
+    setBusySectionIndex(null);
   }, [sections, settings]);
 
   const reset = useCallback(() => {
@@ -212,19 +213,29 @@ export default function App() {
           {error} <span className="banner-dismiss">(tap to dismiss)</span>
         </div>
       )}
-      {busy && <div className="banner busy">{busy}</div>}
+      {busy && (
+        <div className={`banner busy${busySectionIndex !== null ? " ai" : ""}`}>
+          {busySectionIndex !== null && <span className="ai-spinner" aria-hidden />}
+          {busy}
+        </div>
+      )}
 
       <main className="content">
         {step === "home" && (
-          <HomeScreen onFile={handleFile} busy={busy !== null} />
+          <HomeScreen
+            onFile={handleFile}
+            busy={busy !== null}
+            onShowGuide={() => setShowGuide(true)}
+          />
         )}
         {step === "review" && (
           <ReviewScreen
             sections={sections}
             warnings={warnings}
             flaggedCount={flaggedCount}
-            aiConfigured={settings.apiKey.length > 0}
+            aiConfigured={activeAi(settings).apiKey.length > 0}
             busy={busy !== null}
+            busySectionIndex={busySectionIndex}
             onChange={updateSection}
             onAskAi={runAiForSection}
             onAskAiAll={runAiForAllFlagged}
@@ -258,6 +269,8 @@ export default function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      {showGuide && <KeywordGuide onClose={() => setShowGuide(false)} />}
     </div>
   );
 }
