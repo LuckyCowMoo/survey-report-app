@@ -497,17 +497,28 @@ function dampTypePages(extras: ReportExtras): Paragraph[] {
     for (const p of dt.paragraphs) out.push(body(p));
     out.push(centered(dt.flagLine, BODY_SIZE, true));
   }
+  if (extras.dampIssues.other && extras.otherIssueText.trim()) {
+    out.push(heading("Other", 30));
+    for (const para of extras.otherIssueText.split(/\n+/)) {
+      if (para.trim()) out.push(body(para.trim()));
+    }
+    out.push(centered("Other is an issue in this property", BODY_SIZE, true));
+  }
   if (out.length > 0) out.unshift(pageBreak());
   return out;
 }
 
 function recommendationsPages(extras: ReportExtras): Paragraph[] {
-  if (extras.recommendationIds.length === 0) return [];
+  const otherText = extras.otherRecommendation
+    ? extras.otherRecommendationText.trim()
+    : "";
+  if (extras.recommendationIds.length === 0 && !otherText) return [];
   const out: Paragraph[] = [pageBreak(), heading("Recommendations", 32)];
   for (const id of extras.recommendationIds) {
     const rec = library.recommendations.find((r) => r.id === id);
     if (rec) out.push(...bulletParagraphs(rec.text));
   }
+  if (otherText) out.push(...bulletParagraphs(otherText));
   return out;
 }
 
@@ -517,7 +528,12 @@ function parseAmount(s: string): number | null {
 }
 
 function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
-  if (extras.costLines.length === 0 && extras.projectPlanLines.trim() === "") {
+  const otherCostText = extras.otherCost ? extras.otherCostDescription.trim() : "";
+  if (
+    extras.costLines.length === 0 &&
+    extras.projectPlanLines.trim() === "" &&
+    !otherCostText
+  ) {
     return [];
   }
   const out: Paragraph[] = [pageBreak()];
@@ -531,19 +547,27 @@ function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
     }
   }
 
+  const billable = [
+    ...extras.costLines.map((line) => ({
+      description: line.description.trim(),
+      amount: line.amount.trim()
+    })),
+    ...(otherCostText
+      ? [{ description: otherCostText, amount: extras.otherCostAmount.trim() }]
+      : [])
+  ].filter((line) => line.description);
+
   let total = 0;
-  let allNumeric = extras.costLines.length > 0;
-  for (const line of extras.costLines) {
-    const text = line.description.trim();
-    if (!text) continue;
-    const amount = line.amount.trim();
-    const merged = `${text} Cost: £${amount || ""}`;
+  let allNumeric = billable.length > 0;
+  for (const line of billable) {
+    const amount = line.amount;
+    const merged = `${line.description} Cost: £${amount || ""}`;
     out.push(...bulletParagraphs(merged));
     const n = parseAmount(amount);
     if (n === null) allNumeric = false;
     else total += n;
   }
-  if (extras.costLines.length > 0) {
+  if (billable.length > 0) {
     out.push(body(allNumeric ? `Total: £${total} + VAT` : "Total: £", { bold: true }));
   }
   out.push(body(COST_FOOTNOTES.vatNote));

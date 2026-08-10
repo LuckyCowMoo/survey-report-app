@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HomeScreen from "./components/HomeScreen";
 import ReviewScreen from "./components/ReviewScreen";
 import DetailsScreen from "./components/DetailsScreen";
@@ -41,10 +41,21 @@ function defaultMetadata(settings: AppSettings): ReportMetadata {
 }
 
 const defaultExtras: ReportExtras = {
-  dampIssues: { risingDamp: false, penetratingDamp: false, condensation: false },
+  dampIssues: {
+    risingDamp: false,
+    penetratingDamp: false,
+    condensation: false,
+    other: false
+  },
+  otherIssueText: "",
   recommendationIds: [],
+  otherRecommendation: false,
+  otherRecommendationText: "",
   projectPlanLines: "",
   costLines: [],
+  otherCost: false,
+  otherCostDescription: "",
+  otherCostAmount: "",
   surveyDiscount: "",
   timeEstimate: "5-7 days"
 };
@@ -68,11 +79,23 @@ export default function App() {
   const [busy, setBusy] = useState<string | null>(null);
   const [busySectionIndex, setBusySectionIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aiErrors, setAiErrors] = useState<Record<number, string>>({});
+  const [aiBatchRunning, setAiBatchRunning] = useState(false);
+  const aiBatchAbortRef = useRef<AbortController | null>(null);
 
   const flaggedCount = useMemo(
     () => sections.filter((s) => s.needsAttention).length,
     [sections]
   );
+
+  const aiErrorSectionNums = useMemo(() => {
+    const nums = new Set<number>();
+    for (const key of Object.keys(aiErrors)) {
+      const n = sections[Number(key)]?.entry.number;
+      if (n != null) nums.add(n);
+    }
+    return nums;
+  }, [aiErrors, sections]);
 
   const focusSection = useCallback((index: number) => {
     setFocusedSectionIndex(index);
@@ -101,6 +124,10 @@ export default function App() {
   const handleFile = useCallback(async (file: File) => {
     setBusy("Reading document...");
     setError(null);
+    setAiErrors({});
+    aiBatchAbortRef.current?.abort();
+    aiBatchAbortRef.current = null;
+    setAiBatchRunning(false);
     try {
       const data = await file.arrayBuffer();
       const parsed = await parseShorthandDocx(data);
@@ -144,12 +171,20 @@ export default function App() {
       }
       setBusy(`Asking AI about section ${sections[index].entry.number}...`);
       setBusySectionIndex(index);
-      setError(null);
+      setAiErrors((prev) => {
+        if (!(index in prev)) return prev;
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
       try {
         const resolved = await resolveSectionWithAi(sections, index, ai);
         updateSection(index, resolved);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setAiErrors((prev) => ({
+          ...prev,
+          [index]: err instanceof Error ? err.message : String(err)
+        }));
       } finally {
         setBusy(null);
         setBusySectionIndex(null);
@@ -167,7 +202,13 @@ export default function App() {
       setShowSettings(true);
       return;
     }
-    setError(null);
+
+    aiBatchAbortRef.current?.abort();
+    const ac = new AbortController();
+    aiBatchAbortRef.current = ac;
+    setAiBatchRunning(true);
+    setAiErrors({});
+
     // Work on a local copy so each resolution sees the previous results
     // (needed for cross-references), publishing progress as we go.
     let current = sections;
@@ -175,28 +216,48 @@ export default function App() {
       .map((s, i) => (s.needsAttention ? i : -1))
       .filter((i) => i >= 0);
     let done = 0;
-    for (const index of flagged) {
-      done += 1;
-      setBusy(
-        `AI reviewing section ${current[index].entry.number} (${done}/${flagged.length})...`
-      );
-      setBusySectionIndex(index);
-      try {
-        const resolved = await resolveSectionWithAi(current, index, ai);
-        current = current.map((s, i) => (i === index ? resolved : s));
-        setSections(current);
-      } catch (err) {
-        setBusy(null);
-        setBusySectionIndex(null);
-        setError(
-          `${err instanceof Error ? err.message : String(err)} - stopped; earlier sections were kept.`
+    try {
+      for (const index of flagged) {
+        if (ac.signal.aborted) break;
+        done += 1;
+        setBusy(
+          `AI reviewing section ${current[index].entry.number} (${done}/${flagged.length})...`
         );
-        return;
+        setBusySectionIndex(index);
+        try {
+          const resolved = await resolveSectionWithAi(current, index, ai, ac.signal);
+          current = current.map((s, i) => (i === index ? resolved : s));
+          setSections(current);
+        } catch (err) {
+          if (ac.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+            break;
+          }
+          setAiErrors({
+            [index]: `${err instanceof Error ? err.message : String(err)} — stopped; earlier sections were kept.`
+          });
+          break;
+        }
       }
+    } finally {
+      if (aiBatchAbortRef.current === ac) aiBatchAbortRef.current = null;
+      setAiBatchRunning(false);
+      setBusy(null);
+      setBusySectionIndex(null);
     }
-    setBusy(null);
-    setBusySectionIndex(null);
   }, [sections, settings]);
+
+  const stopAiBatch = useCallback(() => {
+    aiBatchAbortRef.current?.abort();
+  }, []);
+
+  const dismissAiError = useCallback((index: number) => {
+    setAiErrors((prev) => {
+      if (!(index in prev)) return prev;
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  }, []);
 
   const reset = useCallback(() => {
     setSections([]);
@@ -204,6 +265,10 @@ export default function App() {
     setExtras(defaultExtras);
     setMetadata(defaultMetadata(settings));
     setError(null);
+    setAiErrors({});
+    aiBatchAbortRef.current?.abort();
+    aiBatchAbortRef.current = null;
+    setAiBatchRunning(false);
     setFocusedSectionIndex(0);
     setReviewDwellIndex(null);
     setStep("home");
@@ -285,6 +350,10 @@ export default function App() {
             onChange={updateSection}
             onAskAi={runAiForSection}
             onAskAiAll={runAiForAllFlagged}
+            onStopAiBatch={stopAiBatch}
+            aiBatchRunning={aiBatchRunning}
+            aiErrors={aiErrors}
+            onDismissAiError={dismissAiError}
             onContinue={() => setStep("details")}
             onFocusSection={focusSection}
             focusedSectionIndex={focusedSectionIndex}
@@ -328,6 +397,7 @@ export default function App() {
           focusedIndex={focusedSectionIndex}
           dwellIndex={step === "review" ? reviewDwellIndex : null}
           busySectionIndex={busySectionIndex}
+          aiErrorSectionNums={aiErrorSectionNums}
           onJumpSection={focusSection}
           onDwellComplete={completeDwellReview}
         />

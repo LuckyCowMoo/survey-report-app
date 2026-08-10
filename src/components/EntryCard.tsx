@@ -25,10 +25,13 @@ interface Props {
   aiConfigured: boolean;
   busy: boolean;
   aiWorking: boolean;
+  /** Error message from the last AI attempt on this section, if any. */
+  aiError?: string | null;
   /** True when this card is the focused / highlighted section. */
   focused?: boolean;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
+  onDismissAiError?: (index: number) => void;
   onActivate?: (index: number) => void;
 }
 
@@ -268,12 +271,17 @@ export default function EntryCard({
   aiConfigured,
   busy,
   aiWorking,
+  aiError = null,
   focused = false,
   onChange,
   onAskAi,
+  onDismissAiError,
   onActivate
 }: Props) {
   const [showPicker, setShowPicker] = useState(false);
+  const [aiReveal, setAiReveal] = useState(false);
+  const [noteExpanded, setNoteExpanded] = useState(false);
+  const wasAiWorkingRef = useRef(false);
   const chip = statusChip(section);
   const boxTone = textBoxTone(section);
   const paragraph = section.libraryId ? libraryParagraph(section.libraryId) : undefined;
@@ -282,6 +290,16 @@ export default function EntryCard({
     () => sectionNumbers.filter((n) => n !== section.entry.number),
     [sectionNumbers, section.entry.number]
   );
+
+  useEffect(() => {
+    if (wasAiWorkingRef.current && !aiWorking) {
+      setAiReveal(true);
+      const t = window.setTimeout(() => setAiReveal(false), 650);
+      wasAiWorkingRef.current = false;
+      return () => window.clearTimeout(t);
+    }
+    wasAiWorkingRef.current = aiWorking;
+  }, [aiWorking]);
 
   const pickParagraph = (p: LibraryParagraph) => {
     // Prefer values already typed, else anything parseable from the note.
@@ -359,12 +377,35 @@ export default function EntryCard({
   return (
     <div
       id={`section-card-${section.entry.number}`}
-      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${focused || showPicker ? " is-active" : ""}`}
+      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${aiError ? " ai-error" : ""}${focused || showPicker ? " is-active" : ""}`}
       aria-busy={aiWorking}
       onFocusCapture={() => onActivate?.(index)}
       onPointerDownCapture={() => onActivate?.(index)}
       onMouseEnter={() => onActivate?.(index)}
     >
+      {aiError && (
+        <div className="ai-error-overlay" role="alert">
+          <p className="ai-error-title">AI couldn’t finish this section</p>
+          <p className="ai-error-message">{aiError}</p>
+          <div className="ai-error-actions">
+            <button
+              type="button"
+              className="btn small"
+              onClick={() => onDismissAiError?.(index)}
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              className="btn small primary"
+              disabled={!aiConfigured || busy}
+              onClick={() => onAskAi(index)}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      )}
       <div className="card-head">
         <span className="card-number">({section.entry.number})</span>
         {aiWorking ? (
@@ -389,9 +430,18 @@ export default function EntryCard({
         )}
         <div className="card-main">
           {section.entry.note && (
-            <p className="note">
+            <button
+              type="button"
+              className={`note${noteExpanded ? " is-expanded" : ""}`}
+              aria-expanded={noteExpanded}
+              title={noteExpanded ? "Collapse field note" : "Expand field note"}
+              onClick={(e) => {
+                e.stopPropagation();
+                setNoteExpanded((open) => !open);
+              }}
+            >
               <strong>Field note:</strong> {section.entry.note}
-            </p>
+            </button>
           )}
 
           <input
@@ -403,7 +453,7 @@ export default function EntryCard({
             onChange={(e) => onChange(index, { ...section, headingLine: e.target.value })}
           />
 
-          <div className="section-text-wrap">
+          <div className={`section-text-wrap${aiReveal ? " is-ai-reveal" : ""}`}>
             {section.source === "crossref" ? (
               <p className={`crossref-text${boxTone ? ` tone-${boxTone}` : ""}`}>
                 {section.text}
@@ -411,7 +461,7 @@ export default function EntryCard({
             ) : (
               <textarea
                 className={`section-text${boxTone ? ` tone-${boxTone}` : ""}`}
-                rows={6}
+                rows={3}
                 placeholder={
                   paragraph &&
                   paragraph.placeholders.length > 0 &&

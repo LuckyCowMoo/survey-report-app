@@ -40,6 +40,9 @@ export default function GenerateScreen({
   const [result, setResult] = useState<{ blob: Blob; name: string } | null>(null);
 
   const issueCount = Object.values(extras.dampIssues).filter(Boolean).length;
+  const recommendationCount =
+    extras.recommendationIds.length + (extras.otherRecommendation ? 1 : 0);
+  const costLineCount = extras.costLines.length + (extras.otherCost ? 1 : 0);
 
   useEffect(() => {
     setFileName((prev) => {
@@ -175,10 +178,10 @@ export default function GenerateScreen({
             <strong>{issueCount}</strong> damp issue explainer(s)
           </li>
           <li>
-            <strong>{extras.recommendationIds.length}</strong> recommendation(s)
+            <strong>{recommendationCount}</strong> recommendation(s)
           </li>
           <li>
-            <strong>{extras.costLines.length}</strong> cost line(s)
+            <strong>{costLineCount}</strong> cost line(s)
           </li>
           <li>
             Property: <strong>{metadata.propertyAddress || "(address not set)"}</strong>

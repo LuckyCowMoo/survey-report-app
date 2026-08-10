@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState, type TextareaHTMLAttributes } from "react";
 import { library } from "../lib/matcher";
 import type { CostLine, ReportExtras, ReportMetadata } from "../types";
 
@@ -22,6 +22,23 @@ const PROPERTY_TYPES = [
 
 let costIdCounter = 1;
 
+/** Textarea that grows to fit its full content (used for selected cost items). */
+function AutoGrowTextarea({
+  value,
+  ...rest
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return <textarea ref={ref} value={value} rows={1} {...rest} />;
+}
+
 export default function DetailsScreen({
   metadata,
   extras,
@@ -30,6 +47,7 @@ export default function DetailsScreen({
   onContinue
 }: Props) {
   const [recPreview, setRecPreview] = useState<string | null>(null);
+  const [costPreview, setCostPreview] = useState<string | null>(null);
 
   const setMeta = <K extends keyof ReportMetadata>(key: K, value: ReportMetadata[K]) =>
     onMetadata({ ...metadata, [key]: value });
@@ -50,13 +68,24 @@ export default function DetailsScreen({
     });
   };
 
-  const addCostLine = (itemId: string) => {
+  const hasCostItem = (itemId: string) =>
+    extras.costLines.some((line) => line.itemId === itemId);
+
+  const toggleCostItem = (itemId: string) => {
+    if (hasCostItem(itemId)) {
+      onExtras({
+        ...extras,
+        costLines: extras.costLines.filter((line) => line.itemId !== itemId)
+      });
+      return;
+    }
     const item = library.costItems.find((c) => c.id === itemId);
+    if (!item) return;
     const line: CostLine = {
       id: `cost-${costIdCounter++}`,
-      itemId: item?.id ?? "custom",
-      label: item?.label ?? "Custom item",
-      description: item?.text ?? "",
+      itemId: item.id,
+      label: item.label,
+      description: item.text,
       amount: ""
     };
     onExtras({ ...extras, costLines: [...extras.costLines, line] });
@@ -76,7 +105,12 @@ export default function DetailsScreen({
   const removeCostLine = (id: string) =>
     onExtras({ ...extras, costLines: extras.costLines.filter((l) => l.id !== id) });
 
-  const total = extras.costLines.reduce((sum, l) => {
+  const total = [
+    ...extras.costLines,
+    ...(extras.otherCost
+      ? [{ amount: extras.otherCostAmount } as Pick<CostLine, "amount">]
+      : [])
+  ].reduce((sum, l) => {
     const n = Number(l.amount.replace(/[£,\s]/g, ""));
     return Number.isFinite(n) ? sum + n : sum;
   }, 0);
@@ -220,6 +254,25 @@ export default function DetailsScreen({
           />
           <span>Condensation</span>
         </label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={extras.dampIssues.other}
+            onChange={() => toggleIssue("other")}
+          />
+          <span>Other</span>
+        </label>
+        {extras.dampIssues.other && (
+          <label className="field">
+            <span>Describe the other issue</span>
+            <textarea
+              rows={4}
+              placeholder="Explain the issue and wording for the report…"
+              value={extras.otherIssueText}
+              onChange={(e) => onExtras({ ...extras, otherIssueText: e.target.value })}
+            />
+          </label>
+        )}
       </section>
 
       <section className="panel">
@@ -244,6 +297,29 @@ export default function DetailsScreen({
             {recPreview === r.id && <p className="rec-preview">{r.text}</p>}
           </div>
         ))}
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={extras.otherRecommendation}
+            onChange={() =>
+              onExtras({ ...extras, otherRecommendation: !extras.otherRecommendation })
+            }
+          />
+          <span>Other</span>
+        </label>
+        {extras.otherRecommendation && (
+          <label className="field">
+            <span>Other recommendation</span>
+            <textarea
+              rows={4}
+              placeholder="Write the recommendation wording for the report…"
+              value={extras.otherRecommendationText}
+              onChange={(e) =>
+                onExtras({ ...extras, otherRecommendationText: e.target.value })
+              }
+            />
+          </label>
+        )}
       </section>
 
       <section className="panel">
@@ -258,11 +334,39 @@ export default function DetailsScreen({
           />
         </label>
 
+        <p className="muted">Tick the standard cost items to include.</p>
+        {library.costItems.map((c) => (
+          <div key={c.id} className="rec-row">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={hasCostItem(c.id)}
+                onChange={() => toggleCostItem(c.id)}
+              />
+              <span>{c.label}</span>
+            </label>
+            <button
+              className="btn tiny"
+              onClick={() => setCostPreview(costPreview === c.id ? null : c.id)}
+            >
+              {costPreview === c.id ? "Hide" : "View"}
+            </button>
+            {costPreview === c.id && <p className="rec-preview">{c.text}</p>}
+          </div>
+        ))}
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={extras.otherCost}
+            onChange={() => onExtras({ ...extras, otherCost: !extras.otherCost })}
+          />
+          <span>Other</span>
+        </label>
+
         {extras.costLines.map((line) => (
           <div key={line.id} className="cost-line">
             <div className="cost-line-label">{costLineLabel(line)}</div>
-            <textarea
-              rows={3}
+            <AutoGrowTextarea
               value={line.description}
               placeholder="Describe the work item..."
               onChange={(e) => updateCostLine(line.id, { description: e.target.value })}
@@ -285,27 +389,34 @@ export default function DetailsScreen({
           </div>
         ))}
 
-        <div className="cost-add">
-          <select
-            value=""
-            onChange={(e) => {
-              if (e.target.value) addCostLine(e.target.value);
-              e.target.value = "";
-            }}
-          >
-            <option value="">Add standard cost item...</option>
-            {library.costItems.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <button className="btn small" onClick={() => addCostLine("custom")}>
-            Add custom item
-          </button>
-        </div>
+        {extras.otherCost && (
+          <div className="cost-line">
+            <div className="cost-line-label">Other</div>
+            <AutoGrowTextarea
+              value={extras.otherCostDescription}
+              placeholder="Describe the other work item..."
+              onChange={(e) =>
+                onExtras({ ...extras, otherCostDescription: e.target.value })
+              }
+            />
+            <div className="cost-line-foot">
+              <label>
+                £
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={extras.otherCostAmount}
+                  placeholder="0"
+                  onChange={(e) =>
+                    onExtras({ ...extras, otherCostAmount: e.target.value })
+                  }
+                />
+              </label>
+            </div>
+          </div>
+        )}
 
-        {extras.costLines.length > 0 && (
+        {(extras.costLines.length > 0 || extras.otherCost) && (
           <p className="total">
             Total: <strong>£{total}</strong> + VAT
           </p>

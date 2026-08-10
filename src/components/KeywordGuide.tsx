@@ -93,6 +93,12 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
     meaning: "AI written — wording came from Ask AI. While AI is generating, the pip slowly fills purple to show that section is in progress"
   },
   {
+    tone: "error",
+    label: "Purple / black stripes",
+    meaning:
+      "AI error — Ask AI failed on this section; open the card overlay to read the message, dismiss it, or try again"
+  },
+  {
     tone: "manual",
     label: "Blue",
     meaning: "Your wording — handwritten / edited text, or a cross-reference"

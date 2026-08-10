@@ -139,7 +139,8 @@ async function callClaude(
   model: string,
   imageB64: string | null,
   userText: string,
-  system: string
+  system: string,
+  signal?: AbortSignal
 ): Promise<string> {
   const content: unknown[] = [];
   if (imageB64) {
@@ -163,7 +164,8 @@ async function callClaude(
       max_tokens: 1200,
       system,
       messages: [{ role: "user", content }]
-    })
+    }),
+    signal
   });
 
   if (!res.ok) {
@@ -187,7 +189,8 @@ async function callGemini(
   model: string,
   imageB64: string | null,
   userText: string,
-  system: string
+  system: string,
+  signal?: AbortSignal
 ): Promise<string> {
   const parts: unknown[] = [];
   if (imageB64) {
@@ -208,7 +211,8 @@ async function callGemini(
         maxOutputTokens: 1200,
         responseMimeType: "application/json"
       }
-    })
+    }),
+    signal
   });
 
   if (!res.ok) {
@@ -241,11 +245,12 @@ async function callModel(
   ai: AiConfig,
   imageB64: string | null,
   userText: string,
-  system: string
+  system: string,
+  signal?: AbortSignal
 ): Promise<string> {
   return ai.provider === "gemini"
-    ? callGemini(ai.apiKey, ai.model, imageB64, userText, system)
-    : callClaude(ai.apiKey, ai.model, imageB64, userText, system);
+    ? callGemini(ai.apiKey, ai.model, imageB64, userText, system, signal)
+    : callClaude(ai.apiKey, ai.model, imageB64, userText, system, signal);
 }
 
 function parseJsonObject(raw: string): Record<string, unknown> | null {
@@ -345,7 +350,8 @@ async function probeMeterReadings(
   section: SectionState,
   missing: LibraryPlaceholder[],
   imageB64: string,
-  ai: AiConfig
+  ai: AiConfig,
+  signal?: AbortSignal
 ): Promise<ReadingProbeResult> {
   const libraryId = candidateLibraryId(section);
   const paragraph = libraryId ? libraryParagraph(libraryId) : undefined;
@@ -365,7 +371,13 @@ async function probeMeterReadings(
       "Only answer canRead:true if every listed reading is clearly visible."
   );
 
-  const raw = await callModel(ai, imageB64, lines.filter(Boolean).join("\n"), READING_PROBE_PROMPT);
+  const raw = await callModel(
+    ai,
+    imageB64,
+    lines.filter(Boolean).join("\n"),
+    READING_PROBE_PROMPT,
+    signal
+  );
   return parseReadingProbe(raw, missing);
 }
 
@@ -374,7 +386,8 @@ async function resolveBespokeWithoutReading(
   index: number,
   missing: LibraryPlaceholder[],
   imageB64: string | null,
-  ai: AiConfig
+  ai: AiConfig,
+  signal?: AbortSignal
 ): Promise<SectionState> {
   const section = sections[index];
   const entry = section.entry;
@@ -390,7 +403,7 @@ async function resolveBespokeWithoutReading(
     earlierSectionsBlock(sections, index)
   ].filter(Boolean);
 
-  const raw = await callModel(ai, imageB64, parts.join("\n"), BESPOKE_FALLBACK_PROMPT);
+  const raw = await callModel(ai, imageB64, parts.join("\n"), BESPOKE_FALLBACK_PROMPT, signal);
   const resolution = parseResolution(raw);
   if (!resolution || resolution.action !== "bespoke" || !resolution.text) {
     throw new Error(
@@ -407,15 +420,20 @@ async function resolveBespokeWithoutReading(
 export async function resolveSectionWithAi(
   sections: SectionState[],
   index: number,
-  ai: AiConfig
+  ai: AiConfig,
+  signal?: AbortSignal
 ): Promise<SectionState> {
   const section = sections[index];
   const entry = section.entry;
+
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
   let imageB64: string | null = null;
   if (entry.images.length > 0) {
     imageB64 = await imageToAiBase64(entry.images[0], entry.imageNames[0]);
   }
+
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
   const missingReadings = missingReadingPlaceholders(section);
   const libraryId = candidateLibraryId(section);
@@ -423,7 +441,13 @@ export async function resolveSectionWithAi(
   // Library wording is ready except for meter readings: ask the model to read
   // them from the photo first; otherwise write a generic paragraph.
   if (missingReadings.length > 0 && libraryId && imageB64) {
-    const probe = await probeMeterReadings(section, missingReadings, imageB64, ai);
+    const probe = await probeMeterReadings(
+      section,
+      missingReadings,
+      imageB64,
+      ai,
+      signal
+    );
     if (probe.canRead) {
       return applyResolution(section, {
         action: "library",
@@ -433,7 +457,14 @@ export async function resolveSectionWithAi(
         headingLine: section.headingLine || undefined
       });
     }
-    return resolveBespokeWithoutReading(sections, index, missingReadings, imageB64, ai);
+    return resolveBespokeWithoutReading(
+      sections,
+      index,
+      missingReadings,
+      imageB64,
+      ai,
+      signal
+    );
   }
 
   const parts = [
@@ -450,7 +481,7 @@ export async function resolveSectionWithAi(
   ].filter(Boolean);
 
   const userText = parts.join("\n");
-  const raw = await callModel(ai, imageB64, userText, SYSTEM_PROMPT);
+  const raw = await callModel(ai, imageB64, userText, SYSTEM_PROMPT, signal);
   const resolution = parseResolution(raw);
   if (!resolution) {
     throw new Error(

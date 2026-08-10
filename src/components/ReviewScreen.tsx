@@ -9,9 +9,13 @@ interface Props {
   aiConfigured: boolean;
   busy: boolean;
   busySectionIndex: number | null;
+  aiErrors: Record<number, string>;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
   onAskAiAll: () => void;
+  onStopAiBatch: () => void;
+  aiBatchRunning: boolean;
+  onDismissAiError: (index: number) => void;
   onContinue: () => void;
   onFocusSection: (index: number) => void;
   focusedSectionIndex: number;
@@ -24,9 +28,13 @@ export default function ReviewScreen({
   aiConfigured,
   busy,
   busySectionIndex,
+  aiErrors,
   onChange,
   onAskAi,
   onAskAiAll,
+  onStopAiBatch,
+  aiBatchRunning,
+  onDismissAiError,
   onContinue,
   onFocusSection,
   focusedSectionIndex
@@ -52,14 +60,20 @@ export default function ReviewScreen({
           .
         </p>
         {flaggedCount > 0 && (
-          <button
-            className="btn primary"
-            disabled={busy || !aiConfigured}
-            title={aiConfigured ? "" : "Add your API key in Settings"}
-            onClick={onAskAiAll}
-          >
-            Ask AI about all flagged ({flaggedCount})
-          </button>
+          aiBatchRunning ? (
+            <button type="button" className="btn danger" onClick={onStopAiBatch}>
+              Stop AI
+            </button>
+          ) : (
+            <button
+              className="btn primary"
+              disabled={busy || !aiConfigured}
+              title={aiConfigured ? "" : "Add your API key in Settings"}
+              onClick={onAskAiAll}
+            >
+              Ask AI about all flagged ({flaggedCount})
+            </button>
+          )
         )}
         {warnings.length > 0 && (
           <button className="btn small" onClick={() => setShowWarnings(!showWarnings)}>
@@ -84,9 +98,11 @@ export default function ReviewScreen({
           aiConfigured={aiConfigured}
           busy={busy}
           aiWorking={busySectionIndex === i}
+          aiError={aiErrors[i] ?? null}
           focused={focusedSectionIndex === i}
           onChange={onChange}
           onAskAi={onAskAi}
+          onDismissAiError={onDismissAiError}
           onActivate={onFocusSection}
         />
       ))}

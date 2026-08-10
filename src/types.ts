@@ -72,12 +72,26 @@ export interface CostLine {
 
 export interface ReportExtras {
   /** Which damp-type explainers to include and flag. */
-  dampIssues: { risingDamp: boolean; penetratingDamp: boolean; condensation: boolean };
+  dampIssues: {
+    risingDamp: boolean;
+    penetratingDamp: boolean;
+    condensation: boolean;
+    other: boolean;
+  };
+  /** Free-text explainer when dampIssues.other is ticked. */
+  otherIssueText: string;
   /** Ids of recommendation paragraphs to include. */
   recommendationIds: string[];
+  /** Extra free-text recommendation when ticked. */
+  otherRecommendation: boolean;
+  otherRecommendationText: string;
   /** Free-text lines describing the rooms/areas in the project plan. */
   projectPlanLines: string;
   costLines: CostLine[];
+  /** Extra free-text cost line when ticked. */
+  otherCost: boolean;
+  otherCostDescription: string;
+  otherCostAmount: string;
   surveyDiscount: string;
   timeEstimate: string;
 }

@@ -12,16 +12,12 @@ interface Props {
   dwellIndex: number | null;
   /** Section currently being written by AI (slow purple fill). */
   busySectionIndex: number | null;
+  /** Entry numbers of sections with an active AI error overlay. */
+  aiErrorSectionNums?: ReadonlySet<number>;
   onJumpSection?: (index: number) => void;
   /** Fired when a pending-review pip fill reaches full green. */
   onDwellComplete?: (index: number) => void;
 }
-
-const FLOW: { id: FlowStep; label: string }[] = [
-  { id: "review", label: "Review" },
-  { id: "details", label: "Details" },
-  { id: "generate", label: "Generate" }
-];
 
 const BASE = import.meta.env.BASE_URL;
 /** Rotating heroes for details / generate (no section photo to preview). */
@@ -78,10 +74,6 @@ function easeInOut(t: number): number {
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
 
-function stepIndex(step: FlowStep) {
-  return FLOW.findIndex((s) => s.id === step);
-}
-
 /** Settled pip colour from section status (ignores in-flight AI). */
 function pipTone(s: SectionState): PipTone {
   if (s.needsAttention) return "attention";
@@ -103,6 +95,48 @@ function effectiveTone(anim: PipAnim): PipTone {
   return anim.progress >= 0.5 ? anim.to : anim.from;
 }
 
+/** Desktop aside: left column is the scroll root; otherwise the window. */
+function getScrollRoot(): HTMLElement | null {
+  if (typeof window === "undefined") return null;
+  if (!window.matchMedia("(min-width: 1100px)").matches) return null;
+  return document.querySelector<HTMLElement>(".app.app-aside .content");
+}
+
+function readScrollState(): { progress: number; thumb: number } {
+  const root = getScrollRoot();
+  if (root) {
+    const max = root.scrollHeight - root.clientHeight;
+    const progress = max > 0 ? Math.min(1, Math.max(0, root.scrollTop / max)) : 0;
+    const thumb =
+      max > 0
+        ? Math.min(0.85, Math.max(0.12, root.clientHeight / root.scrollHeight))
+        : 1;
+    return { progress, thumb };
+  }
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+  const thumb =
+    max > 0
+      ? Math.min(
+          0.85,
+          Math.max(0.12, window.innerHeight / document.documentElement.scrollHeight)
+        )
+      : 1;
+  return { progress, thumb };
+}
+
+function scrollToProgress(progress: number) {
+  const clamped = Math.min(1, Math.max(0, progress));
+  const root = getScrollRoot();
+  if (root) {
+    const max = root.scrollHeight - root.clientHeight;
+    root.scrollTo({ top: Math.max(0, max * clamped) });
+    return;
+  }
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo({ top: Math.max(0, max * clamped) });
+}
+
 function startTransition(anim: PipAnim, to: PipTone): PipAnim {
   if (anim.to === to && anim.progress < 1) return anim;
   if (anim.to === to && anim.progress >= 1) return anim;
@@ -117,6 +151,7 @@ export default function StudioAside({
   focusedIndex,
   dwellIndex,
   busySectionIndex,
+  aiErrorSectionNums,
   onJumpSection,
   onDwellComplete
 }: Props) {
@@ -439,31 +474,16 @@ export default function StudioAside({
   }, [step, studioHero]);
 
   useEffect(() => {
-    const update = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-      const thumb =
-        max > 0
-          ? Math.min(
-              0.85,
-              Math.max(0.12, window.innerHeight / document.documentElement.scrollHeight)
-            )
-          : 1;
-      setScroll({ progress, thumb });
-    };
+    const update = () => setScroll(readScrollState());
     update();
-    window.addEventListener("scroll", update, { passive: true });
+    // Capture so desktop content-column scrolling is tracked, not only window.
+    document.addEventListener("scroll", update, { passive: true, capture: true });
     window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("scroll", update);
+      document.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
   }, [sections.length, step]);
-
-  const scrollToProgress = (progress: number) => {
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    window.scrollTo({ top: Math.max(0, max * Math.min(1, Math.max(0, progress))) });
-  };
 
   const onThumbPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -507,7 +527,6 @@ export default function StudioAside({
     scrollToProgress(y / travel);
   };
 
-  const active = stepIndex(step);
   const thumbTop = scroll.progress * (1 - scroll.thumb) * 100;
   const thumbHeight = scroll.thumb * 100;
 
@@ -551,28 +570,18 @@ export default function StudioAside({
       </div>
 
       <div className="studio-aside-tools">
-        <div className="progress-spine" role="list" aria-label="Report stages">
-          {FLOW.map((item, i) => {
-            const state = i < active ? "is-done" : i === active ? "is-current" : "is-todo";
-            return (
-              <div key={item.id} className={`progress-spine-seg ${state}`} role="listitem">
-                <span className="progress-spine-label">{item.label}</span>
-              </div>
-            );
-          })}
-        </div>
-
         <div className="studio-pips" aria-label="Section status">
           {sections.map((s, i) => {
             const current = step === "review" && i === focusedIndex;
+            const errored = aiErrorSectionNums?.has(s.entry.number) ?? false;
             const anim = pipAnims.get(s.entry.number) ?? {
               from: pipTone(s),
               to: pipTone(s),
               progress: 1
             };
-            const filling = anim.progress < 1;
-            const flashing = flashingPips.has(s.entry.number);
-            const tone = filling ? anim.from : anim.to;
+            const filling = !errored && anim.progress < 1;
+            const flashing = !errored && flashingPips.has(s.entry.number);
+            const tone = errored ? "error" : filling ? anim.from : anim.to;
             const fillStyle = filling
               ? ({
                   background: PIP_COLORS[anim.from],
@@ -586,11 +595,17 @@ export default function StudioAside({
                 type="button"
                 className={`studio-pip tone-${tone}${filling ? " is-filling" : ""}${flashing ? " is-flash" : ""}${current ? " is-current" : ""}`}
                 style={fillStyle}
-                title={`Section ${s.entry.number}`}
+                title={
+                  errored
+                    ? `Section ${s.entry.number} — AI error`
+                    : `Section ${s.entry.number}`
+                }
                 aria-label={
-                  filling
-                    ? `Section ${s.entry.number}, changing status ${Math.round(anim.progress * 100)}%`
-                    : `Section ${s.entry.number}, ${tone}`
+                  errored
+                    ? `Section ${s.entry.number}, AI error`
+                    : filling
+                      ? `Section ${s.entry.number}, changing status ${Math.round(anim.progress * 100)}%`
+                      : `Section ${s.entry.number}, ${tone}`
                 }
                 aria-current={current ? "true" : undefined}
                 onClick={() => {
