@@ -924,13 +924,45 @@ body {
   --radius: 20px;
 }
 
+@property --glow-x {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 14%;
+}
+
+@property --glow-y {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 0%;
+}
+
+@property --glow2-x {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 90%;
+}
+
+@property --glow2-y {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 75%;
+}
+
 html:not([data-theme="original"]),
 html:not([data-theme="original"]) body {
   min-height: 100%;
   /* Clip bleed at the viewport — not at the home card edge */
   overflow-x: clip;
+  --glow-x: 14%;
+  --glow-y: 8%;
+  --glow2-x: 90%;
+  --glow2-y: 75%;
   background:
-    radial-gradient(circle at 14% 0%, rgba(255, 107, 59, 0.16), transparent 30rem),
+    radial-gradient(
+      circle at var(--glow-x) var(--glow-y),
+      rgba(255, 107, 59, 0.2),
+      transparent 28rem
+    ),
     linear-gradient(135deg, #f7f5ef 0%, #eeece6 100%);
 }
 
@@ -1288,8 +1320,16 @@ html:not([data-theme="original"]) .home-status i {
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background:
-    radial-gradient(circle at 12% 0%, rgba(150, 86, 255, 0.16), transparent 28rem),
-    radial-gradient(circle at 90% 75%, rgba(255, 91, 54, 0.1), transparent 34rem),
+    radial-gradient(
+      circle at var(--glow-x) var(--glow-y),
+      rgba(150, 86, 255, 0.16),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at var(--glow2-x) var(--glow2-y),
+      rgba(255, 91, 54, 0.1),
+      transparent 34rem
+    ),
     #0d0f12;
 }
 

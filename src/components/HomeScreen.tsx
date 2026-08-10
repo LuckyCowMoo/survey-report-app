@@ -20,7 +20,7 @@ export default function HomeScreen({ onFile, busy, onShowGuide }: Props) {
           DampMaster / Report studio
         </div>
         <h2>Create<br />report.</h2>
-        <p>Start with today&apos;s shorthand document.</p>
+        <p>Turn field notes into a client-ready report.</p>
       </div>
 
       <input

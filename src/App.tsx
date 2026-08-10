@@ -6,6 +6,7 @@ import GenerateScreen from "./components/GenerateScreen";
 import SettingsSheet from "./components/SettingsSheet";
 import KeywordGuide from "./components/KeywordGuide";
 import IntroSplash, { useIntroSplash } from "./components/IntroSplash";
+import AmbientGlow from "./components/AmbientGlow";
 import { parseShorthandDocx } from "./lib/docxParser";
 import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
@@ -186,6 +187,7 @@ export default function App() {
 
   return (
     <div className={`app${showIntro ? " intro-locked" : ""}`}>
+      <AmbientGlow />
       {showIntro && <IntroSplash onDone={dismissIntro} />}
       <header className="topbar">
         {step !== "home" ? (

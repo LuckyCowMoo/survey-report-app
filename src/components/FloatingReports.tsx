@@ -26,13 +26,25 @@ type DragState = {
   restCy: number;
 };
 
+type OBB = {
+  cx: number;
+  cy: number;
+  hw: number;
+  hh: number;
+  rot: number;
+};
+
 /** Soft home — slow settle, little overshoot */
 const SPRING = 0.011 * 0.05;
 const DAMPING = 0.945;
 const ROT_SPRING = 0.009 * 0.05;
 const ROT_DAMPING = 0.94;
 const ANGULAR_GAIN = 0.85;
-const COLLISION_BOUNCE = 0.4;
+const COLLISION_BOUNCE = 0.35;
+/** How much sliding speed is killed on contact (0–1). */
+const COLLISION_FRICTION = 0.62;
+/** Inset so rounded corners don't "hit" before the visible edges meet. */
+const CORNER_INSET = 7;
 const FLOAT_AMP_Y = 7;
 const FLOAT_AMP_X = 5;
 const FLOAT_AMP_R = 1.8;
@@ -82,25 +94,124 @@ function cardCenter(el: HTMLElement) {
   return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 };
 }
 
-function overlapSeparate(
-  a: DOMRect,
-  b: DOMRect
-): { ox: number; oy: number } | null {
-  const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
-  const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-  if (overlapX <= 0 || overlapY <= 0) return null;
+function obbCorners(box: OBB) {
+  const locals = [
+    { x: -box.hw, y: -box.hh },
+    { x: box.hw, y: -box.hh },
+    { x: box.hw, y: box.hh },
+    { x: -box.hw, y: box.hh }
+  ];
+  return locals.map((p) => {
+    const w = rotate(p.x, p.y, box.rot);
+    return { x: box.cx + w.x, y: box.cy + w.y };
+  });
+}
 
-  const aCx = (a.left + a.right) / 2;
-  const bCx = (b.left + b.right) / 2;
-  const aCy = (a.top + a.bottom) / 2;
-  const bCy = (b.top + b.bottom) / 2;
-
-  if (overlapX < overlapY) {
-    const dir = aCx < bCx ? -1 : 1;
-    return { ox: dir * overlapX, oy: 0 };
+function project(corners: { x: number; y: number }[], ax: number, ay: number) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const p of corners) {
+    const d = p.x * ax + p.y * ay;
+    if (d < min) min = d;
+    if (d > max) max = d;
   }
-  const dir = aCy < bCy ? -1 : 1;
-  return { ox: 0, oy: dir * overlapY };
+  return { min, max };
+}
+
+/**
+ * Separating-axis test for two oriented boxes.
+ * Returns a push on A (and opposite on B) along the minimum translation axis.
+ */
+function obbSeparate(
+  a: OBB,
+  b: OBB
+): { ox: number; oy: number; nx: number; ny: number; depth: number } | null {
+  const aCorners = obbCorners(a);
+  const bCorners = obbCorners(b);
+
+  const ar = degToRad(a.rot);
+  const br = degToRad(b.rot);
+  const axes = [
+    { x: Math.cos(ar), y: Math.sin(ar) },
+    { x: -Math.sin(ar), y: Math.cos(ar) },
+    { x: Math.cos(br), y: Math.sin(br) },
+    { x: -Math.sin(br), y: Math.cos(br) }
+  ];
+
+  let minDepth = Infinity;
+  let bestNx = 0;
+  let bestNy = 0;
+
+  for (const axis of axes) {
+    const ax = axis.x;
+    const ay = axis.y;
+    const pa = project(aCorners, ax, ay);
+    const pb = project(bCorners, ax, ay);
+    const depth = Math.min(pa.max, pb.max) - Math.max(pa.min, pb.min);
+    if (depth <= 0) return null;
+
+    if (depth < minDepth) {
+      minDepth = depth;
+      // Normal should point from B toward A
+      const dx = a.cx - b.cx;
+      const dy = a.cy - b.cy;
+      if (dx * ax + dy * ay < 0) {
+        bestNx = -ax;
+        bestNy = -ay;
+      } else {
+        bestNx = ax;
+        bestNy = ay;
+      }
+    }
+  }
+
+  return {
+    ox: bestNx * minDepth,
+    oy: bestNy * minDepth,
+    nx: bestNx,
+    ny: bestNy,
+    depth: minDepth
+  };
+}
+
+function applyContactVelocity(
+  a: CardState,
+  b: CardState,
+  nx: number,
+  ny: number
+) {
+  const relVx = a.vx - b.vx;
+  const relVy = a.vy - b.vy;
+  const vn = relVx * nx + relVy * ny;
+  const vtX = relVx - vn * nx;
+  const vtY = relVy - vn * ny;
+
+  // Bounce only when closing along the normal
+  const bouncedVn = vn < 0 ? -vn * COLLISION_BOUNCE : vn * 0.15;
+  const slide = 1 - COLLISION_FRICTION;
+  const outVx = bouncedVn * nx + vtX * slide;
+  const outVy = bouncedVn * ny + vtY * slide;
+
+  if (a.dragging && !b.dragging) {
+    b.vx = a.vx - outVx;
+    b.vy = a.vy - outVy;
+    b.vr *= 1 - COLLISION_FRICTION * 0.45;
+    b.vr += a.vr * 0.12;
+  } else if (b.dragging && !a.dragging) {
+    a.vx = b.vx + outVx;
+    a.vy = b.vy + outVy;
+    a.vr *= 1 - COLLISION_FRICTION * 0.45;
+    a.vr += b.vr * 0.12;
+  } else if (!a.dragging && !b.dragging) {
+    const acx = (a.vx + b.vx) / 2;
+    const acy = (a.vy + b.vy) / 2;
+    a.vx = acx + outVx / 2;
+    a.vy = acy + outVy / 2;
+    b.vx = acx - outVx / 2;
+    b.vy = acy - outVy / 2;
+    a.vr *= 1 - COLLISION_FRICTION * 0.35;
+    b.vr *= 1 - COLLISION_FRICTION * 0.35;
+  }
 }
 
 /** Decorative floating report cards — draggable, spring home, soft collide. */
@@ -122,71 +233,75 @@ export default function FloatingReports() {
     let raf = 0;
     let last = performance.now();
 
+    const poseOf = (i: number, time: number) => {
+      const c = cards[i];
+      let bobX = 0;
+      let bobY = 0;
+      let bobR = 0;
+      if (!reduceMotionRef.current && !c.dragging) {
+        const p = c.phase + time / 1000 * (0.55 + i * 0.12);
+        bobX = Math.sin(p) * FLOAT_AMP_X;
+        bobY = Math.cos(p * 0.85) * FLOAT_AMP_Y;
+        bobR = Math.sin(p * 0.7) * FLOAT_AMP_R;
+      }
+      return { bobX, bobY, bobR, rot: c.rot + bobR };
+    };
+
     const applyTransforms = (time: number) => {
-      const t = time / 1000;
       const nodes = els();
       for (let i = 0; i < 2; i++) {
         const el = nodes[i];
         const c = cards[i];
         if (!el) continue;
-
-        let bobX = 0;
-        let bobY = 0;
-        let bobR = 0;
-        if (!reduceMotionRef.current && !c.dragging) {
-          const p = c.phase + t * (0.55 + i * 0.12);
-          bobX = Math.sin(p) * FLOAT_AMP_X;
-          bobY = Math.cos(p * 0.85) * FLOAT_AMP_Y;
-          bobR = Math.sin(p * 0.7) * FLOAT_AMP_R;
-        }
-
-        el.style.transform = `translate3d(${c.x + bobX}px, ${c.y + bobY}px, 0) rotate(${c.rot + bobR}deg)`;
+        const pose = poseOf(i, time);
+        el.style.transform = `translate3d(${c.x + pose.bobX}px, ${c.y + pose.bobY}px, 0) rotate(${pose.rot}deg)`;
         el.classList.toggle("is-dragging", c.dragging);
       }
     };
 
-    const resolveCollision = () => {
+    const makeObb = (el: HTMLElement, rot: number): OBB => {
+      const center = cardCenter(el);
+      return {
+        cx: center.x,
+        cy: center.y,
+        hw: Math.max(8, el.offsetWidth / 2 - CORNER_INSET),
+        hh: Math.max(8, el.offsetHeight / 2 - CORNER_INSET),
+        rot
+      };
+    };
+
+    const resolveCollision = (time: number) => {
       const [aEl, bEl] = els();
       if (!aEl || !bEl) return;
 
-      const sep = overlapSeparate(
-        aEl.getBoundingClientRect(),
-        bEl.getBoundingClientRect()
+      const aPose = poseOf(0, time);
+      const bPose = poseOf(1, time);
+      const sep = obbSeparate(
+        makeObb(aEl, aPose.rot),
+        makeObb(bEl, bPose.rot)
       );
       if (!sep) return;
 
       const a = cards[0];
       const b = cards[1];
-      const { ox, oy } = sep;
+      const { ox, oy, nx, ny } = sep;
 
       if (a.dragging && !b.dragging) {
         b.x -= ox;
         b.y -= oy;
-        if (ox) b.vx = a.vx * COLLISION_BOUNCE;
-        if (oy) b.vy = a.vy * COLLISION_BOUNCE;
-        b.vr += (a.vr - b.vr) * 0.2;
       } else if (b.dragging && !a.dragging) {
         a.x += ox;
         a.y += oy;
-        if (ox) a.vx = b.vx * COLLISION_BOUNCE;
-        if (oy) a.vy = b.vy * COLLISION_BOUNCE;
-        a.vr += (b.vr - a.vr) * 0.2;
       } else if (!a.dragging && !b.dragging) {
         a.x += ox / 2;
         a.y += oy / 2;
         b.x -= ox / 2;
         b.y -= oy / 2;
-        if (ox) {
-          const av = a.vx;
-          a.vx = b.vx * COLLISION_BOUNCE;
-          b.vx = av * COLLISION_BOUNCE;
-        }
-        if (oy) {
-          const av = a.vy;
-          a.vy = b.vy * COLLISION_BOUNCE;
-          b.vy = av * COLLISION_BOUNCE;
-        }
+      } else {
+        return;
       }
+
+      applyContactVelocity(a, b, nx, ny);
     };
 
     const tick = (now: number) => {
@@ -223,7 +338,7 @@ export default function FloatingReports() {
       }
 
       applyTransforms(now);
-      resolveCollision();
+      resolveCollision(now);
       applyTransforms(now);
 
       raf = requestAnimationFrame(tick);
@@ -251,13 +366,11 @@ export default function FloatingReports() {
       if (leverLen2 > 36) {
         const torque = lever.x * pvy - lever.y * pvx;
         dRot = (torque / leverLen2) * ANGULAR_GAIN * (180 / Math.PI);
-        // Soft clamp so a flick doesn't hard-spin the card
         dRot = Math.max(-12, Math.min(12, dRot));
       }
       c.rot += dRot;
       c.vr = dRot;
 
-      // Keep the grab point glued under the cursor
       const arm = rotate(drag.grabLocalX, drag.grabLocalY, c.rot);
       c.x = e.clientX - arm.x - drag.restCx;
       c.y = e.clientY - arm.y - drag.restCy;
@@ -270,7 +383,6 @@ export default function FloatingReports() {
       if (!drag || drag.pointerId !== e.pointerId) return;
       const c = stateRef.current[drag.index];
       c.dragging = false;
-      // Keep a little spin / throw, but soft
       c.vr *= 0.55;
       c.vx *= 0.65;
       c.vy *= 0.65;
@@ -299,7 +411,6 @@ export default function FloatingReports() {
     const el = e.currentTarget;
     const c = stateRef.current[index];
     const center = cardCenter(el);
-    // Strip idle bob from the grab math by using physics pose only
     const local = unrotate(e.clientX - center.x, e.clientY - center.y, c.rot);
 
     c.dragging = true;
