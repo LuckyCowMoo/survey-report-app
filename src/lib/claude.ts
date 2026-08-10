@@ -5,6 +5,10 @@
  * here. Each call includes the photo (downscaled), the surveyor's note, the
  * relevant approved library paragraphs, and brief summaries of earlier
  * sections (so the model can answer "As illustrated in section N" cases).
+ *
+ * When a library paragraph is waiting on a meter reading, the model is first
+ * asked whether it can confidently read that value from the photo. If not, it
+ * falls back to a generic bespoke paragraph (no invented digits).
  */
 import {
   extractValues,
@@ -18,7 +22,7 @@ import {
 } from "./matcher";
 import { imageToAiBase64 } from "./imageUtils";
 import type { AiProvider } from "./settings";
-import type { SectionState } from "../types";
+import type { LibraryPlaceholder, SectionState } from "../types";
 
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -30,6 +34,13 @@ export interface AiResolution {
   text?: string;
   crossrefSection?: number;
   headingLine?: string;
+  /** When true, reading placeholders from the model may be applied (confident photo read). */
+  acceptReadings?: boolean;
+}
+
+interface ReadingProbeResult {
+  canRead: boolean;
+  values: Record<string, string>;
 }
 
 const SYSTEM_PROMPT = `You are the report-writing assistant for a UK damp and timber surveying firm. You convert a surveyor's shorthand field notes and photos into polished report sections.
@@ -52,6 +63,30 @@ If the note contains a "Reading N" style label or the photo is clearly one of a 
 Respond with ONLY a JSON object, no markdown fences:
 {"action":"library"|"bespoke"|"crossref","libraryId":"...","placeholderValues":{"key":"value"},"text":"...","crossrefSection":N,"headingLine":"..."}
 Include "text" only for bespoke. Include "libraryId" only for library. Include "placeholderValues" only for non-reading slots or readings that appear in the note. Include "crossrefSection" only for crossref. "headingLine" is optional.`;
+
+const READING_PROBE_PROMPT = `You help a UK damp and timber surveyor by reading meter values from survey photographs.
+
+You will be told exactly which reading(s) are needed (for example relative humidity, moisture content %, temperature). Look only at the photo.
+
+Rules:
+- Set canRead to true ONLY if you can clearly and confidently see the digit(s) on a meter display or labelled readout in the photo.
+- If the display is blurry, cut off, glare-obscured, ambiguous, or not visible, set canRead to false and omit values.
+- Never guess or estimate a reading.
+- Return only the keys you were asked for.
+- Values should be the numeric reading as shown (e.g. "65", "22.4", "15.5") without units unless the unit is part of a non-numeric slot.
+
+Respond with ONLY a JSON object, no markdown fences:
+{"canRead":true|false,"values":{"key":"value"}}`;
+
+const BESPOKE_FALLBACK_PROMPT = `You are the report-writing assistant for a UK damp and timber surveying firm.
+
+House style: formal British English surveying prose, third person, precise but readable. Typically 60-150 words.
+
+A library paragraph would fit this photo, but a required meter reading could not be confidently read from the image. Write a generic bespoke paragraph describing what the photo shows and why it matters, without quoting or inventing any specific meter reading, percentage, or temperature figure. You may say that a reading was taken / a meter is shown, but do not invent digits.
+
+Respond with ONLY a JSON object, no markdown fences:
+{"action":"bespoke","text":"...","headingLine":"..."}
+"headingLine" is optional.`;
 
 function candidateBlock(section: SectionState): string {
   // Send the suggested candidates plus a compact index of everything else.
@@ -82,11 +117,29 @@ function earlierSectionsBlock(sections: SectionState[], index: number): string {
   return lines.join("\n");
 }
 
+/** Library id we would fill if readings become available. */
+function candidateLibraryId(section: SectionState): string | null {
+  if (section.libraryId) return section.libraryId;
+  return section.suggestions[0] ?? null;
+}
+
+/** Reading placeholders still empty on the candidate library paragraph. */
+function missingReadingPlaceholders(section: SectionState): LibraryPlaceholder[] {
+  const id = candidateLibraryId(section);
+  if (!id) return [];
+  const paragraph = libraryParagraph(id);
+  if (!paragraph) return [];
+  return paragraph.placeholders.filter(
+    (ph) => isReadingPlaceholder(ph.key) && !section.placeholderValues[ph.key]?.trim()
+  );
+}
+
 async function callClaude(
   apiKey: string,
   model: string,
   imageB64: string | null,
-  userText: string
+  userText: string,
+  system: string
 ): Promise<string> {
   const content: unknown[] = [];
   if (imageB64) {
@@ -108,7 +161,7 @@ async function callClaude(
     body: JSON.stringify({
       model,
       max_tokens: 1200,
-      system: SYSTEM_PROMPT,
+      system,
       messages: [{ role: "user", content }]
     })
   });
@@ -133,7 +186,8 @@ async function callGemini(
   apiKey: string,
   model: string,
   imageB64: string | null,
-  userText: string
+  userText: string,
+  system: string
 ): Promise<string> {
   const parts: unknown[] = [];
   if (imageB64) {
@@ -148,7 +202,7 @@ async function callGemini(
       "x-goog-api-key": apiKey
     },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: "user", parts }],
       generationConfig: {
         maxOutputTokens: 1200,
@@ -183,17 +237,50 @@ async function callGemini(
   return text;
 }
 
-function parseResolution(raw: string): AiResolution | null {
+async function callModel(
+  ai: AiConfig,
+  imageB64: string | null,
+  userText: string,
+  system: string
+): Promise<string> {
+  return ai.provider === "gemini"
+    ? callGemini(ai.apiKey, ai.model, imageB64, userText, system)
+    : callClaude(ai.apiKey, ai.model, imageB64, userText, system);
+}
+
+function parseJsonObject(raw: string): Record<string, unknown> | null {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
   if (start === -1 || end <= start) return null;
   try {
-    const obj = JSON.parse(raw.slice(start, end + 1)) as AiResolution;
-    if (!obj.action) return null;
-    return obj;
+    return JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
   } catch {
     return null;
   }
+}
+
+function parseResolution(raw: string): AiResolution | null {
+  const obj = parseJsonObject(raw);
+  if (!obj || typeof obj.action !== "string") return null;
+  return obj as unknown as AiResolution;
+}
+
+function parseReadingProbe(
+  raw: string,
+  wanted: LibraryPlaceholder[]
+): ReadingProbeResult {
+  const obj = parseJsonObject(raw);
+  if (!obj) return { canRead: false, values: {} };
+  const canRead = obj.canRead === true;
+  const values: Record<string, string> = {};
+  const rawValues = (obj.values ?? {}) as Record<string, unknown>;
+  for (const ph of wanted) {
+    const v = rawValues[ph.key];
+    if (typeof v === "string" && v.trim()) values[ph.key] = v.trim();
+    else if (typeof v === "number" && Number.isFinite(v)) values[ph.key] = String(v);
+  }
+  const complete = wanted.every((ph) => Boolean(values[ph.key]?.trim()));
+  return { canRead: canRead && complete, values: complete ? values : {} };
 }
 
 /** Apply an AI resolution onto a section (mutates a copy, returns it). */
@@ -206,8 +293,8 @@ export function applyResolution(
   if (r.action === "library" && r.libraryId) {
     // Still credited to AI: the model chose this paragraph.
     // "library" as a source is reserved for the matcher / manual picker.
-    // Readings may only come from the shorthand note - never AI photo guesses
-    // or library example defaults.
+    // Readings normally only come from the shorthand note - except when
+    // acceptReadings marks a confident photo read.
     const paragraph = libraryParagraph(r.libraryId);
     const fromNote = paragraph
       ? placeholderValuesFromNote(paragraph, extractValues(section.entry.note))
@@ -216,7 +303,7 @@ export function applyResolution(
     for (const [key, raw] of Object.entries(r.placeholderValues ?? {})) {
       const value = raw?.trim() ?? "";
       if (!value) continue;
-      if (isReadingPlaceholder(key)) continue;
+      if (isReadingPlaceholder(key) && !r.acceptReadings) continue;
       values[key] = value;
     }
     const libraryId = resolveLibraryIdForValues(r.libraryId, values);
@@ -228,6 +315,7 @@ export function applyResolution(
     next.pendingReview = false;
   } else if (r.action === "bespoke" && r.text) {
     next.libraryId = null;
+    next.placeholderValues = {};
     next.text = r.text.trim();
     next.source = "ai";
     next.needsAttention = false;
@@ -249,6 +337,69 @@ export interface AiConfig {
   model: string;
 }
 
+function providerLabel(ai: AiConfig) {
+  return ai.provider === "gemini" ? "Gemini" : "Claude";
+}
+
+async function probeMeterReadings(
+  section: SectionState,
+  missing: LibraryPlaceholder[],
+  imageB64: string,
+  ai: AiConfig
+): Promise<ReadingProbeResult> {
+  const libraryId = candidateLibraryId(section);
+  const paragraph = libraryId ? libraryParagraph(libraryId) : undefined;
+  const lines = [
+    `SECTION NUMBER: ${section.entry.number}`,
+    `SURVEYOR'S NOTE: ${section.entry.note ? JSON.stringify(section.entry.note) : "(none)"}`,
+    paragraph ? `CANDIDATE LIBRARY TOPIC: ${paragraph.topic}` : "",
+    "",
+    "REQUIRED READING(S) TO LOOK FOR IN THE PHOTO:"
+  ];
+  for (const ph of missing) {
+    lines.push(`- key "${ph.key}": ${ph.label}`);
+  }
+  lines.push(
+    "",
+    "Can you confidently read each of these values from the photo? " +
+      "Only answer canRead:true if every listed reading is clearly visible."
+  );
+
+  const raw = await callModel(ai, imageB64, lines.filter(Boolean).join("\n"), READING_PROBE_PROMPT);
+  return parseReadingProbe(raw, missing);
+}
+
+async function resolveBespokeWithoutReading(
+  sections: SectionState[],
+  index: number,
+  missing: LibraryPlaceholder[],
+  imageB64: string | null,
+  ai: AiConfig
+): Promise<SectionState> {
+  const section = sections[index];
+  const entry = section.entry;
+  const wanted = missing.map((ph) => ph.label).join("; ");
+  const parts = [
+    `SECTION NUMBER: ${entry.number}`,
+    `SURVEYOR'S NOTE: ${entry.note ? JSON.stringify(entry.note) : "(none - work from the photo)"}`,
+    section.headingLine ? `CURRENT HEADING LINE: ${section.headingLine}` : "",
+    "",
+    `REQUIRED READING THAT COULD NOT BE READ FROM THE PHOTO: ${wanted}`,
+    "Write a generic house-style paragraph about this photo without inventing that reading.",
+    "",
+    earlierSectionsBlock(sections, index)
+  ].filter(Boolean);
+
+  const raw = await callModel(ai, imageB64, parts.join("\n"), BESPOKE_FALLBACK_PROMPT);
+  const resolution = parseResolution(raw);
+  if (!resolution || resolution.action !== "bespoke" || !resolution.text) {
+    throw new Error(
+      `${providerLabel(ai)} returned an unexpected response for section ${entry.number}.`
+    );
+  }
+  return applyResolution(section, resolution);
+}
+
 /**
  * Resolve one section with the configured AI provider. Returns the updated
  * section. Throws on network/API errors so the caller can surface them.
@@ -266,6 +417,25 @@ export async function resolveSectionWithAi(
     imageB64 = await imageToAiBase64(entry.images[0], entry.imageNames[0]);
   }
 
+  const missingReadings = missingReadingPlaceholders(section);
+  const libraryId = candidateLibraryId(section);
+
+  // Library wording is ready except for meter readings: ask the model to read
+  // them from the photo first; otherwise write a generic paragraph.
+  if (missingReadings.length > 0 && libraryId && imageB64) {
+    const probe = await probeMeterReadings(section, missingReadings, imageB64, ai);
+    if (probe.canRead) {
+      return applyResolution(section, {
+        action: "library",
+        libraryId,
+        placeholderValues: probe.values,
+        acceptReadings: true,
+        headingLine: section.headingLine || undefined
+      });
+    }
+    return resolveBespokeWithoutReading(sections, index, missingReadings, imageB64, ai);
+  }
+
   const parts = [
     `SECTION NUMBER: ${entry.number}`,
     `SURVEYOR'S NOTE: ${entry.note ? JSON.stringify(entry.note) : "(none - work from the photo)"}`,
@@ -280,14 +450,11 @@ export async function resolveSectionWithAi(
   ].filter(Boolean);
 
   const userText = parts.join("\n");
-  const raw =
-    ai.provider === "gemini"
-      ? await callGemini(ai.apiKey, ai.model, imageB64, userText)
-      : await callClaude(ai.apiKey, ai.model, imageB64, userText);
+  const raw = await callModel(ai, imageB64, userText, SYSTEM_PROMPT);
   const resolution = parseResolution(raw);
   if (!resolution) {
     throw new Error(
-      `${ai.provider === "gemini" ? "Gemini" : "Claude"} returned an unexpected response for section ${entry.number}.`
+      `${providerLabel(ai)} returned an unexpected response for section ${entry.number}.`
     );
   }
   return applyResolution(section, resolution);

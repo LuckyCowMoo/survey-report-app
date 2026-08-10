@@ -1039,10 +1039,10 @@ html[data-theme="dark"] .chip.ref {
   justify-content: stretch;
   align-items: center;
   gap: 2px;
-  width: 10px;
+  width: 18px;
   padding: 2px 0;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
   min-height: 0;
   height: 100%;
 }
@@ -1060,7 +1060,12 @@ html[data-theme="dark"] .chip.ref {
   border-radius: 999px;
   cursor: pointer;
   box-shadow: none;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 0;
+}
+
+.studio-pip:has(.studio-pip-wave-pulse) {
+  z-index: 2;
 }
 
 .studio-pip.tone-attention {
@@ -1088,6 +1093,10 @@ html[data-theme="dark"] .chip.ref {
 }
 
 /* Top→bottom colour fill for any pip status change */
+.studio-pip.is-filling {
+  overflow: hidden;
+}
+
 .studio-pip.is-filling::after {
   content: "";
   position: absolute;
@@ -1101,6 +1110,20 @@ html[data-theme="dark"] .chip.ref {
 
 .studio-pip.is-flash {
   animation: studio-pip-flash 0.48s ease-out;
+}
+
+.studio-pip-wave-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scaleX(1);
+  transform-origin: center center;
+  animation: studio-pip-wave 0.35s ease-in-out both;
+  animation-delay: var(--wave-delay, 0ms);
+  z-index: 3;
 }
 
 @keyframes studio-pip-flash {
@@ -1118,8 +1141,25 @@ html[data-theme="dark"] .chip.ref {
   }
 }
 
+@keyframes studio-pip-wave {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+    filter: brightness(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  40% {
+    opacity: 1;
+    transform: scaleX(2.6);
+    filter: brightness(1.55);
+    box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.28);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .studio-pip.is-flash {
+  .studio-pip.is-flash,
+  .studio-pip-wave-pulse {
     animation: none;
   }
 }

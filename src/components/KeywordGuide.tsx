@@ -64,7 +64,8 @@ const TIPS: string[] = [
   "Longer notes are kept word-for-word as your own text for that photo (the AI can polish them into house style).",
   "Photos with no note are flagged so you or the AI can decide from the photo.",
   "Values in the note - like 65%, 16° or 1.2m - are automatically filled into the standard wording.",
-  "Anything that isn't a confident match is flagged \"needs attention\" on the review screen, never silently guessed."
+  "Anything that isn't a confident match is flagged \"needs attention\" on the review screen, never silently guessed.",
+  "If standard wording needs a meter reading (e.g. relative humidity) and it isn't in the note, Ask AI first tries to read it from the photo; if it cannot, it writes a generic paragraph instead of inventing a number."
 ];
 
 /** Status pip colours on the review screen (right-hand column). */

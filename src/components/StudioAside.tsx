@@ -45,6 +45,11 @@ const PIP_TRANSITION_MS = 660;
 /** Slow crawl toward purple while AI is generating a section. */
 const PIP_AI_FILL_MS = 4800;
 const PIP_FLASH_MS = 480;
+/** Mexican-wave pulse when moving between review / details / generate. */
+const PIP_WAVE_MS = 350;
+const PIP_WAVE_STAGGER_MS = 32;
+
+const FLOW_ORDER: FlowStep[] = ["review", "details", "generate"];
 
 type PipTone = "attention" | "review" | "ai" | "library" | "manual" | "empty";
 
@@ -122,9 +127,15 @@ export default function StudioAside({
   const [scroll, setScroll] = useState({ progress: 0, thumb: 0.2 });
   const [pipAnims, setPipAnims] = useState<Map<number, PipAnim>>(() => new Map());
   const [flashingPips, setFlashingPips] = useState<Set<number>>(() => new Set());
+  const [pipWaves, setPipWaves] = useState<
+    Array<{ id: number; direction: "forward" | "reverse" }>
+  >([]);
   const pipAnimsRef = useRef<Map<number, PipAnim>>(new Map());
   const dwellCompleteFiredRef = useRef<Set<number>>(new Set());
   const flashTimersRef = useRef<Map<number, number>>(new Map());
+  const waveIdRef = useRef(0);
+  const waveTimeoutsRef = useRef<Map<number, number>>(new Map());
+  const prevStepRef = useRef<FlowStep | null>(null);
   const onDwellCompleteRef = useRef(onDwellComplete);
   onDwellCompleteRef.current = onDwellComplete;
   const trackRef = useRef<HTMLDivElement>(null);
@@ -159,8 +170,49 @@ export default function StudioAside({
         window.clearTimeout(timer);
       }
       flashTimersRef.current.clear();
+      for (const timer of waveTimeoutsRef.current.values()) {
+        window.clearTimeout(timer);
+      }
+      waveTimeoutsRef.current.clear();
     };
   }, []);
+
+  const enqueuePipWave = (direction: "forward" | "reverse", count: number) => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (count <= 0) return;
+    const id = ++waveIdRef.current;
+    setPipWaves((prev) => [...prev, { id, direction }]);
+    const done = window.setTimeout(
+      () => {
+        waveTimeoutsRef.current.delete(id);
+        setPipWaves((prev) => prev.filter((w) => w.id !== id));
+      },
+      count * PIP_WAVE_STAGGER_MS + PIP_WAVE_MS + 80
+    );
+    waveTimeoutsRef.current.set(id, done);
+  };
+
+  // Mexican waves: forward on continue / first review appear; reverse on back.
+  // Multiple waves can overlap if the user navigates quickly.
+  useEffect(() => {
+    const prev = prevStepRef.current;
+    prevStepRef.current = step;
+    if (sections.length === 0) return;
+
+    let direction: "forward" | "reverse" | null = null;
+    if (prev === null && step === "review") {
+      direction = "forward";
+    } else if (prev !== null && prev !== step) {
+      const prevIdx = FLOW_ORDER.indexOf(prev);
+      const nextIdx = FLOW_ORDER.indexOf(step);
+      if (prevIdx >= 0 && nextIdx >= 0) {
+        if (nextIdx === prevIdx + 1) direction = "forward";
+        else if (nextIdx === prevIdx - 1) direction = "reverse";
+      }
+    }
+    if (!direction) return;
+    enqueuePipWave(direction, sections.length);
+  }, [step, sections.length]);
 
   // Unified pip colour transitions: dwell, AI crawl, and 1s status changes.
   useEffect(() => {
@@ -521,20 +573,19 @@ export default function StudioAside({
             const filling = anim.progress < 1;
             const flashing = flashingPips.has(s.entry.number);
             const tone = filling ? anim.from : anim.to;
+            const fillStyle = filling
+              ? ({
+                  background: PIP_COLORS[anim.from],
+                  ["--dwell-fill"]: anim.progress.toFixed(4),
+                  ["--pip-to"]: PIP_COLORS[anim.to]
+                } as CSSProperties)
+              : undefined;
             return (
               <button
                 key={s.entry.number}
                 type="button"
                 className={`studio-pip tone-${tone}${filling ? " is-filling" : ""}${flashing ? " is-flash" : ""}${current ? " is-current" : ""}`}
-                style={
-                  filling
-                    ? ({
-                        background: PIP_COLORS[anim.from],
-                        ["--dwell-fill"]: anim.progress.toFixed(4),
-                        ["--pip-to"]: PIP_COLORS[anim.to]
-                      } as CSSProperties)
-                    : undefined
-                }
+                style={fillStyle}
                 title={`Section ${s.entry.number}`}
                 aria-label={
                   filling
@@ -549,7 +600,23 @@ export default function StudioAside({
                     .getElementById(`section-card-${s.entry.number}`)
                     ?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
-              />
+              >
+                {pipWaves.map((w) => (
+                  <span
+                    key={w.id}
+                    className="studio-pip-wave-pulse"
+                    aria-hidden
+                    style={
+                      {
+                        ["--wave-delay"]: `${
+                          (w.direction === "reverse" ? sections.length - 1 - i : i) *
+                          PIP_WAVE_STAGGER_MS
+                        }ms`
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </button>
             );
           })}
         </div>
