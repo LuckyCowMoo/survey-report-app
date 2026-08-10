@@ -212,6 +212,8 @@ export default function App() {
   return (
     <div
       className={`app${showIntro ? " intro-locked" : ""}${
+        step === "home" ? " app-home" : ""
+      }${
         step === "review" || step === "details" || step === "generate" ? " app-aside" : ""
       }`}
     >

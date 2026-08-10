@@ -1,7 +1,7 @@
 import {
   useEffect,
   useRef,
-  useSyncExternalStore,
+  useState,
   type PointerEvent as ReactPointerEvent
 } from "react";
 
@@ -54,7 +54,8 @@ const FLOAT_AMP_Y = 7;
 const FLOAT_AMP_X = 5;
 const FLOAT_AMP_R = 1.8;
 
-const WIDE_MQ = "(min-width: 900px)";
+/** Matches `.home-actions` / Import max width — extra cards spawn when Import stops growing. */
+const IMPORT_MAX_WIDTH = 560;
 const MOBILE_COUNT = 2;
 const DESKTOP_COUNT = 4;
 
@@ -112,16 +113,33 @@ const INITIAL: CardState[] = [
   }
 ];
 
-function useWideDesktop() {
-  return useSyncExternalStore(
-    (onChange) => {
-      const mq = window.matchMedia(WIDE_MQ);
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia(WIDE_MQ).matches,
-    () => false
-  );
+/** True once the Import strip has reached its max width (no longer shrinking with the viewport). */
+function useImportAtMaxWidth(homeRoot: HTMLElement | null) {
+  const [atMax, setAtMax] = useState(false);
+
+  useEffect(() => {
+    if (!homeRoot) {
+      setAtMax(false);
+      return;
+    }
+
+    const actions = homeRoot.querySelector(".home-actions");
+    if (!(actions instanceof HTMLElement)) {
+      setAtMax(false);
+      return;
+    }
+
+    const update = () => {
+      setAtMax(actions.getBoundingClientRect().width >= IMPORT_MAX_WIDTH - 0.5);
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(actions);
+    return () => ro.disconnect();
+  }, [homeRoot]);
+
+  return atMax;
 }
 
 function degToRad(d: number) {
@@ -266,9 +284,10 @@ function applyContactVelocity(
 
 /** Decorative floating report cards — draggable, spring home, soft collide. */
 export default function FloatingReports() {
-  const wide = useWideDesktop();
-  const count = wide ? DESKTOP_COUNT : MOBILE_COUNT;
   const layerRef = useRef<HTMLDivElement>(null);
+  const [homeEl, setHomeEl] = useState<HTMLElement | null>(null);
+  const importAtMax = useImportAtMaxWidth(homeEl);
+  const count = importAtMax ? DESKTOP_COUNT : MOBILE_COUNT;
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const stateRef = useRef<CardState[]>(
     INITIAL.slice(0, MOBILE_COUNT).map((c) => ({ ...c }))
@@ -279,9 +298,41 @@ export default function FloatingReports() {
   countRef.current = count;
 
   useEffect(() => {
+    const home = layerRef.current?.closest(".home");
+    setHomeEl(home instanceof HTMLElement ? home : null);
+  }, []);
+
+  useEffect(() => {
     stateRef.current = INITIAL.slice(0, count).map((c) => ({ ...c }));
     dragRef.current = null;
   }, [count]);
+
+  // Keep the fixed atmosphere aligned to the home frame so cards rest
+  // near the UI, not the raw viewport edges.
+  useEffect(() => {
+    const layer = layerRef.current;
+    const home = homeEl;
+    if (!layer || !home) return;
+
+    const sync = () => {
+      const r = home.getBoundingClientRect();
+      layer.style.top = `${r.top}px`;
+      layer.style.left = `${r.left}px`;
+      layer.style.width = `${r.width}px`;
+      layer.style.height = `${r.height}px`;
+    };
+
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(home);
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [homeEl, count]);
 
   useEffect(() => {
     reduceMotionRef.current = window.matchMedia(

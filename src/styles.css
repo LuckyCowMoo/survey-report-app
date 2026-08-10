@@ -1688,6 +1688,36 @@ html:not([data-theme="original"]) .app {
   max-width: 1040px;
 }
 
+/* Home: lock to the viewport — no page scroll */
+html:has(.app-home),
+html:has(.app-home) body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.app.app-home {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.app.app-home .content {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  padding: 14px max(14px, env(safe-area-inset-right, 0px)) 14px max(14px, env(safe-area-inset-left, 0px));
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+html:not([data-theme="original"]) .app.app-home .content {
+  padding: 16px max(20px, env(safe-area-inset-right, 0px)) 16px max(20px, env(safe-area-inset-left, 0px));
+}
+
 @media (min-width: 1100px) {
   html:not([data-theme="original"]) .app.app-aside {
     width: 66%;
@@ -1890,12 +1920,14 @@ html:not([data-theme="original"]) .sheet {
 /* Studio home: deliberately sparse, with the action doing the talking. */
 html:not([data-theme="original"]) .home {
   position: relative;
-  min-height: calc(100dvh - 48px);
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
   justify-content: center;
   gap: 34px;
-  padding: clamp(38px, 8vw, 86px) clamp(6px, 5vw, 54px);
-  /* Let atmosphere cards bleed past the layout; viewport clips them */
-  overflow: visible;
+  padding: clamp(28px, 6vh, 86px) clamp(6px, 5vw, 54px);
+  overflow: hidden;
   isolation: isolate;
 }
 
@@ -1913,11 +1945,14 @@ html:not([data-theme="original"]) .home::before {
   background-size: 48px 48px;
 }
 
+/* Fixed layer sized to the home frame (JS), so rest positions match the UI
+   without contributing to page scroll */
 html:not([data-theme="original"]) .home-atmosphere {
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  inset: auto;
   z-index: 1;
   pointer-events: none;
+  overflow: visible;
 }
 
 html:not([data-theme="original"]) .home-report {
@@ -2043,14 +2078,21 @@ html:not([data-theme="original"]) .home-guide-btn {
   align-items: center;
   justify-content: flex-start;
   gap: 0;
-  width: min(100%, 400px);
+  box-sizing: border-box;
+  /* 400/560 of Import; never smaller than the label */
+  width: 71.4286%;
+  min-width: fit-content;
+  max-width: 100%;
   margin-top: 0;
   text-align: left;
   overflow: hidden;
 }
 
 html:not([data-theme="original"]) .home-settings-btn {
-  width: min(100%, 240px);
+  /* 240/560 of Import */
+  width: 42.8571%;
+  min-width: fit-content;
+  max-width: 100%;
 }
 
 /* Shared icon / label shells — touch & default always show text */
@@ -2110,14 +2152,18 @@ html[data-pointer-input="fine"] .home-guide-btn .home-btn-label {
 }
 
 html[data-pointer-input="fine"] .home-guide-btn {
-  width: min(100%, 400px);
+  width: 71.4286%;
+  min-width: fit-content;
+  max-width: 100%;
   min-height: 48px;
   justify-content: flex-start;
   position: relative;
 }
 
 html[data-pointer-input="fine"] .home-settings-btn {
-  width: min(100%, 240px);
+  width: 42.8571%;
+  min-width: fit-content;
+  max-width: 100%;
 }
 
 html[data-pointer-input="fine"] .home-guide-btn .home-btn-icon {
@@ -2143,13 +2189,13 @@ html[data-pointer-input="fine"] .home-guide-btn .home-btn-label {
 
 html:not([data-theme="original"])[data-pointer-input="fine"] .home-guide-btn:not(:disabled):hover,
 html:not([data-theme="original"])[data-pointer-input="fine"] .home-guide-btn:focus-visible {
-  width: min(100%, 424px);
+  width: 75.7143%; /* 424/560 */
   transform: translateY(-1px) scale(1.02);
 }
 
 html:not([data-theme="original"])[data-pointer-input="fine"] .home-settings-btn:not(:disabled):hover,
 html:not([data-theme="original"])[data-pointer-input="fine"] .home-settings-btn:focus-visible {
-  width: min(100%, 256px);
+  width: 45.7143%; /* 256/560 */
 }
 
 html[data-pointer-input="fine"] .home-guide-btn:hover .home-btn-icon,
@@ -2413,7 +2459,6 @@ html[data-theme="dark"] .home-report-d {
   }
 
   html:not([data-theme="original"]) .home {
-    min-height: calc(100dvh - 24px);
     padding-inline: 18px;
   }
 
@@ -2495,13 +2540,18 @@ html[data-theme="dark"] .card.ai-working {
 .home-guide-btn {
   display: inline-flex;
   align-items: center;
-  width: min(100%, 400px);
+  box-sizing: border-box;
+  width: 71.4286%;
+  min-width: fit-content;
+  max-width: 100%;
   text-align: left;
   overflow: hidden;
 }
 
 .home-settings-btn {
-  width: min(100%, 240px);
+  width: 42.8571%;
+  min-width: fit-content;
+  max-width: 100%;
 }
 
 /* Import strip is squeezed below 560px: centre the narrower buttons under it.
