@@ -1560,35 +1560,24 @@ html[data-theme="dark"] .chip.kw {
 }
 
 .intro-logo {
-  /* Fixed box always — only transform scales. Shine never changes these. */
+  /* Full-size box always — same SVG at every phase (no tiny→large LOD pop). */
   position: relative;
   width: min(72vw, 430px);
   justify-self: center;
   align-self: center;
-  transform: scale(0.25);
+  transform: scale(1);
   transform-origin: center center;
   opacity: 0;
   transition: none;
 }
 
-.intro-splash.intro-spin .intro-logo {
-  opacity: 1;
-  transform: scale(0.25);
-  transition: opacity 0.35s ease;
-}
-
-.intro-splash.intro-unravel .intro-logo {
-  opacity: 1;
-  transform: scale(1);
-  transition: transform 1.05s cubic-bezier(0.4, 0.1, 0.2, 1);
-}
-
-/* settled + hold: identical frozen logo — shine must not alter this block */
+.intro-splash.intro-spin .intro-logo,
+.intro-splash.intro-unravel .intro-logo,
 .intro-splash.intro-settled .intro-logo,
 .intro-splash.intro-hold .intro-logo {
   opacity: 1;
   transform: scale(1);
-  transition: none;
+  transition: opacity 0.35s ease;
   animation: none;
 }
 
@@ -1610,57 +1599,23 @@ html[data-theme="dark"] .chip.kw {
   display: block;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  /* Constant filter — toggling it on shine was shifting the paint bounds */
+  overflow: visible;
   filter: drop-shadow(0 0 28px rgba(209, 45, 38, 0.28));
 }
 
-/* Spinner ring – visible during spin, exits during unravel */
-.intro-spinner {
-  transform-origin: 64.96px 21.48px;
-  transform-box: fill-box;
-  opacity: 0;
-}
-
-.intro-splash.intro-spin .intro-spinner {
-  opacity: 1;
-}
-
-.intro-splash.intro-spin .intro-spinner-arc,
-.intro-splash.intro-unravel .intro-spinner-arc {
-  transform-origin: 64.96px 21.48px;
-  transform-box: view-box;
-  animation: intro-spinner-spin 0.85s linear infinite;
-}
-
-.intro-splash.intro-unravel .intro-spinner {
-  opacity: 1;
-  animation: intro-spinner-exit 0.55s cubic-bezier(0.4, 0.1, 0.2, 1) forwards;
-}
-
-/* Leave spinner at opacity 0 via animation fill — do not retarget on settled */
-.intro-splash.intro-settled .intro-spinner,
-.intro-splash.intro-fly .intro-spinner,
-.intro-splash.intro-hold .intro-spinner {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.intro-spinner-arc {
-  stroke-dasharray: 0.28 0.72;
-}
-
-/* Outline draw during unravel — ends at opacity 0 (forwards) */
+/* One path: dashed chase → full outline → fade under the fill.
+   Spin + unravel are ONE animation so the lit segment never jumps. */
 .intro-mark-stroke {
   fill: none;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  stroke-dasharray: 0.22 0.78;
+  stroke-dashoffset: 0;
   opacity: 0;
 }
 
-.intro-splash.intro-unravel .intro-mark-stroke {
+/* `.is-drawing` stays on across spin→unravel so the stroke anim never restarts */
+.intro-splash.is-drawing .intro-mark-stroke {
   opacity: 1;
-  animation: intro-path-draw 1.05s cubic-bezier(0.4, 0.05, 0.2, 1) forwards;
+  animation: intro-stroke-draw var(--intro-stroke-ms, 2700ms) linear forwards;
 }
 
 .intro-splash.intro-settled .intro-mark-stroke,
@@ -1668,24 +1623,23 @@ html[data-theme="dark"] .chip.kw {
 .intro-splash.intro-hold .intro-mark-stroke {
   opacity: 0;
   pointer-events: none;
+  animation: none;
 }
 
-/* Solid fill */
+/* Solid fill — overlaps the stroke so there is no swap-pop */
 .intro-mark-solid {
   opacity: 0;
-  transition: opacity 0.5s ease 0.45s;
+  transition: opacity 0.55s ease 0.35s;
 }
 
-.intro-splash.intro-unravel .intro-mark-solid,
-.intro-splash.intro-settled .intro-mark-solid,
-.intro-splash.intro-fly .intro-mark-solid,
-.intro-splash.intro-hold .intro-mark-solid {
+.intro-splash.intro-unravel .intro-mark-solid {
   opacity: 1;
 }
 
 .intro-splash.intro-settled .intro-mark-solid,
 .intro-splash.intro-fly .intro-mark-solid,
 .intro-splash.intro-hold .intro-mark-solid {
+  opacity: 1;
   transition: none;
 }
 
@@ -1747,34 +1701,32 @@ html[data-theme="dark"] .chip.kw {
   animation: intro-skip-in 0.5s ease 0.35s forwards;
 }
 
-@keyframes intro-spinner-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes intro-spinner-exit {
+/*
+  Timeline (SPIN_MS=1600, UNRAVEL_MS=1100 → total 2700):
+  0–59.26%: march dash 2 full cycles (offset 0 → -2)
+  59.26%: same lit segment (offset -2 ≡ 0), then grow that segment into the full path
+*/
+@keyframes intro-stroke-draw {
   0% {
+    stroke-dasharray: 0.22 0.78;
+    stroke-dashoffset: 0;
     opacity: 1;
-    transform: scale(1);
+    animation-timing-function: linear;
   }
-  100% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-}
-
-@keyframes intro-path-draw {
-  0% {
-    stroke-dashoffset: 1;
-    opacity: 0.95;
+  59.259% {
+    stroke-dasharray: 0.22 0.78;
+    stroke-dashoffset: -2;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.4, 0.05, 0.2, 1);
   }
   85% {
-    stroke-dashoffset: 0;
+    stroke-dasharray: 1 0;
+    stroke-dashoffset: -2;
     opacity: 1;
   }
   100% {
-    stroke-dashoffset: 0;
+    stroke-dasharray: 1 0;
+    stroke-dashoffset: -2;
     opacity: 0;
   }
 }
@@ -1846,7 +1798,6 @@ html[data-theme="dark"] .chip.kw {
   .intro-logo,
   .intro-shine,
   .intro-skip,
-  .intro-spinner,
   .intro-mark-stroke,
   .intro-mark-solid {
     animation: none !important;
@@ -1855,12 +1806,12 @@ html[data-theme="dark"] .chip.kw {
 
   .intro-splash.intro-spin .intro-mark-solid,
   .intro-splash.intro-unravel .intro-mark-solid,
+  .intro-splash.intro-settled .intro-mark-solid,
   .intro-splash.intro-fly .intro-mark-solid {
     opacity: 1;
   }
 
-  .intro-spinner,
   .intro-mark-stroke {
-    display: none;
+    opacity: 0 !important;
   }
 }

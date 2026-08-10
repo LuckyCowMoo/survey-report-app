@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import BrandMark from "./BrandMark";
 
 const SESSION_KEY = "survey-report-intro-seen";
 
 /** Spin → unravel into mark → shine (logo frozen) → smooth fly-out. */
-const SPIN_MS = 1600;
+/** Keep in sync with `intro-stroke-draw` keyframe % (spin / total stroke). */
+const DASH_PERIOD_MS = 800;
+const SPIN_CYCLES = 2;
+const SPIN_MS = DASH_PERIOD_MS * SPIN_CYCLES;
 const UNRAVEL_MS = 1100;
+const STROKE_MS = SPIN_MS + UNRAVEL_MS;
 const SHINE_MS = 900;
 const FLY_MS = 900;
-const INTRO_MS = SPIN_MS + UNRAVEL_MS + SHINE_MS + FLY_MS;
+const INTRO_MS = STROKE_MS + SHINE_MS + FLY_MS;
 
 /**
  * Logo layout phases. "settled" covers both the shine hold and the moment
@@ -71,33 +75,37 @@ export default function IntroSplash({ onDone }: Props) {
 
   useEffect(() => {
     const timers: number[] = [];
-    const start = requestAnimationFrame(() => setPhase("spin"));
 
     if (hold) {
       setPhase("settled");
       setShine(true);
-      return () => cancelAnimationFrame(start);
+      return;
     }
 
-    let t = SPIN_MS;
-    timers.push(window.setTimeout(() => setPhase("unravel"), t));
-    t += UNRAVEL_MS;
-    // Freeze logo styles first, then start shine on the next frame so no
-    // logo rule changes in the same paint as the shine layer.
-    timers.push(
-      window.setTimeout(() => {
-        setPhase("settled");
-        requestAnimationFrame(() => setShine(true));
-      }, t)
-    );
-    t += SHINE_MS;
-    timers.push(
-      window.setTimeout(() => {
-        setShine(false);
-        setPhase("fly");
-      }, t)
-    );
-    timers.push(window.setTimeout(finish, INTRO_MS));
+    // Stroke spin→fill is one CSS animation; JS phases only drive solid/shine/fly.
+    const start = requestAnimationFrame(() => {
+      setPhase("spin");
+
+      let t = SPIN_MS;
+      timers.push(window.setTimeout(() => setPhase("unravel"), t));
+      t += UNRAVEL_MS;
+      // Freeze logo styles first, then start shine on the next frame so no
+      // logo rule changes in the same paint as the shine layer.
+      timers.push(
+        window.setTimeout(() => {
+          setPhase("settled");
+          requestAnimationFrame(() => setShine(true));
+        }, t)
+      );
+      t += SHINE_MS;
+      timers.push(
+        window.setTimeout(() => {
+          setShine(false);
+          setPhase("fly");
+        }, t)
+      );
+      timers.push(window.setTimeout(finish, INTRO_MS));
+    });
 
     return () => {
       cancelAnimationFrame(start);
@@ -106,9 +114,12 @@ export default function IntroSplash({ onDone }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hold]);
 
+  const drawing = phase === "spin" || phase === "unravel";
+
   return (
     <div
-      className={`intro-splash intro-${phase}${hold ? " intro-hold" : ""}${shine ? " is-shining" : ""}`}
+      className={`intro-splash intro-${phase}${hold ? " intro-hold" : ""}${shine ? " is-shining" : ""}${drawing ? " is-drawing" : ""}`}
+      style={{ "--intro-stroke-ms": `${STROKE_MS}ms` } as CSSProperties}
       role="dialog"
       aria-label="DampMaster"
       aria-live="polite"

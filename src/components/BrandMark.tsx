@@ -1,7 +1,7 @@
 interface Props {
   className?: string;
   title?: string;
-  /** When true, include spinner + stroke layers used by the intro animation. */
+  /** When true, include stroke layer used by the intro animation. */
   intro?: boolean;
 }
 
@@ -24,38 +24,15 @@ export default function BrandMark({
     >
       <title>{title}</title>
 
-      {intro && (
-        <g className="intro-spinner" aria-hidden>
-          <circle
-            className="intro-spinner-track"
-            cx="64.96"
-            cy="21.48"
-            r="14"
-            fill="none"
-            stroke="rgba(209, 45, 38, 0.18)"
-            strokeWidth="3.2"
-          />
-          <circle
-            className="intro-spinner-arc"
-            cx="64.96"
-            cy="21.48"
-            r="14"
-            fill="none"
-            stroke="#d12d26"
-            strokeWidth="3.2"
-            strokeLinecap="round"
-            pathLength="1"
-          />
-        </g>
-      )}
-
+      {/* Same path as the solid mark — used as a stroked loader, then drawn out.
+          Keeping one geometry avoids a spinner→logo “LOD” pop. */}
       {intro && (
         <path
           className="intro-mark-stroke"
           d={LOGO_PATH}
           fill="none"
           stroke="#d12d26"
-          strokeWidth="1.35"
+          strokeWidth="1.6"
           strokeLinejoin="round"
           strokeLinecap="round"
           pathLength="1"
