@@ -3,89 +3,145 @@ import { useEffect } from "react";
 type Glow = {
   x: number;
   y: number;
+  sx: number;
+  sy: number;
   tx: number;
   ty: number;
+  /** 0–1 progress through the current hop (time domain, before easing). */
+  t: number;
+  /** Seconds for this hop at the reference average speed. */
+  duration: number;
 };
 
-function randomAnchor(): Pick<Glow, "tx" | "ty"> {
+/** Average percent-units per second (ease-in-out still averages to this). */
+const SPEED = 14;
+const ARRIVE_EPS = 0.998;
+const PAUSE_MIN_MS = 900;
+const PAUSE_MAX_MS = 2200;
+const MIN_DURATION = 0.45;
+
+function randomAnchor(): { x: number; y: number } {
   return {
-    tx: 8 + Math.random() * 84,
-    ty: 6 + Math.random() * 88
+    x: 8 + Math.random() * 84,
+    y: 6 + Math.random() * 88
   };
 }
 
-function makeGlow(seed?: Partial<Glow>): Glow {
-  const target = randomAnchor();
+function pauseMs() {
+  return PAUSE_MIN_MS + Math.random() * (PAUSE_MAX_MS - PAUSE_MIN_MS);
+}
+
+/** Smooth accelerate first half, decelerate second half. */
+function easeInOut(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
+
+function makeGlow(x: number, y: number, target: { x: number; y: number }): Glow {
+  const dist = Math.hypot(target.x - x, target.y - y);
   return {
-    x: seed?.x ?? target.tx,
-    y: seed?.y ?? target.ty,
-    tx: seed?.tx ?? target.tx,
-    ty: seed?.ty ?? target.ty
+    x,
+    y,
+    sx: x,
+    sy: y,
+    tx: target.x,
+    ty: target.y,
+    t: 0,
+    duration: Math.max(MIN_DURATION, dist / SPEED)
   };
 }
 
-/** Soft studio background wash — drifts between random viewport anchors. */
+function retarget(g: Glow, target: { x: number; y: number }) {
+  const dist = Math.hypot(target.x - g.x, target.y - g.y);
+  g.sx = g.x;
+  g.sy = g.y;
+  g.tx = target.x;
+  g.ty = target.y;
+  g.t = 0;
+  g.duration = Math.max(MIN_DURATION, dist / SPEED);
+}
+
+/** Advance along the hop with ease-in-out; returns true when settled on target. */
+function stepGlow(g: Glow, dt: number): boolean {
+  if (g.t >= 1) {
+    g.x = g.tx;
+    g.y = g.ty;
+    return true;
+  }
+
+  g.t = Math.min(1, g.t + dt / g.duration);
+  const u = easeInOut(g.t);
+  g.x = g.sx + (g.tx - g.sx) * u;
+  g.y = g.sy + (g.ty - g.sy) * u;
+  return g.t >= ARRIVE_EPS;
+}
+
+/** Soft studio background wash — ease-in-out drift within the viewport. */
 export default function AmbientGlow() {
   useEffect(() => {
-    const root = document.documentElement;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
 
-    const aStart = randomAnchor();
-    const bStart = randomAnchor();
-    const a = makeGlow({ x: 14, y: 8, tx: aStart.tx, ty: aStart.ty });
-    const b = makeGlow({ x: 90, y: 75, tx: bStart.tx, ty: bStart.ty });
+    // Fixed viewport layer — % anchors stay on-screen while long pages scroll
+    const wash = document.createElement("div");
+    wash.className = "ambient-wash";
+    wash.setAttribute("aria-hidden", "true");
+    document.body.prepend(wash);
+
+    const a = makeGlow(14, 8, randomAnchor());
+    const b = makeGlow(90, 75, randomAnchor());
 
     let raf = 0;
     let last = performance.now();
-    let nextRetargetA = last + 3500;
-    let nextRetargetB = last + 5200;
+    let pauseUntilA = Number.POSITIVE_INFINITY;
+    let pauseUntilB = Number.POSITIVE_INFINITY;
+
+    const apply = () => {
+      wash.style.setProperty("--glow-x", `${a.x.toFixed(2)}%`);
+      wash.style.setProperty("--glow-y", `${a.y.toFixed(2)}%`);
+      wash.style.setProperty("--glow2-x", `${b.x.toFixed(2)}%`);
+      wash.style.setProperty("--glow2-y", `${b.y.toFixed(2)}%`);
+    };
 
     const tick = (now: number) => {
       const dt = Math.min(48, now - last) / 1000;
       last = now;
 
-      if (now >= nextRetargetA) {
-        Object.assign(a, randomAnchor());
-        nextRetargetA = now + 2800 + Math.random() * 3200;
-      }
-      if (now >= nextRetargetB) {
-        Object.assign(b, randomAnchor());
-        nextRetargetB = now + 3200 + Math.random() * 4000;
-      }
+      const arrivedA = stepGlow(a, dt);
+      const arrivedB = stepGlow(b, dt);
 
-      // Reach a new target in roughly ~2.5–4s
-      const ease = 1 - Math.exp(-1.35 * dt);
-      a.x += (a.tx - a.x) * ease;
-      a.y += (a.ty - a.y) * ease;
-      b.x += (b.tx - b.x) * ease;
-      b.y += (b.ty - b.y) * ease;
-
-      const gx = `${a.x.toFixed(2)}%`;
-      const gy = `${a.y.toFixed(2)}%`;
-      const g2x = `${b.x.toFixed(2)}%`;
-      const g2y = `${b.y.toFixed(2)}%`;
-      // Set on both — body paints the wash and may not live-inherit html updates
-      for (const el of [root, document.body]) {
-        el.style.setProperty("--glow-x", gx);
-        el.style.setProperty("--glow-y", gy);
-        el.style.setProperty("--glow2-x", g2x);
-        el.style.setProperty("--glow2-y", g2y);
+      if (arrivedA) {
+        if (pauseUntilA === Number.POSITIVE_INFINITY) {
+          pauseUntilA = now + pauseMs();
+        } else if (now >= pauseUntilA) {
+          retarget(a, randomAnchor());
+          pauseUntilA = Number.POSITIVE_INFINITY;
+        }
+      } else {
+        pauseUntilA = Number.POSITIVE_INFINITY;
       }
 
+      if (arrivedB) {
+        if (pauseUntilB === Number.POSITIVE_INFINITY) {
+          pauseUntilB = now + pauseMs();
+        } else if (now >= pauseUntilB) {
+          retarget(b, randomAnchor());
+          pauseUntilB = Number.POSITIVE_INFINITY;
+        }
+      } else {
+        pauseUntilB = Number.POSITIVE_INFINITY;
+      }
+
+      apply();
       raf = requestAnimationFrame(tick);
     };
 
+    apply();
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
-      for (const el of [root, document.body]) {
-        el.style.removeProperty("--glow-x");
-        el.style.removeProperty("--glow-y");
-        el.style.removeProperty("--glow2-x");
-        el.style.removeProperty("--glow2-y");
-      }
+      wash.remove();
     };
   }, []);
 

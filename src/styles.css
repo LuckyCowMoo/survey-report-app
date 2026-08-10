@@ -720,6 +720,24 @@ body {
   width: 100%;
 }
 
+.secret-input {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.secret-input input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.secret-toggle {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .field.narrow {
   max-width: 110px;
 }
@@ -1040,17 +1058,34 @@ html:not([data-theme="original"]) body {
   min-height: 100%;
   /* Clip bleed at the viewport — not at the home card edge */
   overflow-x: clip;
+  background: linear-gradient(135deg, #f7f5ef 0%, #eeece6 100%);
+}
+
+/* Haze lives here so random targets are always in the current viewport */
+.ambient-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   --glow-x: 14%;
   --glow-y: 8%;
   --glow2-x: 90%;
   --glow2-y: 75%;
-  background:
-    radial-gradient(
-      circle at var(--glow-x) var(--glow-y),
-      rgba(255, 107, 59, 0.2),
-      transparent 28rem
-    ),
-    linear-gradient(135deg, #f7f5ef 0%, #eeece6 100%);
+  background: radial-gradient(
+    circle at var(--glow-x) var(--glow-y),
+    rgba(255, 107, 59, 0.2),
+    transparent 28rem
+  );
+}
+
+html[data-theme="original"] .ambient-wash {
+  display: none;
+}
+
+html:not([data-theme="original"]) .app {
+  position: relative;
+  z-index: 1;
+  max-width: 1040px;
 }
 
 html:not([data-theme="original"]) body {
@@ -1061,11 +1096,6 @@ html:not([data-theme="original"]) body {
 html:not([data-theme="original"]) ::selection {
   background: var(--brand);
   color: #fff;
-}
-
-html:not([data-theme="original"]) .app {
-  max-width: 1040px;
-  position: relative;
 }
 
 html:not([data-theme="original"]) .topbar {
@@ -1406,6 +1436,10 @@ html:not([data-theme="original"]) .home-status i {
 
 html[data-theme="dark"],
 html[data-theme="dark"] body {
+  background: #0d0f12;
+}
+
+html[data-theme="dark"] .ambient-wash {
   background:
     radial-gradient(
       circle at var(--glow-x) var(--glow-y),
@@ -1416,8 +1450,7 @@ html[data-theme="dark"] body {
       circle at var(--glow2-x) var(--glow2-y),
       rgba(255, 91, 54, 0.1),
       transparent 34rem
-    ),
-    #0d0f12;
+    );
 }
 
 html[data-theme="dark"] .topbar {
