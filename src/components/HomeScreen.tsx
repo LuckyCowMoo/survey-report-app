@@ -1,13 +1,15 @@
 import { useRef } from "react";
 import FloatingReports from "./FloatingReports";
+import { IconBook, IconSettings } from "./icons";
 
 interface Props {
   onFile: (file: File) => void;
   busy: boolean;
   onShowGuide: () => void;
+  onShowSettings: () => void;
 }
 
-export default function HomeScreen({ onFile, busy, onShowGuide }: Props) {
+export default function HomeScreen({ onFile, busy, onShowGuide, onShowSettings }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -34,18 +36,44 @@ export default function HomeScreen({ onFile, busy, onShowGuide }: Props) {
           e.target.value = "";
         }}
       />
-      <button
-        className="btn primary big home-upload"
-        disabled={busy}
-        onClick={() => inputRef.current?.click()}
-      >
-        <span>{busy ? "Reading document…" : "Import shorthand"}</span>
-        <span className="home-upload-meta">{busy ? "Please wait" : ".DOCX  ↗"}</span>
-      </button>
 
-      <button className="btn home-guide-btn" onClick={onShowGuide}>
-        Guide
-      </button>
+      <div className="home-actions">
+        <button
+          className={`btn primary big home-upload${busy ? " is-busy" : ""}`}
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          <span className="home-btn-label">
+            <span className="home-btn-title">
+              {busy ? "Reading document…" : "Import field notes"}
+            </span>
+            <span className="home-upload-meta">{busy ? "Please wait" : ".DOCX  ↗"}</span>
+          </span>
+        </button>
+
+        <div className="home-secondary-actions">
+          <button
+            className="btn home-guide-btn"
+            aria-label="Guide"
+            onClick={onShowGuide}
+          >
+            <span className="home-btn-icon" aria-hidden>
+              <IconBook className="home-btn-glyph" />
+            </span>
+            <span className="home-btn-label">Guide</span>
+          </button>
+          <button
+            className="btn home-guide-btn home-settings-btn"
+            aria-label="Settings"
+            onClick={onShowSettings}
+          >
+            <span className="home-btn-icon" aria-hidden>
+              <IconSettings className="home-btn-glyph" />
+            </span>
+            <span className="home-btn-label">Settings</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

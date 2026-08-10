@@ -1,4 +1,9 @@
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type PointerEvent as ReactPointerEvent
+} from "react";
 
 type CardState = {
   x: number;
@@ -49,6 +54,17 @@ const FLOAT_AMP_Y = 7;
 const FLOAT_AMP_X = 5;
 const FLOAT_AMP_R = 1.8;
 
+const WIDE_MQ = "(min-width: 900px)";
+const MOBILE_COUNT = 2;
+const DESKTOP_COUNT = 4;
+
+const REPORT_CLASS = [
+  "home-report-a",
+  "home-report-b",
+  "home-report-c",
+  "home-report-d"
+] as const;
+
 const INITIAL: CardState[] = [
   {
     x: 0,
@@ -71,8 +87,42 @@ const INITIAL: CardState[] = [
     dragging: false,
     baseRotate: -8,
     phase: Math.PI
+  },
+  {
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    rot: -14,
+    vr: 0,
+    dragging: false,
+    baseRotate: -14,
+    phase: Math.PI * 0.45
+  },
+  {
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    rot: 6,
+    vr: 0,
+    dragging: false,
+    baseRotate: 6,
+    phase: Math.PI * 1.35
   }
 ];
+
+function useWideDesktop() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(WIDE_MQ);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(WIDE_MQ).matches,
+    () => false
+  );
+}
 
 function degToRad(d: number) {
   return (d * Math.PI) / 180;
@@ -216,12 +266,22 @@ function applyContactVelocity(
 
 /** Decorative floating report cards — draggable, spring home, soft collide. */
 export default function FloatingReports() {
+  const wide = useWideDesktop();
+  const count = wide ? DESKTOP_COUNT : MOBILE_COUNT;
   const layerRef = useRef<HTMLDivElement>(null);
-  const cardARef = useRef<HTMLButtonElement>(null);
-  const cardBRef = useRef<HTMLButtonElement>(null);
-  const stateRef = useRef<CardState[]>(INITIAL.map((c) => ({ ...c })));
+  const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const stateRef = useRef<CardState[]>(
+    INITIAL.slice(0, MOBILE_COUNT).map((c) => ({ ...c }))
+  );
   const dragRef = useRef<DragState | null>(null);
   const reduceMotionRef = useRef(false);
+  const countRef = useRef(count);
+  countRef.current = count;
+
+  useEffect(() => {
+    stateRef.current = INITIAL.slice(0, count).map((c) => ({ ...c }));
+    dragRef.current = null;
+  }, [count]);
 
   useEffect(() => {
     reduceMotionRef.current = window.matchMedia(
@@ -229,7 +289,7 @@ export default function FloatingReports() {
     ).matches;
 
     const cards = stateRef.current;
-    const els = () => [cardARef.current, cardBRef.current] as const;
+    const els = () => cardRefs.current;
     let raf = 0;
     let last = performance.now();
 
@@ -239,7 +299,7 @@ export default function FloatingReports() {
       let bobY = 0;
       let bobR = 0;
       if (!reduceMotionRef.current && !c.dragging) {
-        const p = c.phase + time / 1000 * (0.55 + i * 0.12);
+        const p = c.phase + (time / 1000) * (0.55 + i * 0.12);
         bobX = Math.sin(p) * FLOAT_AMP_X;
         bobY = Math.cos(p * 0.85) * FLOAT_AMP_Y;
         bobR = Math.sin(p * 0.7) * FLOAT_AMP_R;
@@ -249,10 +309,11 @@ export default function FloatingReports() {
 
     const applyTransforms = (time: number) => {
       const nodes = els();
-      for (let i = 0; i < 2; i++) {
+      const n = countRef.current;
+      for (let i = 0; i < n; i++) {
         const el = nodes[i];
         const c = cards[i];
-        if (!el) continue;
+        if (!el || !c) continue;
         const pose = poseOf(i, time);
         el.style.transform = `translate3d(${c.x + pose.bobX}px, ${c.y + pose.bobY}px, 0) rotate(${pose.rot}deg)`;
         el.classList.toggle("is-dragging", c.dragging);
@@ -270,20 +331,19 @@ export default function FloatingReports() {
       };
     };
 
-    const resolveCollision = (time: number) => {
-      const [aEl, bEl] = els();
+    const resolvePair = (i: number, j: number, time: number) => {
+      const nodes = els();
+      const aEl = nodes[i];
+      const bEl = nodes[j];
       if (!aEl || !bEl) return;
 
-      const aPose = poseOf(0, time);
-      const bPose = poseOf(1, time);
-      const sep = obbSeparate(
-        makeObb(aEl, aPose.rot),
-        makeObb(bEl, bPose.rot)
-      );
+      const aPose = poseOf(i, time);
+      const bPose = poseOf(j, time);
+      const sep = obbSeparate(makeObb(aEl, aPose.rot), makeObb(bEl, bPose.rot));
       if (!sep) return;
 
-      const a = cards[0];
-      const b = cards[1];
+      const a = cards[i];
+      const b = cards[j];
       const { ox, oy, nx, ny } = sep;
 
       if (a.dragging && !b.dragging) {
@@ -304,12 +364,23 @@ export default function FloatingReports() {
       applyContactVelocity(a, b, nx, ny);
     };
 
+    const resolveCollisions = (time: number) => {
+      const n = countRef.current;
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          resolvePair(i, j, time);
+        }
+      }
+    };
+
     const tick = (now: number) => {
       const dt = Math.min(32, now - last) / 16.67;
       last = now;
+      const n = countRef.current;
 
-      for (const c of cards) {
-        if (c.dragging) continue;
+      for (let i = 0; i < n; i++) {
+        const c = cards[i];
+        if (!c || c.dragging) continue;
 
         c.vx += -c.x * SPRING * dt;
         c.vy += -c.y * SPRING * dt;
@@ -338,7 +409,7 @@ export default function FloatingReports() {
       }
 
       applyTransforms(now);
-      resolveCollision(now);
+      resolveCollisions(now);
       applyTransforms(now);
 
       raf = requestAnimationFrame(tick);
@@ -346,13 +417,14 @@ export default function FloatingReports() {
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [count]);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
       const c = stateRef.current[drag.index];
+      if (!c) return;
 
       const pvx = e.clientX - drag.lastX;
       const pvy = e.clientY - drag.lastY;
@@ -382,12 +454,14 @@ export default function FloatingReports() {
       const drag = dragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
       const c = stateRef.current[drag.index];
-      c.dragging = false;
-      c.vr *= 0.55;
-      c.vx *= 0.65;
-      c.vy *= 0.65;
+      if (c) {
+        c.dragging = false;
+        c.vr *= 0.55;
+        c.vx *= 0.65;
+        c.vy *= 0.65;
+      }
       dragRef.current = null;
-      const node = drag.index === 0 ? cardARef.current : cardBRef.current;
+      const node = cardRefs.current[drag.index];
       try {
         node?.releasePointerCapture(e.pointerId);
       } catch {
@@ -410,6 +484,7 @@ export default function FloatingReports() {
     e.preventDefault();
     const el = e.currentTarget;
     const c = stateRef.current[index];
+    if (!c) return;
     const center = cardCenter(el);
     const local = unrotate(e.clientX - center.x, e.clientY - center.y, c.rot);
 
@@ -433,20 +508,18 @@ export default function FloatingReports() {
 
   return (
     <div className="home-atmosphere" ref={layerRef} aria-hidden>
-      <button
-        type="button"
-        className="home-report home-report-a"
-        ref={cardARef}
-        tabIndex={-1}
-        onPointerDown={(e) => startDrag(0, e)}
-      />
-      <button
-        type="button"
-        className="home-report home-report-b"
-        ref={cardBRef}
-        tabIndex={-1}
-        onPointerDown={(e) => startDrag(1, e)}
-      />
+      {REPORT_CLASS.slice(0, count).map((cls, i) => (
+        <button
+          key={cls}
+          type="button"
+          className={`home-report ${cls}`}
+          ref={(node) => {
+            cardRefs.current[i] = node;
+          }}
+          tabIndex={-1}
+          onPointerDown={(e) => startDrag(i, e)}
+        />
+      ))}
     </div>
   );
 }

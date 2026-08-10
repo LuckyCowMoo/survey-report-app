@@ -8,10 +8,12 @@ import KeywordGuide from "./components/KeywordGuide";
 import IntroSplash, { useIntroSplash } from "./components/IntroSplash";
 import AmbientGlow from "./components/AmbientGlow";
 import StudioAside from "./components/StudioAside";
+import { IconBack, IconSettings } from "./components/icons";
 import { parseShorthandDocx } from "./lib/docxParser";
 import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
 import { activeAi, loadSettings, saveSettings, type AppSettings } from "./lib/settings";
+import { usePointerInputMode } from "./lib/pointerInput";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
 type Step = "home" | "review" | "details" | "generate";
@@ -48,6 +50,7 @@ const defaultExtras: ReportExtras = {
 };
 
 export default function App() {
+  usePointerInputMode();
   const { showIntro, dismissIntro } = useIntroSplash();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
@@ -214,29 +217,39 @@ export default function App() {
     >
       <AmbientGlow />
       {showIntro && <IntroSplash onDone={dismissIntro} />}
-      <header className="topbar">
-        {step !== "home" ? (
+      {step !== "home" && (
+        <header className="topbar">
           <button
-            className="topbar-btn"
+            type="button"
+            className="topbar-btn topbar-btn-icon"
+            aria-label="Back"
             onClick={() =>
               setStep(step === "review" ? "home" : step === "details" ? "review" : "details")
             }
           >
-            &#8249; Back
+            <span className="topbar-btn-glyph" aria-hidden>
+              <IconBack />
+            </span>
+            <span className="topbar-btn-label">Back</span>
           </button>
-        ) : (
-          <span className="topbar-spacer" />
-        )}
-        <h1 className="topbar-title">
-          {step === "home" && "Survey Reports"}
-          {step === "review" && "Review sections"}
-          {step === "details" && "Report details"}
-          {step === "generate" && "Generate"}
-        </h1>
-        <button className="topbar-btn" onClick={() => setShowSettings(true)}>
-          Settings
-        </button>
-      </header>
+          <h1 className="topbar-title">
+            {step === "review" && "Review sections"}
+            {step === "details" && "Report details"}
+            {step === "generate" && "Generate"}
+          </h1>
+          <button
+            type="button"
+            className="topbar-btn topbar-btn-icon"
+            aria-label="Settings"
+            onClick={() => setShowSettings(true)}
+          >
+            <span className="topbar-btn-glyph" aria-hidden>
+              <IconSettings />
+            </span>
+            <span className="topbar-btn-label">Settings</span>
+          </button>
+        </header>
+      )}
 
       {error && (
         <div className="banner error" onClick={() => setError(null)}>
@@ -256,6 +269,7 @@ export default function App() {
             onFile={handleFile}
             busy={busy !== null}
             onShowGuide={() => setShowGuide(true)}
+            onShowSettings={() => setShowSettings(true)}
           />
         )}
         {step === "review" && (
@@ -271,6 +285,7 @@ export default function App() {
             onAskAiAll={runAiForAllFlagged}
             onContinue={() => setStep("details")}
             onFocusSection={focusSection}
+            focusedSectionIndex={focusedSectionIndex}
           />
         )}
         {step === "details" && (

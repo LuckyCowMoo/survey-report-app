@@ -420,6 +420,7 @@ function entryTable(s: SectionState, img: DocImage | undefined): Table {
     );
     imageChildren.push(
       new Paragraph({
+        alignment: AlignmentType.CENTER,
         children: [
           new ImageRun({
             data: img.bytes,
@@ -438,6 +439,7 @@ function entryTable(s: SectionState, img: DocImage | undefined): Table {
   const imageCell = new TableCell({
     width: { size: 4892, type: WidthType.DXA },
     margins: { top: 0, left: 0, bottom: 0, right: 200 },
+    verticalAlign: VerticalAlign.CENTER,
     children: imageChildren
   });
 

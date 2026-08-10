@@ -25,6 +25,8 @@ interface Props {
   aiConfigured: boolean;
   busy: boolean;
   aiWorking: boolean;
+  /** True when this card is the focused / highlighted section. */
+  focused?: boolean;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
   onActivate?: (index: number) => void;
@@ -266,6 +268,7 @@ export default function EntryCard({
   aiConfigured,
   busy,
   aiWorking,
+  focused = false,
   onChange,
   onAskAi,
   onActivate
@@ -356,10 +359,11 @@ export default function EntryCard({
   return (
     <div
       id={`section-card-${section.entry.number}`}
-      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${showPicker ? " is-active" : ""}`}
+      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${focused || showPicker ? " is-active" : ""}`}
       aria-busy={aiWorking}
       onFocusCapture={() => onActivate?.(index)}
       onPointerDownCapture={() => onActivate?.(index)}
+      onMouseEnter={() => onActivate?.(index)}
     >
       <div className="card-head">
         <span className="card-number">({section.entry.number})</span>

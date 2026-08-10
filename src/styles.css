@@ -42,9 +42,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(5.75rem, 1fr) auto minmax(5.75rem, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   background: var(--brand);
   color: #fff;
@@ -56,10 +56,11 @@ body {
   font-weight: 600;
   margin: 0;
   text-align: center;
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  justify-self: center;
+  max-width: 100%;
 }
 
 .topbar-btn {
@@ -72,8 +73,93 @@ body {
   min-width: 64px;
 }
 
+.topbar-btn-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  overflow: hidden;
+  transition:
+    width 0.3s cubic-bezier(0.33, 1, 0.32, 1),
+    min-width 0.3s cubic-bezier(0.33, 1, 0.32, 1),
+    padding 0.3s cubic-bezier(0.33, 1, 0.32, 1),
+    background 160ms ease;
+}
+
+.topbar > .topbar-btn-icon:first-child {
+  justify-self: start;
+}
+
+.topbar > .topbar-btn-icon:last-child {
+  justify-self: end;
+}
+
+.topbar-btn-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  transition:
+    opacity 0.22s ease,
+    transform 0.28s cubic-bezier(0.33, 1, 0.32, 1);
+}
+
+.topbar-btn-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  opacity: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.22s ease,
+    transform 0.28s cubic-bezier(0.33, 1, 0.32, 1);
+}
+
+.topbar-btn-icon:hover,
+.topbar-btn-icon:focus-visible {
+  width: auto;
+  min-width: 4.75rem;
+  padding: 0 14px;
+}
+
+.topbar-btn-icon:hover .topbar-btn-glyph,
+.topbar-btn-icon:focus-visible .topbar-btn-glyph {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.topbar-btn-icon:hover .topbar-btn-label,
+.topbar-btn-icon:focus-visible .topbar-btn-label {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.topbar-glyph {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
 .topbar-spacer {
   min-width: 64px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar-btn-icon,
+  .topbar-btn-glyph,
+  .topbar-btn-label {
+    transition: none;
+  }
 }
 
 /* ---------- banners ---------- */
@@ -964,8 +1050,10 @@ html[data-theme="dark"] .chip.ref {
   z-index: 15;
   padding: 12px 14px calc(env(safe-area-inset-bottom, 0px) + 12px);
   background: linear-gradient(to top, var(--bg) 70%, transparent);
-  max-width: 720px;
-  margin: 0 auto;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 /* Wide desktop: keep dense review/details UI on ~2/3, leave a third open */
@@ -977,12 +1065,20 @@ html[data-theme="dark"] .chip.ref {
     margin-right: auto;
   }
 
-  .app.app-aside .bottom-bar {
-    left: max(16px, env(safe-area-inset-left, 0px));
-    right: auto;
-    width: 66%;
+  /* Top bar spans the full viewport, not the 66% column */
+  .app.app-aside .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
     max-width: none;
     margin: 0;
+    z-index: 30;
+  }
+
+  .app.app-aside .content {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 56px);
   }
 
   html:has(.app-aside) {
@@ -1050,10 +1146,10 @@ html[data-theme="dark"] .chip.ref {
 .studio-pip {
   appearance: none;
   position: relative;
-  width: 3px;
+  width: 4.5px;
   height: auto;
   flex: 1 1 0;
-  min-height: 3px;
+  min-height: 4.5px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -1165,7 +1261,7 @@ html[data-theme="dark"] .chip.ref {
 }
 
 .studio-pip.is-current {
-  width: 5px;
+  width: 7.5px;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 28%, transparent);
 }
 
@@ -1179,12 +1275,13 @@ html[data-theme="dark"] .chip.ref {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 18px;
-    top: 0;
+    /* Clear the full-width topbar above and sit close above the continue bar */
+    top: calc(12px + 58px + 16px);
     right: 0;
-    bottom: 0;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     width: 34%;
     z-index: 2;
-    padding: 28px 22px 28px 10px;
+    padding: 0 22px 0 10px;
   }
 
   .studio-aside-photo,
@@ -1600,7 +1697,19 @@ html:not([data-theme="original"]) .app {
   }
 
   html:not([data-theme="original"]) .app.app-aside .topbar {
-    margin-right: 14px;
+    top: 12px;
+    left: 14px;
+    right: 14px;
+    margin: 0;
+  }
+
+  html:not([data-theme="original"]) .app.app-aside .content {
+    padding-top: 78px;
+  }
+
+  html:not([data-theme="original"]) .studio-aside {
+    top: calc(12px + 58px + 18px);
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -1640,6 +1749,24 @@ html:not([data-theme="original"]) .topbar-btn {
   font-size: 13px;
   border-radius: 999px;
   transition: background 160ms ease;
+}
+
+html:not([data-theme="original"]) .topbar-btn-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+}
+
+html:not([data-theme="original"]) .topbar-btn-icon:hover,
+html:not([data-theme="original"]) .topbar-btn-icon:focus-visible {
+  width: auto;
+  min-width: 5.5rem;
+  padding: 0 16px;
+}
+
+html:not([data-theme="original"]) .topbar-glyph {
+  width: 20px;
+  height: 20px;
 }
 
 html:not([data-theme="original"]) .topbar-btn:hover {
@@ -1763,7 +1890,7 @@ html:not([data-theme="original"]) .sheet {
 /* Studio home: deliberately sparse, with the action doing the talking. */
 html:not([data-theme="original"]) .home {
   position: relative;
-  min-height: calc(100dvh - 160px);
+  min-height: calc(100dvh - 48px);
   justify-content: center;
   gap: 34px;
   padding: clamp(38px, 8vw, 86px) clamp(6px, 5vw, 54px);
@@ -1864,11 +1991,186 @@ html:not([data-theme="original"]) .home-report-b {
   transform: rotate(-8deg);
 }
 
+/* Extra cards — only mounted on wide / desktop viewports */
+html:not([data-theme="original"]) .home-report-c {
+  top: 22%;
+  left: -11%;
+  width: clamp(130px, 16vw, 175px);
+  aspect-ratio: 0.78;
+  background: linear-gradient(150deg, rgba(248, 242, 232, 0.95), rgba(214, 198, 172, 0.78));
+  color: #3a3228;
+  transform: rotate(-14deg);
+}
+
+html:not([data-theme="original"]) .home-report-d {
+  bottom: 16%;
+  right: -13%;
+  width: clamp(155px, 20vw, 210px);
+  aspect-ratio: 1.2;
+  background: linear-gradient(145deg, rgba(42, 58, 62, 0.92), rgba(22, 32, 34, 0.78));
+  color: #e8f0ef;
+  transform: rotate(6deg);
+}
+
 html:not([data-theme="original"]) .home-hero,
+html:not([data-theme="original"]) .home-actions,
 html:not([data-theme="original"]) .home-upload,
 html:not([data-theme="original"]) .home-guide-btn {
   position: relative;
   z-index: 2;
+}
+
+html:not([data-theme="original"]) .home-actions {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(100%, 560px);
+  container-type: inline-size;
+  container-name: home-actions;
+}
+
+html:not([data-theme="original"]) .home-secondary-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+html:not([data-theme="original"]) .home-guide-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  width: min(100%, 400px);
+  margin-top: 0;
+  text-align: left;
+  overflow: hidden;
+}
+
+html:not([data-theme="original"]) .home-settings-btn {
+  width: min(100%, 240px);
+}
+
+/* Shared icon / label shells — touch & default always show text */
+.home-btn-icon {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.home-btn-glyph {
+  width: 1.35em;
+  height: 1.35em;
+  display: block;
+}
+
+.home-btn-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.home-upload .home-btn-label {
+  width: 100%;
+}
+
+.home-guide-btn .home-btn-label {
+  display: block;
+}
+
+/* Mouse / keyboard: Guide/Settings icons at rest, text on hover or focus.
+   Import stays text. Keep original resting widths; nudge longer on hover. */
+html[data-pointer-input="fine"] .home-guide-btn .home-btn-icon {
+  display: inline-flex;
+}
+
+html[data-pointer-input="fine"] .home-guide-btn {
+  transition:
+    width 0.32s cubic-bezier(0.33, 1, 0.32, 1),
+    padding 0.32s cubic-bezier(0.33, 1, 0.32, 1),
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    color 160ms ease;
+}
+
+html[data-pointer-input="fine"] .home-guide-btn .home-btn-icon,
+html[data-pointer-input="fine"] .home-guide-btn .home-btn-label {
+  transition:
+    opacity 0.24s ease,
+    transform 0.28s cubic-bezier(0.33, 1, 0.32, 1),
+    max-width 0.32s cubic-bezier(0.33, 1, 0.32, 1);
+}
+
+html[data-pointer-input="fine"] .home-guide-btn {
+  width: min(100%, 400px);
+  min-height: 48px;
+  justify-content: flex-start;
+  position: relative;
+}
+
+html[data-pointer-input="fine"] .home-settings-btn {
+  width: min(100%, 240px);
+}
+
+html[data-pointer-input="fine"] .home-guide-btn .home-btn-icon {
+  max-width: 2rem;
+  opacity: 1;
+}
+
+html[data-pointer-input="fine"] .home-guide-btn .home-btn-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: inherit;
+  box-sizing: border-box;
+  max-width: none;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transform: translateY(5px);
+  pointer-events: none;
+}
+
+html:not([data-theme="original"])[data-pointer-input="fine"] .home-guide-btn:not(:disabled):hover,
+html:not([data-theme="original"])[data-pointer-input="fine"] .home-guide-btn:focus-visible {
+  width: min(100%, 424px);
+  transform: translateY(-1px) scale(1.02);
+}
+
+html:not([data-theme="original"])[data-pointer-input="fine"] .home-settings-btn:not(:disabled):hover,
+html:not([data-theme="original"])[data-pointer-input="fine"] .home-settings-btn:focus-visible {
+  width: min(100%, 256px);
+}
+
+html[data-pointer-input="fine"] .home-guide-btn:hover .home-btn-icon,
+html[data-pointer-input="fine"] .home-guide-btn:focus-visible .home-btn-icon {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+html[data-pointer-input="fine"] .home-guide-btn:hover .home-btn-label,
+html[data-pointer-input="fine"] .home-guide-btn:focus-visible .home-btn-label {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-pointer-input="fine"] .home-guide-btn,
+  html[data-pointer-input="fine"] .home-guide-btn .home-btn-icon,
+  html[data-pointer-input="fine"] .home-guide-btn .home-btn-label {
+    transition: none;
+  }
 }
 
 html:not([data-theme="original"]) .home-hero {
@@ -1914,11 +2216,12 @@ html:not([data-theme="original"]) .home-hero p {
 }
 
 html:not([data-theme="original"]) .home-upload {
-  align-self: flex-end;
+  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: min(100%, 560px);
+  gap: 16px;
+  width: 100%;
   min-height: 98px;
   padding: 22px 27px;
   border: 0;
@@ -1927,13 +2230,14 @@ html:not([data-theme="original"]) .home-upload {
   color: #fff;
   font-size: clamp(18px, 3vw, 27px);
   text-align: left;
+  overflow: hidden;
   box-shadow: 0 22px 50px rgba(20, 14, 8, 0.2);
 }
 
 html:not([data-theme="original"]) .home-upload:not(:disabled):hover {
   background: var(--brand);
   color: #160a05;
-  transform: translateY(-3px) rotate(-0.35deg);
+  transform: translateY(-3px) rotate(-0.35deg) scale(1.02);
   box-shadow: 0 28px 60px rgba(211, 55, 24, 0.23);
 }
 
@@ -2086,6 +2390,15 @@ html[data-theme="dark"] .home-report-b {
   background: linear-gradient(145deg, rgba(45, 39, 67, 0.92), rgba(19, 21, 27, 0.82));
 }
 
+html[data-theme="dark"] .home-report-c {
+  background: linear-gradient(150deg, rgba(58, 52, 44, 0.92), rgba(32, 28, 24, 0.85));
+  color: #e8dfd2;
+}
+
+html[data-theme="dark"] .home-report-d {
+  background: linear-gradient(145deg, rgba(36, 52, 56, 0.94), rgba(14, 20, 22, 0.88));
+}
+
 @media (max-width: 560px) {
   html:not([data-theme="original"]) .topbar {
     margin-inline: 8px;
@@ -2100,7 +2413,7 @@ html[data-theme="dark"] .home-report-b {
   }
 
   html:not([data-theme="original"]) .home {
-    min-height: calc(100dvh - 130px);
+    min-height: calc(100dvh - 24px);
     padding-inline: 18px;
   }
 
@@ -2164,10 +2477,52 @@ html[data-theme="dark"] .card.ai-working {
 
 /* ---- Guide ---- */
 
-.home-guide-btn {
-  display: block;
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(100%, 560px);
+}
+
+.home-secondary-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   width: 100%;
-  margin-top: 12px;
+}
+
+.home-guide-btn {
+  display: inline-flex;
+  align-items: center;
+  width: min(100%, 400px);
+  text-align: left;
+  overflow: hidden;
+}
+
+.home-settings-btn {
+  width: min(100%, 240px);
+}
+
+/* Import strip is squeezed below 560px: centre the narrower buttons under it.
+   Specificity must beat the left-align rules above or this never wins. */
+@container home-actions (max-width: 559px) {
+  html:not([data-theme="original"]) .home-secondary-actions,
+  .home-secondary-actions {
+    align-items: center;
+  }
+
+  html:not([data-theme="original"]) .home-guide-btn,
+  html:not([data-theme="original"]) .home-settings-btn,
+  .home-guide-btn,
+  .home-settings-btn {
+    text-align: center;
+    justify-content: center;
+  }
+
+  html[data-pointer-input="fine"] .home-guide-btn .home-btn-label {
+    justify-content: center;
+  }
 }
 
 .sheet.guide {

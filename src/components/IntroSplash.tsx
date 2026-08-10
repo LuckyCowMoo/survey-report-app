@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import BrandMark from "./BrandMark";
 
-const SESSION_KEY = "survey-report-intro-seen";
-
 /** Spin → unravel → shine → portal zoom through a window pane. */
 const DASH_PERIOD_MS = 800;
 /** First stop check after this many full chase circles. */
@@ -33,30 +31,11 @@ function introParams(): { force: boolean; hold: boolean } {
   };
 }
 
+/** Play on every full page load (refresh included). Skip for reduced motion unless ?intro. */
 function shouldPlayIntro(): boolean {
   if (introParams().force) return true;
-  try {
-    if (sessionStorage.getItem(SESSION_KEY) === "1") return false;
-  } catch {
-    /* private mode / blocked storage - still play once this mount */
-  }
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    try {
-      sessionStorage.setItem(SESSION_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-    return false;
-  }
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
   return true;
-}
-
-function markSeen(): void {
-  try {
-    sessionStorage.setItem(SESSION_KEY, "1");
-  } catch {
-    /* ignore */
-  }
 }
 
 interface Props {
@@ -74,7 +53,6 @@ export default function IntroSplash({ onDone }: Props) {
   const finish = () => {
     if (hold || finished.current) return;
     finished.current = true;
-    markSeen();
     onDoneRef.current();
   };
 
@@ -219,7 +197,6 @@ export function useIntroSplash(): {
   });
 
   const dismissIntro = () => {
-    markSeen();
     setShowIntro(false);
   };
 
