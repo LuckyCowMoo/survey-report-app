@@ -44,7 +44,7 @@ export default function HomeScreen({ onFile, busy, onShowGuide }: Props) {
       </button>
 
       <button className="btn home-guide-btn" onClick={onShowGuide}>
-        Keyword guide
+        Guide
       </button>
     </div>
   );

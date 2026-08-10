@@ -117,11 +117,14 @@ export async function imageForDocument(
   maxDim = 1600
 ): Promise<DocImage> {
   const { canvas, width, height } = await drawScaled(bytes, mimeFromName(name), maxDim);
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
-  const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (out) => (out ? resolve(out) : reject(new Error("JPEG encode failed"))),
+      "image/jpeg",
+      0.72
+    );
+  });
+  const out = new Uint8Array(await blob.arrayBuffer());
   return { bytes: out, width, height, type: "jpg" };
 }
 

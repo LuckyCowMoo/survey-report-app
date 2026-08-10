@@ -27,6 +27,7 @@ interface Props {
   aiWorking: boolean;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
+  onActivate?: (index: number) => void;
 }
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -222,6 +223,7 @@ function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
 
 function statusChip(s: SectionState): { label: string; cls: string } {
   if (s.needsAttention) return { label: "Needs attention", cls: "chip warn" };
+  if (s.pendingReview) return { label: "Review wording", cls: "chip review" };
   switch (s.source) {
     case "library":
       return { label: "Standard wording", cls: "chip ok" };
@@ -239,6 +241,24 @@ function statusChip(s: SectionState): { label: string; cls: string } {
   }
 }
 
+/** Border tone for the main text box — mirrors pip colours, skips attention/review. */
+function textBoxTone(
+  s: SectionState
+): "library" | "ai" | "manual" | null {
+  if (s.needsAttention || s.pendingReview) return null;
+  switch (s.source) {
+    case "library":
+      return "library";
+    case "ai":
+      return "ai";
+    case "manual":
+    case "crossref":
+      return "manual";
+    default:
+      return null;
+  }
+}
+
 export default function EntryCard({
   section,
   index,
@@ -247,10 +267,12 @@ export default function EntryCard({
   busy,
   aiWorking,
   onChange,
-  onAskAi
+  onAskAi,
+  onActivate
 }: Props) {
   const [showPicker, setShowPicker] = useState(false);
   const chip = statusChip(section);
+  const boxTone = textBoxTone(section);
   const paragraph = section.libraryId ? libraryParagraph(section.libraryId) : undefined;
 
   const otherSections = useMemo(
@@ -275,7 +297,8 @@ export default function EntryCard({
       crossrefSection: null,
       text: renderLibraryText(libraryId, values),
       source: "library",
-      needsAttention: hasMissingPlaceholders(libraryId, values)
+      needsAttention: hasMissingPlaceholders(libraryId, values),
+      pendingReview: false
     });
     setShowPicker(false);
   };
@@ -289,7 +312,8 @@ export default function EntryCard({
       libraryId,
       placeholderValues: values,
       text: renderLibraryText(libraryId, values),
-      needsAttention: hasMissingPlaceholders(libraryId, values)
+      needsAttention: hasMissingPlaceholders(libraryId, values),
+      pendingReview: false
     });
   };
 
@@ -300,7 +324,8 @@ export default function EntryCard({
       libraryId: null,
       crossrefSection: null,
       source: "manual",
-      needsAttention: text.trim().length === 0
+      needsAttention: text.trim().length === 0,
+      pendingReview: false
     });
   };
 
@@ -311,7 +336,8 @@ export default function EntryCard({
         crossrefSection: null,
         text: "",
         source: "empty",
-        needsAttention: true
+        needsAttention: true,
+        pendingReview: false
       });
       return;
     }
@@ -322,14 +348,18 @@ export default function EntryCard({
       crossrefSection: n,
       text: `As illustrated in section ${n}`,
       source: "crossref",
-      needsAttention: false
+      needsAttention: false,
+      pendingReview: false
     });
   };
 
   return (
     <div
-      className={`card${section.needsAttention ? " attention" : ""}${aiWorking ? " ai-working" : ""}${showPicker ? " is-active" : ""}`}
+      id={`section-card-${section.entry.number}`}
+      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${showPicker ? " is-active" : ""}`}
       aria-busy={aiWorking}
+      onFocusCapture={() => onActivate?.(index)}
+      onPointerDownCapture={() => onActivate?.(index)}
     >
       <div className="card-head">
         <span className="card-number">({section.entry.number})</span>
@@ -371,10 +401,12 @@ export default function EntryCard({
 
           <div className="section-text-wrap">
             {section.source === "crossref" ? (
-              <p className="crossref-text">{section.text}</p>
+              <p className={`crossref-text${boxTone ? ` tone-${boxTone}` : ""}`}>
+                {section.text}
+              </p>
             ) : (
               <textarea
-                className="section-text"
+                className={`section-text${boxTone ? ` tone-${boxTone}` : ""}`}
                 rows={6}
                 placeholder={
                   paragraph &&

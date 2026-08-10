@@ -31,6 +31,11 @@ export interface SectionState {
   source: TextSource;
   /** True when the matcher wants the AI (or the user) to look at this. */
   needsAttention: boolean;
+  /**
+   * Soft library match: wording looks complete but confidence is low.
+   * Yellow pip + highlight until the section has been focused for ~5s.
+   */
+  pendingReview: boolean;
   /** Candidate library ids suggested by the matcher, best first. */
   suggestions: string[];
 }

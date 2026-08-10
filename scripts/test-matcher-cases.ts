@@ -36,15 +36,19 @@ for (const c of cases) {
   };
   const [s] = matchEntries([entry]);
   const okId = s.libraryId === c.expectId;
-  const okFlag = s.needsAttention === !c.expectCertain;
+  // Certain → clean. Uncertain → either orange attention or yellow pending review.
+  const okFlag = c.expectCertain
+    ? !s.needsAttention && !s.pendingReview
+    : s.needsAttention || s.pendingReview;
   if (!okId || !okFlag) {
     console.error(
-      `FAIL "${c.note}": got ${s.libraryId} (flagged=${s.needsAttention}), ` +
-        `expected ${c.expectId} (flagged=${!c.expectCertain})`
+      `FAIL "${c.note}": got ${s.libraryId} (attention=${s.needsAttention}, review=${s.pendingReview}), ` +
+        `expected ${c.expectId} (certain=${c.expectCertain})`
     );
     failed++;
   } else {
-    console.log(`ok   "${c.note}" -> ${s.libraryId}${s.needsAttention ? " (flagged)" : ""}`);
+    const tag = s.needsAttention ? " (attention)" : s.pendingReview ? " (review)" : "";
+    console.log(`ok   "${c.note}" -> ${s.libraryId}${tag}`);
   }
 }
 

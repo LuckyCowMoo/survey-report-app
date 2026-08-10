@@ -4,8 +4,8 @@ const THEME_KEY = "survey-report-theme";
 
 export function loadTheme(): Theme {
   const saved = localStorage.getItem(THEME_KEY);
-  if (saved === "dark" || saved === "original") return saved;
-  return "expressive";
+  if (saved === "expressive" || saved === "dark" || saved === "original") return saved;
+  return "dark";
 }
 
 export function applyTheme(theme: Theme): void {

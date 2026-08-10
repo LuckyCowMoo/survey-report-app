@@ -6,6 +6,8 @@
  *  - Deterministic keyword rules cover the everyday cases for free.
  *  - Anything terse, empty or unusual is flagged `needsAttention` so the
  *    Claude step (or the surveyor) can resolve it with the photo for context.
+ *  - Low-confidence library matches with complete wording get `pendingReview`
+ *    (yellow) until the surveyor has looked at the section for a few seconds.
  *  - A long note is treated as the surveyor's own prose: it becomes the text
  *    directly and is flagged so the AI can optionally polish it into house
  *    style.
@@ -253,6 +255,7 @@ export function matchEntries(entries: ShorthandEntry[]): SectionState[] {
       text: "",
       source: "empty",
       needsAttention: false,
+      pendingReview: false,
       suggestions
     };
 
@@ -300,9 +303,12 @@ export function matchEntries(entries: ShorthandEntry[]): SectionState[] {
         state.placeholderValues = values;
         state.text = renderLibraryText(libraryId, values);
         state.source = "library";
+        const missing = hasMissingPlaceholders(libraryId, values);
         // Unfilled readings always need attention - never look "done" with examples.
-        state.needsAttention =
-          !matched.high || hasMissingPlaceholders(libraryId, values);
+        // Soft keyword matches with complete wording get a yellow "pending review"
+        // pip instead of the orange attention flag.
+        state.needsAttention = missing;
+        state.pendingReview = !matched.high && !missing;
         if (!state.suggestions.includes(libraryId)) {
           state.suggestions.unshift(libraryId);
         }

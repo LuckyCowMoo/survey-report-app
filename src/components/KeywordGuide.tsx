@@ -67,6 +67,42 @@ const TIPS: string[] = [
   "Anything that isn't a confident match is flagged \"needs attention\" on the review screen, never silently guessed."
 ];
 
+/** Status pip colours on the review screen (right-hand column). */
+const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
+  {
+    tone: "attention",
+    label: "Orange",
+    meaning:
+      "Needs attention — empty, missing readings, long notes to polish, or no confident match"
+  },
+  {
+    tone: "review",
+    label: "Yellow",
+    meaning:
+      "Review wording — standard text is filled in but confidence is low; turns green after you look at the section for a few seconds"
+  },
+  {
+    tone: "library",
+    label: "Green",
+    meaning: "Standard wording — confident library match, or a soft match you've already reviewed"
+  },
+  {
+    tone: "ai",
+    label: "Purple",
+    meaning: "AI written — wording came from Ask AI (library choice or bespoke text)"
+  },
+  {
+    tone: "manual",
+    label: "Blue",
+    meaning: "Your wording — handwritten / edited text, or a cross-reference"
+  },
+  {
+    tone: "empty",
+    label: "Grey",
+    meaning: "Empty — no text yet and not otherwise flagged"
+  }
+];
+
 export default function KeywordGuide({ onClose }: Props) {
   const [query, setQuery] = useState("");
 
@@ -102,7 +138,7 @@ export default function KeywordGuide({ onClose }: Props) {
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet tall guide" onClick={(e) => e.stopPropagation()}>
-        <h2>Keyword guide</h2>
+        <h2>Guide</h2>
         <p className="muted">
           What to write under a photo in the shorthand document so the right
           standard wording is picked automatically.
@@ -122,6 +158,23 @@ export default function KeywordGuide({ onClose }: Props) {
             <ul className="guide-tips">
               {TIPS.map((t) => (
                 <li key={t}>{t}</li>
+              ))}
+            </ul>
+
+            <h3 className="guide-heading">Review status pips</h3>
+            <p className="muted">
+              On the review screen, the thin coloured column on the right shows
+              each photo section&apos;s status at a glance. Tap a pip to jump to
+              that section.
+            </p>
+            <ul className="guide-pip-legend">
+              {PIP_LEGEND.map((p) => (
+                <li key={p.tone}>
+                  <span className={`guide-pip-swatch tone-${p.tone}`} aria-hidden />
+                  <span>
+                    <strong>{p.label}</strong> — {p.meaning}
+                  </span>
+                </li>
               ))}
             </ul>
 

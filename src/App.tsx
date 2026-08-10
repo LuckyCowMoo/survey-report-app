@@ -7,6 +7,7 @@ import SettingsSheet from "./components/SettingsSheet";
 import KeywordGuide from "./components/KeywordGuide";
 import IntroSplash, { useIntroSplash } from "./components/IntroSplash";
 import AmbientGlow from "./components/AmbientGlow";
+import StudioAside from "./components/StudioAside";
 import { parseShorthandDocx } from "./lib/docxParser";
 import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
@@ -51,6 +52,9 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [focusedSectionIndex, setFocusedSectionIndex] = useState(0);
+  /** Section the user has actively focused; dwell timer only runs for this. */
+  const [reviewDwellIndex, setReviewDwellIndex] = useState<number | null>(null);
   const [step, setStep] = useState<Step>("home");
   const [sections, setSections] = useState<SectionState[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -66,6 +70,28 @@ export default function App() {
     () => sections.filter((s) => s.needsAttention).length,
     [sections]
   );
+
+  const focusSection = useCallback((index: number) => {
+    setFocusedSectionIndex(index);
+    setReviewDwellIndex(index);
+  }, []);
+
+  const dwellPendingReview =
+    reviewDwellIndex !== null && sections[reviewDwellIndex]?.pendingReview === true;
+
+  // Soft library matches: after ~5s of focus, clear yellow review state → green.
+  useEffect(() => {
+    if (step !== "review" || reviewDwellIndex === null || !dwellPendingReview) return;
+    const idx = reviewDwellIndex;
+    const timer = window.setTimeout(() => {
+      setSections((prev) => {
+        const cur = prev[idx];
+        if (!cur?.pendingReview) return prev;
+        return prev.map((s, i) => (i === idx ? { ...s, pendingReview: false } : s));
+      });
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [step, reviewDwellIndex, dwellPendingReview]);
 
   const handleSettingsSave = useCallback((next: AppSettings) => {
     setSettings(next);
@@ -86,6 +112,8 @@ export default function App() {
       const parsed = await parseShorthandDocx(data);
       setSections(matchEntries(parsed.entries));
       setWarnings(parsed.warnings);
+      setFocusedSectionIndex(0);
+      setReviewDwellIndex(null);
       setStep("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -182,13 +210,15 @@ export default function App() {
     setExtras(defaultExtras);
     setMetadata(defaultMetadata(settings));
     setError(null);
+    setFocusedSectionIndex(0);
+    setReviewDwellIndex(null);
     setStep("home");
   }, [settings]);
 
   return (
     <div
       className={`app${showIntro ? " intro-locked" : ""}${
-        step === "review" || step === "details" ? " app-aside" : ""
+        step === "review" || step === "details" || step === "generate" ? " app-aside" : ""
       }`}
     >
       <AmbientGlow />
@@ -249,6 +279,7 @@ export default function App() {
             onAskAi={runAiForSection}
             onAskAiAll={runAiForAllFlagged}
             onContinue={() => setStep("details")}
+            onFocusSection={focusSection}
           />
         )}
         {step === "details" && (
@@ -280,6 +311,16 @@ export default function App() {
       )}
 
       {showGuide && <KeywordGuide onClose={() => setShowGuide(false)} />}
+
+      {(step === "review" || step === "details" || step === "generate") &&
+        sections.length > 0 && (
+        <StudioAside
+          step={step}
+          sections={sections}
+          focusedIndex={focusedSectionIndex}
+          onJumpSection={focusSection}
+        />
+      )}
     </div>
   );
 }

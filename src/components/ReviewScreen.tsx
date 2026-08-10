@@ -13,6 +13,7 @@ interface Props {
   onAskAi: (index: number) => void;
   onAskAiAll: () => void;
   onContinue: () => void;
+  onFocusSection: (index: number) => void;
 }
 
 export default function ReviewScreen({
@@ -25,7 +26,8 @@ export default function ReviewScreen({
   onChange,
   onAskAi,
   onAskAiAll,
-  onContinue
+  onContinue,
+  onFocusSection
 }: Props) {
   const [showWarnings, setShowWarnings] = useState(false);
   const sectionNumbers = useMemo(
@@ -82,6 +84,7 @@ export default function ReviewScreen({
           aiWorking={busySectionIndex === i}
           onChange={onChange}
           onAskAi={onAskAi}
+          onActivate={onFocusSection}
         />
       ))}
 
