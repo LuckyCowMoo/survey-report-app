@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { imagePreviewUrl } from "../lib/imageUtils";
 import type { SectionState } from "../types";
 
@@ -8,7 +8,13 @@ interface Props {
   step: FlowStep;
   sections: SectionState[];
   focusedIndex: number;
+  /** Section the user is actively dwelling on (review only); drives yellow→green fill. */
+  dwellIndex: number | null;
+  /** Section currently being written by AI (slow purple fill). */
+  busySectionIndex: number | null;
   onJumpSection?: (index: number) => void;
+  /** Fired when a pending-review pip fill reaches full green. */
+  onDwellComplete?: (index: number) => void;
 }
 
 const FLOW: { id: FlowStep; label: string }[] = [
@@ -30,6 +36,32 @@ const PAN_SPEED = 0.012; // fraction of overflow range per second (almost imperc
 const PAN_PAUSE_MIN_MS = 2500;
 const PAN_PAUSE_MAX_MS = 5500;
 const PAN_MIN_DURATION = 18;
+/** Time focused on a yellow pip to fill it fully green. */
+const PIP_DWELL_MS = 5000;
+/** Time for a partial green fill to drain back to yellow after leaving early. */
+const PIP_REVERSE_MS = 2800;
+/** Default top→bottom colour transition for status changes. */
+const PIP_TRANSITION_MS = 660;
+/** Slow crawl toward purple while AI is generating a section. */
+const PIP_AI_FILL_MS = 4800;
+const PIP_FLASH_MS = 480;
+
+type PipTone = "attention" | "review" | "ai" | "library" | "manual" | "empty";
+
+const PIP_COLORS: Record<PipTone, string> = {
+  attention: "#ff5a36",
+  review: "#eab308",
+  ai: "#8b5cf6",
+  library: "#22a06b",
+  manual: "#3b82f6",
+  empty: "rgba(148, 163, 184, 0.45)"
+};
+
+interface PipAnim {
+  from: PipTone;
+  to: PipTone;
+  progress: number;
+}
 
 function pickDetailsHero(exclude?: string) {
   const pool = exclude ? DETAILS_HEROES.filter((h) => h !== exclude) : DETAILS_HEROES;
@@ -45,10 +77,8 @@ function stepIndex(step: FlowStep) {
   return FLOW.findIndex((s) => s.id === step);
 }
 
-/** Pip colour key from section status. */
-function pipTone(
-  s: SectionState
-): "attention" | "review" | "ai" | "library" | "manual" | "empty" {
+/** Settled pip colour from section status (ignores in-flight AI). */
+function pipTone(s: SectionState): PipTone {
   if (s.needsAttention) return "attention";
   if (s.pendingReview) return "review";
   switch (s.source) {
@@ -64,23 +94,209 @@ function pipTone(
   }
 }
 
+function effectiveTone(anim: PipAnim): PipTone {
+  return anim.progress >= 0.5 ? anim.to : anim.from;
+}
+
+function startTransition(anim: PipAnim, to: PipTone): PipAnim {
+  if (anim.to === to && anim.progress < 1) return anim;
+  if (anim.to === to && anim.progress >= 1) return anim;
+  if (anim.progress >= 1) return { from: anim.to, to, progress: 0 };
+  return { from: effectiveTone(anim), to, progress: 0 };
+}
+
 /** Wide-desktop companion panel: focused photo + flow bar, pips, scroll rail. */
 export default function StudioAside({
   step,
   sections,
   focusedIndex,
-  onJumpSection
+  dwellIndex,
+  busySectionIndex,
+  onJumpSection,
+  onDwellComplete
 }: Props) {
   const section =
     sections[Math.min(Math.max(focusedIndex, 0), Math.max(sections.length - 1, 0))];
   const [url, setUrl] = useState<string | null>(null);
   const [studioHero, setStudioHero] = useState(() => pickDetailsHero());
   const [scroll, setScroll] = useState({ progress: 0, thumb: 0.2 });
+  const [pipAnims, setPipAnims] = useState<Map<number, PipAnim>>(() => new Map());
+  const [flashingPips, setFlashingPips] = useState<Set<number>>(() => new Set());
+  const pipAnimsRef = useRef<Map<number, PipAnim>>(new Map());
+  const dwellCompleteFiredRef = useRef<Set<number>>(new Set());
+  const flashTimersRef = useRef<Map<number, number>>(new Map());
+  const onDwellCompleteRef = useRef(onDwellComplete);
+  onDwellCompleteRef.current = onDwellComplete;
   const trackRef = useRef<HTMLDivElement>(null);
   const photoRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; startY: number; startProgress: number } | null>(
     null
   );
+
+  const flashPip = (num: number) => {
+    setFlashingPips((prev) => {
+      const next = new Set(prev);
+      next.add(num);
+      return next;
+    });
+    const existing = flashTimersRef.current.get(num);
+    if (existing !== undefined) window.clearTimeout(existing);
+    const timer = window.setTimeout(() => {
+      flashTimersRef.current.delete(num);
+      setFlashingPips((prev) => {
+        if (!prev.has(num)) return prev;
+        const next = new Set(prev);
+        next.delete(num);
+        return next;
+      });
+    }, PIP_FLASH_MS);
+    flashTimersRef.current.set(num, timer);
+  };
+
+  useEffect(() => {
+    return () => {
+      for (const timer of flashTimersRef.current.values()) {
+        window.clearTimeout(timer);
+      }
+      flashTimersRef.current.clear();
+    };
+  }, []);
+
+  // Unified pip colour transitions: dwell, AI crawl, and 1s status changes.
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let raf = 0;
+    let last = performance.now();
+
+    const tick = (now: number) => {
+      const dt = Math.min(48, now - last);
+      last = now;
+      const next = new Map(pipAnimsRef.current);
+      let changed = false;
+
+      const activeDwellNum =
+        step === "review" &&
+        dwellIndex !== null &&
+        sections[dwellIndex]?.pendingReview
+          ? sections[dwellIndex].entry.number
+          : null;
+
+      const busyNum =
+        busySectionIndex !== null && sections[busySectionIndex]
+          ? sections[busySectionIndex].entry.number
+          : null;
+
+      for (const s of sections) {
+        const num = s.entry.number;
+        const settled = pipTone(s);
+        let anim = next.get(num);
+        if (!anim) {
+          anim = { from: settled, to: settled, progress: 1 };
+          next.set(num, anim);
+          changed = true;
+        }
+
+        const aiWorking = busyNum === num;
+        const dwelling = activeDwellNum === num;
+        let updated = anim;
+
+        if (aiWorking) {
+          updated = startTransition(anim, "ai");
+          if (reduced) {
+            updated = { from: "ai", to: "ai", progress: 1 };
+          } else {
+            // Creep toward purple but hold just shy of full until the request ends.
+            updated = {
+              ...updated,
+              progress: Math.min(0.9, updated.progress + dt / PIP_AI_FILL_MS)
+            };
+          }
+        } else if (s.pendingReview) {
+          if (dwelling) {
+            if (anim.to === "library" && anim.from === "review") {
+              updated = {
+                ...anim,
+                progress: Math.min(1, anim.progress + (reduced ? 1 : dt / PIP_DWELL_MS))
+              };
+            } else {
+              updated = { from: "review", to: "library", progress: reduced ? 1 : 0 };
+              if (anim.to === "library" && anim.progress > 0) {
+                updated = { from: "review", to: "library", progress: anim.progress };
+              }
+            }
+            if (updated.progress >= 1 && !dwellCompleteFiredRef.current.has(num)) {
+              dwellCompleteFiredRef.current.add(num);
+              flashPip(num);
+              const idx = sections.findIndex((x) => x.entry.number === num);
+              if (idx >= 0) onDwellCompleteRef.current?.(idx);
+            }
+          } else if (anim.to === "library" && anim.from === "review" && anim.progress > 0) {
+            updated = {
+              ...anim,
+              progress: Math.max(0, anim.progress - (reduced ? 1 : dt / PIP_REVERSE_MS))
+            };
+            dwellCompleteFiredRef.current.delete(num);
+          } else if (anim.to !== "review" || anim.progress < 1) {
+            updated = startTransition(anim, "review");
+            if (updated.progress < 1) {
+              const before = updated.progress;
+              updated = {
+                ...updated,
+                progress: Math.min(1, updated.progress + (reduced ? 1 : dt / PIP_TRANSITION_MS))
+              };
+              if (before < 1 && updated.progress >= 1 && updated.from !== updated.to) {
+                flashPip(num);
+              }
+            }
+          }
+        } else {
+          dwellCompleteFiredRef.current.delete(num);
+          updated = startTransition(anim, settled);
+          if (updated.progress < 1) {
+            const before = updated.progress;
+            updated = {
+              ...updated,
+              progress: Math.min(1, updated.progress + (reduced ? 1 : dt / PIP_TRANSITION_MS))
+            };
+            if (before < 1 && updated.progress >= 1 && updated.from !== updated.to) {
+              flashPip(num);
+            }
+          }
+        }
+
+        if (updated.progress >= 1) {
+          updated = { from: updated.to, to: updated.to, progress: 1 };
+        }
+
+        if (
+          updated.from !== anim.from ||
+          updated.to !== anim.to ||
+          updated.progress !== anim.progress
+        ) {
+          next.set(num, updated);
+          changed = true;
+        }
+      }
+
+      for (const num of [...next.keys()]) {
+        if (!sections.some((s) => s.entry.number === num)) {
+          next.delete(num);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        pipAnimsRef.current = next;
+        setPipAnims(new Map(next));
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [step, dwellIndex, busySectionIndex, sections]);
 
   useEffect(() => {
     if (step !== "review") {
@@ -297,13 +513,34 @@ export default function StudioAside({
         <div className="studio-pips" aria-label="Section status">
           {sections.map((s, i) => {
             const current = step === "review" && i === focusedIndex;
+            const anim = pipAnims.get(s.entry.number) ?? {
+              from: pipTone(s),
+              to: pipTone(s),
+              progress: 1
+            };
+            const filling = anim.progress < 1;
+            const flashing = flashingPips.has(s.entry.number);
+            const tone = filling ? anim.from : anim.to;
             return (
               <button
                 key={s.entry.number}
                 type="button"
-                className={`studio-pip tone-${pipTone(s)}${current ? " is-current" : ""}`}
+                className={`studio-pip tone-${tone}${filling ? " is-filling" : ""}${flashing ? " is-flash" : ""}${current ? " is-current" : ""}`}
+                style={
+                  filling
+                    ? ({
+                        background: PIP_COLORS[anim.from],
+                        ["--dwell-fill"]: anim.progress.toFixed(4),
+                        ["--pip-to"]: PIP_COLORS[anim.to]
+                      } as CSSProperties)
+                    : undefined
+                }
                 title={`Section ${s.entry.number}`}
-                aria-label={`Section ${s.entry.number}, ${pipTone(s)}`}
+                aria-label={
+                  filling
+                    ? `Section ${s.entry.number}, changing status ${Math.round(anim.progress * 100)}%`
+                    : `Section ${s.entry.number}, ${tone}`
+                }
                 aria-current={current ? "true" : undefined}
                 onClick={() => {
                   if (step !== "review") return;

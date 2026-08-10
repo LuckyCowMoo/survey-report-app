@@ -1049,6 +1049,7 @@ html[data-theme="dark"] .chip.ref {
 
 .studio-pip {
   appearance: none;
+  position: relative;
   width: 3px;
   height: auto;
   flex: 1 1 0;
@@ -1059,6 +1060,7 @@ html[data-theme="dark"] .chip.ref {
   border-radius: 999px;
   cursor: pointer;
   box-shadow: none;
+  overflow: hidden;
 }
 
 .studio-pip.tone-attention {
@@ -1083,6 +1085,43 @@ html[data-theme="dark"] .chip.ref {
 
 .studio-pip.tone-empty {
   background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+/* Top→bottom colour fill for any pip status change */
+.studio-pip.is-filling::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--pip-to, #22a06b);
+  border-radius: inherit;
+  transform: scaleY(var(--dwell-fill, 0));
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+.studio-pip.is-flash {
+  animation: studio-pip-flash 0.48s ease-out;
+}
+
+@keyframes studio-pip-flash {
+  0% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  30% {
+    filter: brightness(1.7);
+    box-shadow: 0 0 10px 2px rgba(34, 160, 107, 0.75);
+  }
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-pip.is-flash {
+    animation: none;
+  }
 }
 
 .studio-pip.is-current {

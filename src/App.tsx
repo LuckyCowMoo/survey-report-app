@@ -76,22 +76,13 @@ export default function App() {
     setReviewDwellIndex(index);
   }, []);
 
-  const dwellPendingReview =
-    reviewDwellIndex !== null && sections[reviewDwellIndex]?.pendingReview === true;
-
-  // Soft library matches: after ~5s of focus, clear yellow review state → green.
-  useEffect(() => {
-    if (step !== "review" || reviewDwellIndex === null || !dwellPendingReview) return;
-    const idx = reviewDwellIndex;
-    const timer = window.setTimeout(() => {
-      setSections((prev) => {
-        const cur = prev[idx];
-        if (!cur?.pendingReview) return prev;
-        return prev.map((s, i) => (i === idx ? { ...s, pendingReview: false } : s));
-      });
-    }, 5000);
-    return () => window.clearTimeout(timer);
-  }, [step, reviewDwellIndex, dwellPendingReview]);
+  const completeDwellReview = useCallback((index: number) => {
+    setSections((prev) => {
+      const cur = prev[index];
+      if (!cur?.pendingReview) return prev;
+      return prev.map((s, i) => (i === index ? { ...s, pendingReview: false } : s));
+    });
+  }, []);
 
   const handleSettingsSave = useCallback((next: AppSettings) => {
     setSettings(next);
@@ -318,7 +309,10 @@ export default function App() {
           step={step}
           sections={sections}
           focusedIndex={focusedSectionIndex}
+          dwellIndex={step === "review" ? reviewDwellIndex : null}
+          busySectionIndex={busySectionIndex}
           onJumpSection={focusSection}
+          onDwellComplete={completeDwellReview}
         />
       )}
     </div>

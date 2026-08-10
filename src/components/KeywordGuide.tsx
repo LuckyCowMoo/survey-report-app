@@ -79,7 +79,7 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
     tone: "review",
     label: "Yellow",
     meaning:
-      "Review wording — standard text is filled in but confidence is low; turns green after you look at the section for a few seconds"
+      "Review wording — standard text is filled in but confidence is low; the pip fills green top-to-bottom while you look (about 5s). Leave early and it drains back to yellow"
   },
   {
     tone: "library",
@@ -89,7 +89,7 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
   {
     tone: "ai",
     label: "Purple",
-    meaning: "AI written — wording came from Ask AI (library choice or bespoke text)"
+    meaning: "AI written — wording came from Ask AI. While AI is generating, the pip slowly fills purple to show that section is in progress"
   },
   {
     tone: "manual",
@@ -164,8 +164,9 @@ export default function KeywordGuide({ onClose }: Props) {
             <h3 className="guide-heading">Review status pips</h3>
             <p className="muted">
               On the review screen, the thin coloured column on the right shows
-              each photo section&apos;s status at a glance. Tap a pip to jump to
-              that section.
+              each photo section&apos;s status at a glance. Colour changes fill
+              top-to-bottom (about 0.7s, or ~5s while you review a yellow pip). Tap
+              a pip to jump to that section.
             </p>
             <ul className="guide-pip-legend">
               {PIP_LEGEND.map((p) => (
