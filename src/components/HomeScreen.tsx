@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import FloatingReports from "./FloatingReports";
 
 interface Props {
   onFile: (file: File) => void;
@@ -11,10 +12,7 @@ export default function HomeScreen({ onFile, busy, onShowGuide }: Props) {
 
   return (
     <div className="home">
-      <div className="home-atmosphere" aria-hidden>
-        <span />
-        <span />
-      </div>
+      <FloatingReports />
 
       <div className="home-hero">
         <div className="home-kicker">

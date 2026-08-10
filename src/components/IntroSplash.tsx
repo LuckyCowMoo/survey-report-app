@@ -3,22 +3,27 @@ import BrandMark from "./BrandMark";
 
 const SESSION_KEY = "survey-report-intro-seen";
 
-/** Spin → unravel into mark → shine (logo frozen) → smooth fly-out. */
-/** Keep in sync with `intro-stroke-draw` keyframe % (spin / total stroke). */
+/** Spin → unravel → shine → portal zoom through a window pane. */
 const DASH_PERIOD_MS = 800;
-const SPIN_CYCLES = 2;
-const SPIN_MS = DASH_PERIOD_MS * SPIN_CYCLES;
+/** First stop check after this many full chase circles. */
+const MIN_SPIN_CYCLES = 2;
+/** At each stop boundary: chance to run one more circle, then check again. */
+const EXTRA_CIRCLE_CHANCE = 1 / 3;
 const UNRAVEL_MS = 1100;
-const STROKE_MS = SPIN_MS + UNRAVEL_MS;
+/** Matches `.intro-mark-solid` opacity transition (delay + duration). */
+const FILL_MS = 900;
 const SHINE_MS = 900;
-const FLY_MS = 900;
-const INTRO_MS = STROKE_MS + SHINE_MS + FLY_MS;
+const PORTAL_MS = 1400;
 
 /**
- * Logo layout phases. "settled" covers both the shine hold and the moment
- * before fly — shine is a separate flag so it cannot change logo CSS.
+ * Logo layout phases. "settled" covers the shine hold.
+ * "portal" zooms through a light window square into the app.
  */
-type Phase = "boot" | "spin" | "unravel" | "settled" | "fly";
+type Phase = "boot" | "spin" | "unravel" | "settled" | "portal";
+
+/** viewBox 129.92×42.97 — top-right light pane center, as % of the logo box */
+const PORTAL_ORIGIN_X = "49.07%";
+const PORTAL_ORIGIN_Y = "68.07%";
 
 function introParams(): { force: boolean; hold: boolean } {
   const params = new URLSearchParams(window.location.search);
@@ -82,29 +87,37 @@ export default function IntroSplash({ onDone }: Props) {
       return;
     }
 
-    // Stroke spin→fill is one CSS animation; JS phases only drive solid/shine/fly.
     const start = requestAnimationFrame(() => {
       setPhase("spin");
 
-      let t = SPIN_MS;
-      timers.push(window.setTimeout(() => setPhase("unravel"), t));
-      t += UNRAVEL_MS;
-      // Freeze logo styles first, then start shine on the next frame so no
-      // logo rule changes in the same paint as the shine layer.
+      const beginUnravel = () => {
+        setPhase("unravel");
+        // Shine as soon as the solid fill finishes — no pause after “full”
+        timers.push(window.setTimeout(() => setShine(true), FILL_MS));
+        timers.push(window.setTimeout(() => setPhase("settled"), UNRAVEL_MS));
+        timers.push(
+          window.setTimeout(() => {
+            setShine(false);
+            setPhase("portal");
+          }, FILL_MS + SHINE_MS)
+        );
+        timers.push(
+          window.setTimeout(finish, FILL_MS + SHINE_MS + PORTAL_MS)
+        );
+      };
+
+      /** At a cycle boundary: 25% another circle, else end the loading chase. */
+      const decideSpinStop = () => {
+        if (Math.random() < EXTRA_CIRCLE_CHANCE) {
+          timers.push(window.setTimeout(decideSpinStop, DASH_PERIOD_MS));
+          return;
+        }
+        beginUnravel();
+      };
+
       timers.push(
-        window.setTimeout(() => {
-          setPhase("settled");
-          requestAnimationFrame(() => setShine(true));
-        }, t)
+        window.setTimeout(decideSpinStop, MIN_SPIN_CYCLES * DASH_PERIOD_MS)
       );
-      t += SHINE_MS;
-      timers.push(
-        window.setTimeout(() => {
-          setShine(false);
-          setPhase("fly");
-        }, t)
-      );
-      timers.push(window.setTimeout(finish, INTRO_MS));
     });
 
     return () => {
@@ -114,29 +127,72 @@ export default function IntroSplash({ onDone }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hold]);
 
-  const drawing = phase === "spin" || phase === "unravel";
-
   return (
     <div
-      className={`intro-splash intro-${phase}${hold ? " intro-hold" : ""}${shine ? " is-shining" : ""}${drawing ? " is-drawing" : ""}`}
-      style={{ "--intro-stroke-ms": `${STROKE_MS}ms` } as CSSProperties}
+      className={`intro-splash intro-${phase}${hold ? " intro-hold" : ""}${shine ? " is-shining" : ""}`}
+      style={
+        {
+          "--intro-dash-period": `${DASH_PERIOD_MS}ms`,
+          "--intro-unravel-ms": `${UNRAVEL_MS}ms`,
+          "--intro-portal-ms": `${PORTAL_MS}ms`,
+          "--intro-portal-x": PORTAL_ORIGIN_X,
+          "--intro-portal-y": PORTAL_ORIGIN_Y
+        } as CSSProperties
+      }
       role="dialog"
       aria-label="DampMaster"
       aria-live="polite"
       onClick={finish}
     >
-      <div className="intro-logo" aria-hidden>
-        <div className="intro-logo-glyph">
-          <BrandMark className="intro-logo-mark" intro />
+      <div className="intro-zoom" aria-hidden>
+        {/* Full-bleed matte with holes at the light window panes.
+            Scales with the logo so the portal grows into the viewport. */}
+        <svg
+          className="intro-matte"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 129.92 42.97"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <mask
+              id="intro-matte-holes"
+              maskUnits="userSpaceOnUse"
+              x="-6000"
+              y="-6000"
+              width="12000"
+              height="12000"
+            >
+              <rect x="-6000" y="-6000" width="12000" height="12000" fill="#fff" />
+              <rect x="61.84" y="27.14" width="3.82" height="4.22" fill="#000" />
+              <rect x="56.4" y="32.61" width="3.69" height="4.22" fill="#000" />
+              <rect x="61.84" y="32.61" width="3.82" height="4.22" fill="#000" />
+            </mask>
+          </defs>
+          <rect
+            className="intro-matte-fill"
+            x="-6000"
+            y="-6000"
+            width="12000"
+            height="12000"
+            fill="#050505"
+            mask="url(#intro-matte-holes)"
+          />
+        </svg>
+
+        <div className="intro-logo">
+          <div className="intro-logo-glyph">
+            <BrandMark className="intro-logo-mark" intro />
+          </div>
+          <span
+            className="intro-shine"
+            style={{
+              WebkitMaskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`,
+              maskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`
+            }}
+          />
         </div>
-        <span
-          className="intro-shine"
-          style={{
-            WebkitMaskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`,
-            maskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`
-          }}
-        />
       </div>
+
       {!hold && (
         <button
           className="intro-skip"

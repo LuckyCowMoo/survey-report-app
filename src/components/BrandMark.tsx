@@ -42,9 +42,30 @@ export default function BrandMark({
       <g className={intro ? "intro-mark-solid" : undefined}>
         <path fill="#d12d26" d={LOGO_PATH} />
         <rect fill="#d12d26" x="56.4" y="27.14" width="3.69" height="4.22" />
-        <rect fill="#c8c8c8" x="61.84" y="27.14" width="3.82" height="4.22" />
-        <rect fill="#c8c8c8" x="56.4" y="32.61" width="3.69" height="4.22" />
-        <rect fill="#c8c8c8" x="61.84" y="32.61" width="3.82" height="4.22" />
+        <rect
+          className={intro ? "intro-window-pane intro-window-portal" : undefined}
+          fill="#c8c8c8"
+          x="61.84"
+          y="27.14"
+          width="3.82"
+          height="4.22"
+        />
+        <rect
+          className={intro ? "intro-window-pane" : undefined}
+          fill="#c8c8c8"
+          x="56.4"
+          y="32.61"
+          width="3.69"
+          height="4.22"
+        />
+        <rect
+          className={intro ? "intro-window-pane" : undefined}
+          fill="#c8c8c8"
+          x="61.84"
+          y="32.61"
+          width="3.82"
+          height="4.22"
+        />
       </g>
     </svg>
   );

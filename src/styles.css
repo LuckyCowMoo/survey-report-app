@@ -927,6 +927,8 @@ body {
 html:not([data-theme="original"]),
 html:not([data-theme="original"]) body {
   min-height: 100%;
+  /* Clip bleed at the viewport — not at the home card edge */
+  overflow-x: clip;
   background:
     radial-gradient(circle at 14% 0%, rgba(255, 107, 59, 0.16), transparent 30rem),
     linear-gradient(135deg, #f7f5ef 0%, #eeece6 100%);
@@ -1064,7 +1066,8 @@ html:not([data-theme="original"]) .home {
   justify-content: center;
   gap: 34px;
   padding: clamp(38px, 8vw, 86px) clamp(6px, 5vw, 54px);
-  overflow: hidden;
+  /* Let atmosphere cards bleed past the layout; viewport clips them */
+  overflow: visible;
   isolation: isolate;
 }
 
@@ -1082,20 +1085,41 @@ html:not([data-theme="original"]) .home::before {
   background-size: 48px 48px;
 }
 
-html:not([data-theme="original"]) .home-atmosphere span {
+html:not([data-theme="original"]) .home-atmosphere {
   position: absolute;
-  z-index: -1;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+html:not([data-theme="original"]) .home-report {
+  position: absolute;
+  z-index: 1;
   display: block;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
+  appearance: none;
   border: 1px solid rgba(20, 20, 20, 0.2);
   border-radius: 26px;
   box-shadow: 0 28px 70px rgba(38, 25, 16, 0.18);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  animation: report-float 8s ease-in-out infinite alternate;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: transform;
 }
 
-html:not([data-theme="original"]) .home-atmosphere span::before {
+html:not([data-theme="original"]) .home-report.is-dragging {
+  cursor: grabbing;
+  z-index: 4;
+  box-shadow: 0 36px 90px rgba(38, 25, 16, 0.28);
+}
+
+html:not([data-theme="original"]) .home-report::before {
   content: "";
   position: absolute;
   inset: 26% 16%;
@@ -1105,9 +1129,10 @@ html:not([data-theme="original"]) .home-atmosphere span::before {
     transparent 2px 17px
   );
   opacity: 0.22;
+  pointer-events: none;
 }
 
-html:not([data-theme="original"]) .home-atmosphere span::after {
+html:not([data-theme="original"]) .home-report::after {
   content: "RPT";
   position: absolute;
   top: 15px;
@@ -1115,11 +1140,12 @@ html:not([data-theme="original"]) .home-atmosphere span::after {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.18em;
+  pointer-events: none;
 }
 
-html:not([data-theme="original"]) .home-atmosphere span:first-child {
+html:not([data-theme="original"]) .home-report-a {
   top: -5%;
-  right: 2%;
+  right: -12%;
   width: clamp(150px, 22vw, 220px);
   aspect-ratio: 0.72;
   background: linear-gradient(145deg, rgba(255, 126, 83, 0.9), rgba(255, 73, 42, 0.55));
@@ -1127,15 +1153,21 @@ html:not([data-theme="original"]) .home-atmosphere span:first-child {
   transform: rotate(9deg);
 }
 
-html:not([data-theme="original"]) .home-atmosphere span:last-child {
+html:not([data-theme="original"]) .home-report-b {
   bottom: -9%;
-  left: -3%;
+  left: -14%;
   width: clamp(180px, 28vw, 280px);
   aspect-ratio: 1.42;
   background: linear-gradient(145deg, rgba(18, 20, 23, 0.92), rgba(60, 54, 50, 0.7));
   color: #f5eee5;
   transform: rotate(-8deg);
-  animation-delay: -4s;
+}
+
+html:not([data-theme="original"]) .home-hero,
+html:not([data-theme="original"]) .home-upload,
+html:not([data-theme="original"]) .home-guide-btn {
+  position: relative;
+  z-index: 2;
 }
 
 html:not([data-theme="original"]) .home-hero {
@@ -1321,22 +1353,13 @@ html[data-theme="dark"] .home-hero h2 {
   color: #f5f1ea;
 }
 
-html[data-theme="dark"] .home-atmosphere span {
+html[data-theme="dark"] .home-report {
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
 }
 
-html[data-theme="dark"] .home-atmosphere span:last-child {
+html[data-theme="dark"] .home-report-b {
   background: linear-gradient(145deg, rgba(45, 39, 67, 0.92), rgba(19, 21, 27, 0.82));
-}
-
-@keyframes report-float {
-  from {
-    transform: translate3d(0, -7px, 0) rotate(-6deg);
-  }
-  to {
-    transform: translate3d(-16px, 14px, 0) rotate(2deg);
-  }
 }
 
 @media (max-width: 560px) {
@@ -1362,10 +1385,14 @@ html[data-theme="dark"] .home-atmosphere span:last-child {
     background-size: 36px 36px;
   }
 
-  html:not([data-theme="original"]) .home-atmosphere span:first-child {
+  html:not([data-theme="original"]) .home-report-a {
     top: 8%;
-    right: -18%;
+    right: -28%;
     width: 150px;
+  }
+
+  html:not([data-theme="original"]) .home-report-b {
+    left: -26%;
   }
 
   html:not([data-theme="original"]) .home-hero h2 {
@@ -1380,10 +1407,6 @@ html[data-theme="dark"] .home-atmosphere span:last-child {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-theme="original"]) .home-atmosphere span {
-    animation: none;
-  }
-
   html:not([data-theme="original"]) .btn {
     transition: none;
   }
@@ -1512,7 +1535,7 @@ html[data-theme="dark"] .chip.kw {
 }
 
 /* ---- Opening intro ---- */
-/* Sequence: spin → unravel → settled (shine via .is-shining only) → fly */
+/* Sequence: spin → unravel → settled (shine) → portal through window pane */
 
 .app.intro-locked {
   overflow: hidden;
@@ -1529,69 +1552,73 @@ html[data-theme="dark"] .chip.kw {
   opacity: 0;
 }
 
-.intro-splash::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: #050505;
-  z-index: 0;
-}
-
-.intro-splash .intro-logo,
-.intro-splash .intro-skip {
-  z-index: 1;
-}
-
 .intro-splash.intro-spin,
 .intro-splash.intro-unravel,
-.intro-splash.intro-settled {
+.intro-splash.intro-settled,
+.intro-splash.intro-portal {
   opacity: 1;
 }
 
-.intro-splash.intro-fly {
-  animation: intro-splash-out 0.9s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
+/* During portal the matte carries the black — splash chrome goes clear */
+.intro-splash.intro-portal {
+  background: transparent;
 }
 
 .intro-splash.intro-hold,
 .intro-splash.intro-hold.intro-settled,
-.intro-splash.intro-hold.intro-fly {
+.intro-splash.intro-hold.intro-portal {
   opacity: 1;
   animation: none;
 }
 
-.intro-logo {
-  /* Full-size box always — same SVG at every phase (no tiny→large LOD pop). */
+.intro-zoom {
   position: relative;
   width: min(72vw, 430px);
-  justify-self: center;
-  align-self: center;
-  transform: scale(1);
-  transform-origin: center center;
+  aspect-ratio: 129.92 / 42.97;
+  transform-origin: var(--intro-portal-x, 49.07%) var(--intro-portal-y, 68.07%);
   opacity: 0;
-  transition: none;
 }
 
-.intro-splash.intro-spin .intro-logo,
-.intro-splash.intro-unravel .intro-logo,
-.intro-splash.intro-settled .intro-logo,
-.intro-splash.intro-hold .intro-logo {
+.intro-splash.intro-spin .intro-zoom,
+.intro-splash.intro-unravel .intro-zoom,
+.intro-splash.intro-settled .intro-zoom,
+.intro-splash.intro-hold .intro-zoom {
   opacity: 1;
   transform: scale(1);
   transition: opacity 0.35s ease;
-  animation: none;
 }
 
-.intro-splash.intro-fly .intro-logo {
+.intro-splash.intro-portal .intro-zoom {
   opacity: 1;
-  transform: scale(1);
-  transition: none;
-  animation: intro-logo-fly 0.9s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
+  animation: intro-portal-zoom var(--intro-portal-ms, 1400ms)
+    cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+
+.intro-matte {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  /* Hidden until panes clear — solid splash bg covers early phases */
+  opacity: 0;
+}
+
+.intro-splash.intro-portal .intro-matte {
+  opacity: 1;
+}
+
+.intro-logo {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .intro-logo-glyph {
   position: relative;
   width: 100%;
-  aspect-ratio: 129.92 / 42.97;
+  height: 100%;
   color: #d12d26;
 }
 
@@ -1603,8 +1630,12 @@ html[data-theme="dark"] .chip.kw {
   filter: drop-shadow(0 0 28px rgba(209, 45, 38, 0.28));
 }
 
+.intro-splash.intro-portal .intro-logo-mark {
+  filter: none;
+}
+
 /* One path: dashed chase → full outline → fade under the fill.
-   Spin + unravel are ONE animation so the lit segment never jumps. */
+   Spin stops only on a cycle boundary so the lit segment matches unravel. */
 .intro-mark-stroke {
   fill: none;
   stroke-dasharray: 0.22 0.78;
@@ -1612,21 +1643,26 @@ html[data-theme="dark"] .chip.kw {
   opacity: 0;
 }
 
-/* `.is-drawing` stays on across spin→unravel so the stroke anim never restarts */
-.intro-splash.is-drawing .intro-mark-stroke {
+.intro-splash.intro-spin .intro-mark-stroke {
   opacity: 1;
-  animation: intro-stroke-draw var(--intro-stroke-ms, 2700ms) linear forwards;
+  animation: intro-dash-spin var(--intro-dash-period, 800ms) linear infinite;
+}
+
+.intro-splash.intro-unravel .intro-mark-stroke {
+  opacity: 1;
+  animation: intro-path-unravel var(--intro-unravel-ms, 1100ms)
+    cubic-bezier(0.4, 0.05, 0.2, 1) forwards;
 }
 
 .intro-splash.intro-settled .intro-mark-stroke,
-.intro-splash.intro-fly .intro-mark-stroke,
+.intro-splash.intro-portal .intro-mark-stroke,
 .intro-splash.intro-hold .intro-mark-stroke {
   opacity: 0;
   pointer-events: none;
   animation: none;
 }
 
-/* Solid fill — overlaps the stroke so there is no swap-pop */
+/* Solid mark stays opaque — only the light panes open */
 .intro-mark-solid {
   opacity: 0;
   transition: opacity 0.55s ease 0.35s;
@@ -1637,10 +1673,19 @@ html[data-theme="dark"] .chip.kw {
 }
 
 .intro-splash.intro-settled .intro-mark-solid,
-.intro-splash.intro-fly .intro-mark-solid,
+.intro-splash.intro-portal .intro-mark-solid,
 .intro-splash.intro-hold .intro-mark-solid {
   opacity: 1;
   transition: none;
+}
+
+.intro-window-pane {
+  transition: fill-opacity 0.45s ease;
+}
+
+.intro-splash.intro-portal .intro-window-pane {
+  fill-opacity: 0;
+  transition: fill-opacity 0.35s ease;
 }
 
 /* Shine layer only — controlled by .is-shining, never by logo phase rules */
@@ -1680,6 +1725,7 @@ html[data-theme="dark"] .chip.kw {
   position: absolute;
   right: 18px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  z-index: 2;
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
@@ -1696,76 +1742,55 @@ html[data-theme="dark"] .chip.kw {
 
 .intro-splash.intro-spin .intro-skip,
 .intro-splash.intro-unravel .intro-skip,
-.intro-splash.intro-settled .intro-skip,
-.intro-splash.intro-fly .intro-skip {
+.intro-splash.intro-settled .intro-skip {
   animation: intro-skip-in 0.5s ease 0.35s forwards;
 }
 
-/*
-  Timeline (SPIN_MS=1600, UNRAVEL_MS=1100 → total 2700):
-  0–59.26%: march dash 2 full cycles (offset 0 → -2)
-  59.26%: same lit segment (offset -2 ≡ 0), then grow that segment into the full path
-*/
-@keyframes intro-stroke-draw {
+.intro-splash.intro-portal .intro-skip {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+@keyframes intro-dash-spin {
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+/* Starts at the same lit segment as a finished spin cycle (offset 0) */
+@keyframes intro-path-unravel {
   0% {
     stroke-dasharray: 0.22 0.78;
     stroke-dashoffset: 0;
     opacity: 1;
-    animation-timing-function: linear;
   }
-  59.259% {
-    stroke-dasharray: 0.22 0.78;
-    stroke-dashoffset: -2;
-    opacity: 1;
-    animation-timing-function: cubic-bezier(0.4, 0.05, 0.2, 1);
-  }
-  85% {
-    stroke-dasharray: 1 0;
-    stroke-dashoffset: -2;
-    opacity: 1;
-  }
-  100% {
-    stroke-dasharray: 1 0;
-    stroke-dashoffset: -2;
-    opacity: 0;
-  }
-}
-
-@keyframes intro-splash-out {
-  0%,
   55% {
+    stroke-dasharray: 1 0;
+    stroke-dashoffset: 0;
     opacity: 1;
   }
   100% {
+    stroke-dasharray: 1 0;
+    stroke-dashoffset: 0;
     opacity: 0;
-    visibility: hidden;
   }
 }
 
-@keyframes intro-logo-fly {
+@keyframes intro-portal-zoom {
   0% {
-    opacity: 1;
     transform: scale(1);
   }
-  18% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
   100% {
-    opacity: 0;
-    transform: scale(14);
+    transform: scale(140);
   }
 }
 
 @keyframes intro-shine {
   0% {
-    opacity: 0;
+    opacity: 1;
     background-position: 120% 0;
   }
-  15% {
-    opacity: 1;
-  }
-  70% {
+  80% {
     opacity: 1;
     background-position: -20% 0;
   }
@@ -1795,7 +1820,7 @@ html[data-theme="dark"] .chip.kw {
 
 @media (prefers-reduced-motion: reduce) {
   .intro-splash,
-  .intro-logo,
+  .intro-zoom,
   .intro-shine,
   .intro-skip,
   .intro-mark-stroke,
@@ -1807,7 +1832,7 @@ html[data-theme="dark"] .chip.kw {
   .intro-splash.intro-spin .intro-mark-solid,
   .intro-splash.intro-unravel .intro-mark-solid,
   .intro-splash.intro-settled .intro-mark-solid,
-  .intro-splash.intro-fly .intro-mark-solid {
+  .intro-splash.intro-portal .intro-mark-solid {
     opacity: 1;
   }
 
