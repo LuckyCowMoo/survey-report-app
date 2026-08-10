@@ -57,12 +57,6 @@ export default function ReviewScreen({
             Ask AI about all flagged ({flaggedCount})
           </button>
         )}
-        {!aiConfigured && flaggedCount > 0 && (
-          <p className="muted">
-            Tip: add your Claude API key in Settings to resolve flagged
-            sections automatically, or edit them by hand below.
-          </p>
-        )}
         {warnings.length > 0 && (
           <button className="btn small" onClick={() => setShowWarnings(!showWarnings)}>
             {showWarnings ? "Hide" : "Show"} {warnings.length} parsing warning(s)

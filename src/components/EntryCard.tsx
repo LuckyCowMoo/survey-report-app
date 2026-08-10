@@ -328,7 +328,7 @@ export default function EntryCard({
 
   return (
     <div
-      className={`card${section.needsAttention ? " attention" : ""}${aiWorking ? " ai-working" : ""}`}
+      className={`card${section.needsAttention ? " attention" : ""}${aiWorking ? " ai-working" : ""}${showPicker ? " is-active" : ""}`}
       aria-busy={aiWorking}
     >
       <div className="card-head">

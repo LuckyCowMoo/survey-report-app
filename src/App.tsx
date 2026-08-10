@@ -186,7 +186,11 @@ export default function App() {
   }, [settings]);
 
   return (
-    <div className={`app${showIntro ? " intro-locked" : ""}`}>
+    <div
+      className={`app${showIntro ? " intro-locked" : ""}${
+        step === "review" || step === "details" ? " app-aside" : ""
+      }`}
+    >
       <AmbientGlow />
       {showIntro && <IntroSplash onDone={dismissIntro} />}
       <header className="topbar">
