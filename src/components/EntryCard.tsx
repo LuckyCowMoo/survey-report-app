@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import LibraryPicker from "./LibraryPicker";
-import { libraryParagraph, renderLibraryText } from "../lib/matcher";
+import {
+  extractValues,
+  hasMissingPlaceholders,
+  libraryParagraph,
+  placeholderValuesFromNote,
+  renderLibraryText,
+  resolveLibraryIdForValues
+} from "../lib/matcher";
 import { imagePreviewUrl } from "../lib/imageUtils";
 import type { LibraryParagraph, SectionState } from "../types";
 
@@ -65,18 +72,23 @@ export default function EntryCard({
   );
 
   const pickParagraph = (p: LibraryParagraph) => {
+    // Prefer values already typed, else anything parseable from the note.
+    // Never seed with library example defaults (e.g. 71.7% RH).
+    const fromNote = placeholderValuesFromNote(p, extractValues(section.entry.note));
     const values: Record<string, string> = {};
     for (const ph of p.placeholders) {
-      values[ph.key] = section.placeholderValues[ph.key] ?? ph.default;
+      values[ph.key] =
+        section.placeholderValues[ph.key]?.trim() || fromNote[ph.key] || "";
     }
+    const libraryId = resolveLibraryIdForValues(p.id, values);
     onChange(index, {
       ...section,
-      libraryId: p.id,
+      libraryId,
       placeholderValues: values,
       crossrefSection: null,
-      text: renderLibraryText(p.id, values),
+      text: renderLibraryText(libraryId, values),
       source: "library",
-      needsAttention: false
+      needsAttention: hasMissingPlaceholders(libraryId, values)
     });
     setShowPicker(false);
   };
@@ -84,10 +96,13 @@ export default function EntryCard({
   const setPlaceholder = (key: string, value: string) => {
     if (!section.libraryId) return;
     const values = { ...section.placeholderValues, [key]: value };
+    const libraryId = resolveLibraryIdForValues(section.libraryId, values);
     onChange(index, {
       ...section,
+      libraryId,
       placeholderValues: values,
-      text: renderLibraryText(section.libraryId, values)
+      text: renderLibraryText(libraryId, values),
+      needsAttention: hasMissingPlaceholders(libraryId, values)
     });
   };
 
@@ -174,7 +189,13 @@ export default function EntryCard({
               <textarea
                 className="section-text"
                 rows={6}
-                placeholder="Report text for this photo..."
+                placeholder={
+                  paragraph &&
+                  paragraph.placeholders.length > 0 &&
+                  hasMissingPlaceholders(section.libraryId!, section.placeholderValues)
+                    ? "Enter the reading(s) below - wording appears when complete"
+                    : "Report text for this photo..."
+                }
                 value={section.text}
                 disabled={aiWorking}
                 onChange={(e) => editText(e.target.value)}
@@ -192,17 +213,21 @@ export default function EntryCard({
 
           {paragraph && paragraph.placeholders.length > 0 && (
             <div className="placeholders">
-              {paragraph.placeholders.map((ph) => (
-                <label key={ph.key}>
-                  <span>{ph.label}</span>
-                  <input
-                    type="text"
-                    value={section.placeholderValues[ph.key] ?? ph.default}
-                    disabled={aiWorking}
-                    onChange={(e) => setPlaceholder(ph.key, e.target.value)}
-                  />
-                </label>
-              ))}
+              {paragraph.placeholders.map((ph) => {
+                const filled = Boolean(section.placeholderValues[ph.key]?.trim());
+                return (
+                  <label key={ph.key} className={filled ? undefined : "needs-value"}>
+                    <span>{ph.label}</span>
+                    <input
+                      type="text"
+                      value={section.placeholderValues[ph.key] ?? ""}
+                      placeholder={ph.default ? `e.g. ${ph.default}` : "Enter value"}
+                      disabled={aiWorking}
+                      onChange={(e) => setPlaceholder(ph.key, e.target.value)}
+                    />
+                  </label>
+                );
+              })}
             </div>
           )}
         </div>

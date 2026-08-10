@@ -13,12 +13,15 @@ const cases: Array<{ note: string; expectId: string; expectCertain: boolean }> =
   { note: "air quality no issues", expectId: "air-quality-no-issues", expectCertain: true },
   { note: "air quality ok", expectId: "air-quality-no-issues", expectCertain: true },
   { note: "thermal", expectId: "thermal-walls-damp", expectCertain: false },
-  { note: "thermal ceiling", expectId: "thermal-ceiling-mould", expectCertain: true },
-  { note: "thermal heat loss", expectId: "thermal-heat-loss", expectCertain: true },
-  { note: "thermal walls", expectId: "thermal-walls-damp", expectCertain: true },
+  // Matched, but temp_diff still needs typing when not in the note.
+  { note: "thermal ceiling", expectId: "thermal-ceiling-mould", expectCertain: false },
+  { note: "thermal heat loss", expectId: "thermal-heat-loss", expectCertain: false },
+  { note: "thermal walls", expectId: "thermal-walls-damp", expectCertain: false },
   { note: "rh 65%", expectId: "rh-high", expectCertain: true },
   { note: "rh 40%", expectId: "rh-low", expectCertain: true },
-  { note: "pin skirting", expectId: "steel-pins-skirting", expectCertain: true },
+  // Matched, but pin_value must be typed unless the note includes e.g. "24%".
+  { note: "pin skirting", expectId: "steel-pins-skirting", expectCertain: false },
+  { note: "pin skirting 24%", expectId: "steel-pins-skirting", expectCertain: true },
   { note: "pin", expectId: "steel-pins-doorframe", expectCertain: false }
 ];
 

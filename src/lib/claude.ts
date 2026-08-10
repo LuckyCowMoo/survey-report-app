@@ -6,7 +6,16 @@
  * relevant approved library paragraphs, and brief summaries of earlier
  * sections (so the model can answer "As illustrated in section N" cases).
  */
-import { library, renderLibraryText } from "./matcher";
+import {
+  extractValues,
+  hasMissingPlaceholders,
+  isReadingPlaceholder,
+  library,
+  libraryParagraph,
+  placeholderValuesFromNote,
+  renderLibraryText,
+  resolveLibraryIdForValues
+} from "./matcher";
 import { imageToAiBase64 } from "./imageUtils";
 import type { AiProvider } from "./settings";
 import type { SectionState } from "../types";
@@ -34,15 +43,15 @@ You will be given:
 - Summaries of EARLIER SECTIONS in the same report.
 
 Decide ONE of:
-1. "library" - an approved paragraph fits this photo. Give its id and values for every {{placeholder}} in it (read meter displays and measurements from the photo where visible).
-2. "bespoke" - no approved paragraph fits. Write a new paragraph in house style describing the observation, its significance, and recommended further action.
+1. "library" - an approved paragraph fits this photo. Give its id. For {{placeholder}} slots that are meter readings or measurements (RH%, moisture %, temperatures, heights), leave them OUT of placeholderValues unless that exact figure already appears in the surveyor's shorthand note. Never invent readings and never copy example numbers from the library text. The surveyor will type readings manually.
+2. "bespoke" - no approved paragraph fits. Write a new paragraph in house style describing the observation, its significance, and recommended further action. Do not invent specific meter readings; if a reading is needed and is not in the note, write a clear blank such as "[reading required]" instead of a number.
 3. "crossref" - the photo shows the same subject as an earlier section and needs no new text. Give that section's number.
 
-If the photo is a measuring instrument (moisture meter, hygrometer, thermal camera), read the values from its display and use them. If the note contains a "Reading N" style label or the photo is clearly one of a numbered sequence of meter readings, set headingLine accordingly (e.g. "Reading 2").
+If the note contains a "Reading N" style label or the photo is clearly one of a numbered sequence of meter readings, set headingLine accordingly (e.g. "Reading 2").
 
 Respond with ONLY a JSON object, no markdown fences:
 {"action":"library"|"bespoke"|"crossref","libraryId":"...","placeholderValues":{"key":"value"},"text":"...","crossrefSection":N,"headingLine":"..."}
-Include "text" only for bespoke. Include "libraryId"/"placeholderValues" only for library. Include "crossrefSection" only for crossref. "headingLine" is optional.`;
+Include "text" only for bespoke. Include "libraryId" only for library. Include "placeholderValues" only for non-reading slots or readings that appear in the note. Include "crossrefSection" only for crossref. "headingLine" is optional.`;
 
 function candidateBlock(section: SectionState): string {
   // Send the suggested candidates plus a compact index of everything else.
@@ -195,13 +204,27 @@ export function applyResolution(
   const next = { ...section };
   if (r.headingLine) next.headingLine = r.headingLine;
   if (r.action === "library" && r.libraryId) {
-    // Still credited to AI: the model chose (and filled) this paragraph.
+    // Still credited to AI: the model chose this paragraph.
     // "library" as a source is reserved for the matcher / manual picker.
-    next.libraryId = r.libraryId;
-    next.placeholderValues = r.placeholderValues ?? {};
-    next.text = renderLibraryText(r.libraryId, next.placeholderValues);
+    // Readings may only come from the shorthand note - never AI photo guesses
+    // or library example defaults.
+    const paragraph = libraryParagraph(r.libraryId);
+    const fromNote = paragraph
+      ? placeholderValuesFromNote(paragraph, extractValues(section.entry.note))
+      : {};
+    const values: Record<string, string> = { ...fromNote };
+    for (const [key, raw] of Object.entries(r.placeholderValues ?? {})) {
+      const value = raw?.trim() ?? "";
+      if (!value) continue;
+      if (isReadingPlaceholder(key)) continue;
+      values[key] = value;
+    }
+    const libraryId = resolveLibraryIdForValues(r.libraryId, values);
+    next.libraryId = libraryId;
+    next.placeholderValues = values;
+    next.text = renderLibraryText(libraryId, values);
     next.source = "ai";
-    next.needsAttention = false;
+    next.needsAttention = hasMissingPlaceholders(libraryId, values);
   } else if (r.action === "bespoke" && r.text) {
     next.libraryId = null;
     next.text = r.text.trim();

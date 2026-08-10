@@ -77,21 +77,69 @@ function rankedSuggestions(note: string, limit = 4): string[] {
     .map((r) => r.id);
 }
 
-/** Resolve a library paragraph into display text with placeholders filled. */
+/**
+ * Placeholders that must never be invented (library defaults or AI photo reads).
+ * Only shorthand extraction or the surveyor's own typing may fill them.
+ */
+export function isReadingPlaceholder(key: string): boolean {
+  return /rh|percent|pin_value|temp|dew|height|diff/i.test(key);
+}
+
+/**
+ * Pick the RH library paragraph from a typed/extracted percentage.
+ * Above 55% → high; otherwise → within threshold.
+ */
+export function rhLibraryIdForPercent(percent: string): "rh-high" | "rh-low" | null {
+  const n = Number(String(percent).trim());
+  if (!Number.isFinite(n)) return null;
+  return n > 55 ? "rh-high" : "rh-low";
+}
+
+/**
+ * If this paragraph is RH-related and a reading is present, return the id that
+ * matches the threshold wording. Otherwise return the original id.
+ */
+export function resolveLibraryIdForValues(
+  id: string,
+  values: Record<string, string>
+): string {
+  if (id !== "rh-high" && id !== "rh-low") return id;
+  const rh = values.rh_value?.trim() ?? "";
+  return rhLibraryIdForPercent(rh) ?? id;
+}
+
+/** Resolve a library paragraph into display text with known values only. */
 export function renderLibraryText(
   id: string,
   values: Record<string, string>
 ): string {
   const p = byId.get(id);
   if (!p) return "";
+  // Do not paste paragraph text until every slot is filled - a half-complete
+  // RH sentence with the wrong "surpassing / within" wording is worse than blank.
+  if (hasMissingPlaceholders(id, values)) return "";
   const merged: Record<string, string> = {};
   for (const ph of p.placeholders) {
-    merged[ph.key] = values[ph.key] ?? ph.default;
+    merged[ph.key] = values[ph.key].trim();
   }
   return fillPlaceholders(p.text, merged);
 }
 
-function defaultPlaceholderValues(
+/** True when a library paragraph still has unfilled slots. */
+export function hasMissingPlaceholders(
+  id: string,
+  values: Record<string, string>
+): boolean {
+  const p = byId.get(id);
+  if (!p) return false;
+  return p.placeholders.some((ph) => !(values[ph.key]?.trim()));
+}
+
+/**
+ * Fill placeholders only from values extracted from the shorthand note.
+ * Reading slots stay empty until the surveyor types them.
+ */
+export function placeholderValuesFromNote(
   p: LibraryParagraph,
   extracted: ExtractedValues
 ): Record<string, string> {
@@ -104,7 +152,7 @@ function defaultPlaceholderValues(
     } else if (/height/.test(ph.key) && extracted.height) {
       values[ph.key] = extracted.height;
     } else {
-      values[ph.key] = ph.default;
+      values[ph.key] = "";
     }
   }
   return values;
@@ -129,13 +177,12 @@ function specialRules(
   if (/\bbaseline\b/.test(note)) return { id: "baseline-reading", high: true };
   if (/\bdew point\b|\bdew\b/.test(note)) return { id: "dew-point", high: !!extracted.temperature };
   if (/\brh\b|humidity/.test(note)) {
+    // Only lock high/low wording once a figure exists in the note.
     if (extracted.percent) {
-      return {
-        id: Number(extracted.percent) > 55 ? "rh-high" : "rh-low",
-        high: true
-      };
+      const id = rhLibraryIdForPercent(extracted.percent);
+      if (id) return { id, high: true };
     }
-    return { id: "rh-high", high: false };
+    return null;
   }
   if (/\bair quality\b/.test(note)) {
     if (/no issue|ok\b|fine\b|good\b|clear\b|pass/.test(note)) {
@@ -247,13 +294,17 @@ export function matchEntries(entries: ShorthandEntry[]): SectionState[] {
     if (matched) {
       const p = byId.get(matched.id);
       if (p) {
-        state.libraryId = matched.id;
-        state.placeholderValues = defaultPlaceholderValues(p, extracted);
-        state.text = renderLibraryText(matched.id, state.placeholderValues);
+        const values = placeholderValuesFromNote(p, extracted);
+        const libraryId = resolveLibraryIdForValues(matched.id, values);
+        state.libraryId = libraryId;
+        state.placeholderValues = values;
+        state.text = renderLibraryText(libraryId, values);
         state.source = "library";
-        state.needsAttention = !matched.high;
-        if (!state.suggestions.includes(matched.id)) {
-          state.suggestions.unshift(matched.id);
+        // Unfilled readings always need attention - never look "done" with examples.
+        state.needsAttention =
+          !matched.high || hasMissingPlaceholders(libraryId, values);
+        if (!state.suggestions.includes(libraryId)) {
+          state.suggestions.unshift(libraryId);
         }
       }
       // Reading-run bookkeeping: measurement/meter photos continue a run.
