@@ -1512,6 +1512,7 @@ html[data-theme="dark"] .chip.kw {
 }
 
 /* ---- Opening intro ---- */
+/* Sequence: spin → unravel → settled (shine via .is-shining only) → fly */
 
 .app.intro-locked {
   overflow: hidden;
@@ -1528,36 +1529,74 @@ html[data-theme="dark"] .chip.kw {
   opacity: 0;
 }
 
-.intro-splash.intro-play {
-  animation: intro-splash-out 2.6s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
+.intro-splash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #050505;
+  z-index: 0;
+}
+
+.intro-splash .intro-logo,
+.intro-splash .intro-skip {
+  z-index: 1;
+}
+
+.intro-splash.intro-spin,
+.intro-splash.intro-unravel,
+.intro-splash.intro-settled {
+  opacity: 1;
+}
+
+.intro-splash.intro-fly {
+  animation: intro-splash-out 0.9s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
 }
 
 .intro-splash.intro-hold,
-.intro-splash.intro-hold.intro-play {
+.intro-splash.intro-hold.intro-settled,
+.intro-splash.intro-hold.intro-fly {
   opacity: 1;
   animation: none;
-}
-
-.intro-splash.intro-hold .intro-logo {
-  opacity: 1;
-  transform: scale(1);
-  animation: none;
-}
-
-.intro-splash.intro-hold .intro-shine {
-  opacity: 1;
-  animation: intro-shine-loop 1.8s ease-in-out infinite;
 }
 
 .intro-logo {
+  /* Fixed box always — only transform scales. Shine never changes these. */
   position: relative;
   width: min(72vw, 430px);
-  transform: scale(0.92);
+  justify-self: center;
+  align-self: center;
+  transform: scale(0.25);
+  transform-origin: center center;
   opacity: 0;
+  transition: none;
 }
 
-.intro-splash.intro-play .intro-logo {
-  animation: intro-logo-fly 2.6s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
+.intro-splash.intro-spin .intro-logo {
+  opacity: 1;
+  transform: scale(0.25);
+  transition: opacity 0.35s ease;
+}
+
+.intro-splash.intro-unravel .intro-logo {
+  opacity: 1;
+  transform: scale(1);
+  transition: transform 1.05s cubic-bezier(0.4, 0.1, 0.2, 1);
+}
+
+/* settled + hold: identical frozen logo — shine must not alter this block */
+.intro-splash.intro-settled .intro-logo,
+.intro-splash.intro-hold .intro-logo {
+  opacity: 1;
+  transform: scale(1);
+  transition: none;
+  animation: none;
+}
+
+.intro-splash.intro-fly .intro-logo {
+  opacity: 1;
+  transform: scale(1);
+  transition: none;
+  animation: intro-logo-fly 0.9s cubic-bezier(0.65, 0.05, 0.36, 1) forwards;
 }
 
 .intro-logo-glyph {
@@ -1565,41 +1604,122 @@ html[data-theme="dark"] .chip.kw {
   width: 100%;
   aspect-ratio: 129.92 / 42.97;
   color: #d12d26;
-  filter: drop-shadow(0 0 28px rgba(209, 45, 38, 0.28));
 }
 
 .intro-logo-mark {
   display: block;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  /* Constant filter — toggling it on shine was shifting the paint bounds */
+  filter: drop-shadow(0 0 28px rgba(209, 45, 38, 0.28));
 }
 
+/* Spinner ring – visible during spin, exits during unravel */
+.intro-spinner {
+  transform-origin: 64.96px 21.48px;
+  transform-box: fill-box;
+  opacity: 0;
+}
+
+.intro-splash.intro-spin .intro-spinner {
+  opacity: 1;
+}
+
+.intro-splash.intro-spin .intro-spinner-arc,
+.intro-splash.intro-unravel .intro-spinner-arc {
+  transform-origin: 64.96px 21.48px;
+  transform-box: view-box;
+  animation: intro-spinner-spin 0.85s linear infinite;
+}
+
+.intro-splash.intro-unravel .intro-spinner {
+  opacity: 1;
+  animation: intro-spinner-exit 0.55s cubic-bezier(0.4, 0.1, 0.2, 1) forwards;
+}
+
+/* Leave spinner at opacity 0 via animation fill — do not retarget on settled */
+.intro-splash.intro-settled .intro-spinner,
+.intro-splash.intro-fly .intro-spinner,
+.intro-splash.intro-hold .intro-spinner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-spinner-arc {
+  stroke-dasharray: 0.28 0.72;
+}
+
+/* Outline draw during unravel — ends at opacity 0 (forwards) */
+.intro-mark-stroke {
+  fill: none;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+
+.intro-splash.intro-unravel .intro-mark-stroke {
+  opacity: 1;
+  animation: intro-path-draw 1.05s cubic-bezier(0.4, 0.05, 0.2, 1) forwards;
+}
+
+.intro-splash.intro-settled .intro-mark-stroke,
+.intro-splash.intro-fly .intro-mark-stroke,
+.intro-splash.intro-hold .intro-mark-stroke {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Solid fill */
+.intro-mark-solid {
+  opacity: 0;
+  transition: opacity 0.5s ease 0.45s;
+}
+
+.intro-splash.intro-unravel .intro-mark-solid,
+.intro-splash.intro-settled .intro-mark-solid,
+.intro-splash.intro-fly .intro-mark-solid,
+.intro-splash.intro-hold .intro-mark-solid {
+  opacity: 1;
+}
+
+.intro-splash.intro-settled .intro-mark-solid,
+.intro-splash.intro-fly .intro-mark-solid,
+.intro-splash.intro-hold .intro-mark-solid {
+  transition: none;
+}
+
+/* Shine layer only — controlled by .is-shining, never by logo phase rules */
 .intro-shine {
   position: absolute;
-  inset: -8%;
+  inset: 0;
   pointer-events: none;
   background: linear-gradient(
     105deg,
-    transparent 32%,
-    rgba(255, 255, 255, 0.08) 44%,
-    rgba(255, 255, 255, 0.9) 50%,
-    rgba(255, 255, 255, 0.08) 56%,
-    transparent 68%
+    transparent 34%,
+    rgba(255, 255, 255, 0.15) 46%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.15) 54%,
+    transparent 66%
   );
   background-size: 240% 100%;
   background-position: 120% 0;
-  mix-blend-mode: screen;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
-  -webkit-mask-size: 100% auto;
-  mask-size: 100% auto;
+  -webkit-mask-size: contain;
+  mask-size: contain;
   opacity: 0;
 }
 
-.intro-splash.intro-play .intro-shine {
-  animation: intro-shine 2.6s ease-in-out forwards;
+.intro-splash.is-shining .intro-shine {
+  animation: intro-shine 0.9s ease-in-out forwards;
+}
+
+.intro-splash.intro-hold.is-shining .intro-shine {
+  opacity: 1;
+  animation: intro-shine-loop 1.8s ease-in-out infinite;
 }
 
 .intro-skip {
@@ -1620,13 +1740,48 @@ html[data-theme="dark"] .chip.kw {
   opacity: 0;
 }
 
-.intro-splash.intro-play .intro-skip {
+.intro-splash.intro-spin .intro-skip,
+.intro-splash.intro-unravel .intro-skip,
+.intro-splash.intro-settled .intro-skip,
+.intro-splash.intro-fly .intro-skip {
   animation: intro-skip-in 0.5s ease 0.35s forwards;
+}
+
+@keyframes intro-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes intro-spinner-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+@keyframes intro-path-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0.95;
+  }
+  85% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
 }
 
 @keyframes intro-splash-out {
   0%,
-  58% {
+  55% {
     opacity: 1;
   }
   100% {
@@ -1637,14 +1792,10 @@ html[data-theme="dark"] .chip.kw {
 
 @keyframes intro-logo-fly {
   0% {
-    opacity: 0;
-    transform: scale(0.88);
-  }
-  12% {
     opacity: 1;
     transform: scale(1);
   }
-  52% {
+  18% {
     opacity: 1;
     transform: scale(1.02);
   }
@@ -1655,19 +1806,17 @@ html[data-theme="dark"] .chip.kw {
 }
 
 @keyframes intro-shine {
-  0%,
-  14% {
+  0% {
     opacity: 0;
     background-position: 120% 0;
   }
-  22% {
+  15% {
     opacity: 1;
   }
-  48% {
+  70% {
     opacity: 1;
     background-position: -20% 0;
   }
-  58%,
   100% {
     opacity: 0;
     background-position: -20% 0;
@@ -1696,7 +1845,22 @@ html[data-theme="dark"] .chip.kw {
   .intro-splash,
   .intro-logo,
   .intro-shine,
-  .intro-skip {
+  .intro-skip,
+  .intro-spinner,
+  .intro-mark-stroke,
+  .intro-mark-solid {
     animation: none !important;
+    transition: none !important;
+  }
+
+  .intro-splash.intro-spin .intro-mark-solid,
+  .intro-splash.intro-unravel .intro-mark-solid,
+  .intro-splash.intro-fly .intro-mark-solid {
+    opacity: 1;
+  }
+
+  .intro-spinner,
+  .intro-mark-stroke {
+    display: none;
   }
 }

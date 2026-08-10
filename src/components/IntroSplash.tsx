@@ -2,7 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import BrandMark from "./BrandMark";
 
 const SESSION_KEY = "survey-report-intro-seen";
-const INTRO_MS = 2600;
+
+/** Spin → unravel into mark → shine (logo frozen) → smooth fly-out. */
+const SPIN_MS = 1600;
+const UNRAVEL_MS = 1100;
+const SHINE_MS = 900;
+const FLY_MS = 900;
+const INTRO_MS = SPIN_MS + UNRAVEL_MS + SHINE_MS + FLY_MS;
+
+/**
+ * Logo layout phases. "settled" covers both the shine hold and the moment
+ * before fly — shine is a separate flag so it cannot change logo CSS.
+ */
+type Phase = "boot" | "spin" | "unravel" | "settled" | "fly";
 
 function introParams(): { force: boolean; hold: boolean } {
   const params = new URLSearchParams(window.location.search);
@@ -44,7 +56,8 @@ interface Props {
 
 export default function IntroSplash({ onDone }: Props) {
   const hold = introParams().hold;
-  const [phase, setPhase] = useState<"boot" | "play">("boot");
+  const [phase, setPhase] = useState<Phase>("boot");
+  const [shine, setShine] = useState(false);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
   const finished = useRef(false);
@@ -57,21 +70,45 @@ export default function IntroSplash({ onDone }: Props) {
   };
 
   useEffect(() => {
-    const start = requestAnimationFrame(() => setPhase("play"));
+    const timers: number[] = [];
+    const start = requestAnimationFrame(() => setPhase("spin"));
+
     if (hold) {
+      setPhase("settled");
+      setShine(true);
       return () => cancelAnimationFrame(start);
     }
-    const done = window.setTimeout(finish, INTRO_MS);
+
+    let t = SPIN_MS;
+    timers.push(window.setTimeout(() => setPhase("unravel"), t));
+    t += UNRAVEL_MS;
+    // Freeze logo styles first, then start shine on the next frame so no
+    // logo rule changes in the same paint as the shine layer.
+    timers.push(
+      window.setTimeout(() => {
+        setPhase("settled");
+        requestAnimationFrame(() => setShine(true));
+      }, t)
+    );
+    t += SHINE_MS;
+    timers.push(
+      window.setTimeout(() => {
+        setShine(false);
+        setPhase("fly");
+      }, t)
+    );
+    timers.push(window.setTimeout(finish, INTRO_MS));
+
     return () => {
       cancelAnimationFrame(start);
-      window.clearTimeout(done);
+      for (const id of timers) window.clearTimeout(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hold]);
 
   return (
     <div
-      className={`intro-splash intro-${phase}${hold ? " intro-hold" : ""}`}
+      className={`intro-splash intro-${phase}${hold ? " intro-hold" : ""}${shine ? " is-shining" : ""}`}
       role="dialog"
       aria-label="DampMaster"
       aria-live="polite"
@@ -79,15 +116,15 @@ export default function IntroSplash({ onDone }: Props) {
     >
       <div className="intro-logo" aria-hidden>
         <div className="intro-logo-glyph">
-          <BrandMark className="intro-logo-mark" />
-          <span
-            className="intro-shine"
-            style={{
-              WebkitMaskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`,
-              maskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`
-            }}
-          />
+          <BrandMark className="intro-logo-mark" intro />
         </div>
+        <span
+          className="intro-shine"
+          style={{
+            WebkitMaskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`,
+            maskImage: `url(${import.meta.env.BASE_URL}brand/logo-mask.svg)`
+          }}
+        />
       </div>
       {!hold && (
         <button
