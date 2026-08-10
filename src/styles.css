@@ -423,24 +423,6 @@ body {
   position: relative;
 }
 
-.section-text-wrap.is-ai-reveal .section-text,
-.section-text-wrap.is-ai-reveal .crossref-text {
-  animation: ai-text-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes ai-text-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-    filter: blur(2.5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-}
-
 .ai-writing-overlay {
   position: absolute;
   inset: 0;
@@ -641,9 +623,11 @@ html[data-theme="dark"] .chip.ref {
 }
 
 .card-body {
+  --card-media-size: 132px;
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  /* When the thumb can't fill the text column height, keep it centred */
+  align-items: center;
 }
 
 .thumb-btn {
@@ -654,17 +638,21 @@ html[data-theme="dark"] .chip.ref {
   border: 0;
   background: none;
   flex-shrink: 0;
+  width: var(--card-media-size);
+  height: var(--card-media-size);
   cursor: zoom-in;
   border-radius: 8px;
+  overflow: hidden;
+  transition: height 280ms ease;
 }
 
 .thumb {
   display: block;
-  width: 132px;
-  height: 132px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  object-position: center;
   border-radius: 8px;
-  flex-shrink: 0;
   background: var(--line);
 }
 
@@ -728,7 +716,6 @@ html[data-theme="dark"] .chip.ref {
 }
 
 .card-main {
-  --card-media-size: 132px;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -737,12 +724,16 @@ html[data-theme="dark"] .chip.ref {
   /* Note + heading + text stack matches the thumbnail height */
   height: var(--card-media-size);
   max-height: var(--card-media-size);
+  overflow: hidden;
+  transition: height 280ms ease, max-height 280ms ease;
 }
 
+/* Manual note expand / placeholders — JS drives highlight expand */
 .card-main:has(.placeholders),
 .card-main:has(.note.is-expanded) {
   height: auto;
   max-height: none;
+  overflow: visible;
 }
 
 .card-main:has(.placeholders) .section-text,
@@ -750,7 +741,13 @@ html[data-theme="dark"] .chip.ref {
   flex: 0 1 auto;
   height: auto;
   min-height: 72px;
-  resize: vertical;
+}
+
+.card.is-active .crossref-text,
+.card:focus-within .crossref-text {
+  flex: 0 1 auto;
+  height: auto;
+  overflow: visible;
 }
 
 .note {
@@ -773,7 +770,9 @@ html[data-theme="dark"] .chip.ref {
   cursor: pointer;
 }
 
-.note.is-expanded {
+.note.is-expanded,
+.card.is-active .note,
+.card:focus-within .note {
   white-space: normal;
   overflow: visible;
   text-overflow: unset;
@@ -809,7 +808,15 @@ html[data-theme="dark"] .chip.ref {
   font-size: 14px;
   line-height: 1.4;
   resize: none;
+  overflow: auto;
   font-family: inherit;
+  transition: height 280ms ease, min-height 280ms ease;
+}
+
+.card.is-active .section-text,
+.card:focus-within .section-text {
+  flex: 0 1 auto;
+  overflow: hidden;
 }
 
 .crossref-text {
@@ -966,6 +973,27 @@ html[data-theme="dark"] .chip.ref {
   cursor: pointer;
 }
 
+.picker-choice-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: stretch;
+}
+
+.picker-choice-row .picker-item {
+  margin-bottom: 0;
+  height: 100%;
+  min-width: 0;
+}
+
+.picker-choice-row .picker-item span {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .picker-item strong {
   display: block;
   font-size: 14px;
@@ -976,6 +1004,150 @@ html[data-theme="dark"] .chip.ref {
   font-size: 12px;
   color: var(--muted);
   display: block;
+}
+
+@media (max-width: 420px) {
+  .picker-choice-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- direction compass ---------- */
+.direction-compass {
+  --compass-ink: #141414;
+  --compass-paper: #f7f5f1;
+  width: min(260px, 70vw);
+  margin: 2px auto 8px;
+}
+
+.direction-compass-frame {
+  position: relative;
+  width: 100%;
+}
+
+.direction-compass-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.compass-ring {
+  fill: none;
+  stroke: var(--compass-ink);
+  stroke-width: 1.6;
+}
+
+.compass-hub {
+  fill: var(--compass-ink);
+}
+
+.compass-petal.solid {
+  fill: var(--compass-ink);
+  stroke: var(--compass-ink);
+  stroke-width: 0.4;
+  stroke-linejoin: round;
+}
+
+.compass-petal.dark {
+  fill: var(--compass-ink);
+  stroke: none;
+}
+
+.compass-petal.light {
+  fill: var(--compass-paper);
+  stroke: var(--compass-ink);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+
+.compass-pad {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% * var(--hit-scale, 1.25));
+  height: calc(100% * var(--hit-scale, 1.25));
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.compass-point {
+  pointer-events: none;
+  outline: none;
+}
+
+.compass-point .compass-petal {
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease,
+    opacity 160ms ease;
+}
+
+.compass-letter {
+  fill: var(--compass-ink);
+  font-weight: 780;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+  transition: fill 160ms ease;
+}
+
+.compass-letter.cardinal {
+  font-size: 14px;
+}
+
+.compass-letter.ordinal {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.88;
+}
+
+.compass-point.is-hot .compass-petal.solid,
+.compass-point:focus-visible .compass-petal.solid,
+.compass-point.is-hot .compass-petal.dark,
+.compass-point:focus-visible .compass-petal.dark {
+  fill: var(--brand);
+  stroke: var(--brand);
+}
+
+.compass-point.is-hot .compass-petal.light,
+.compass-point:focus-visible .compass-petal.light {
+  fill: color-mix(in srgb, var(--brand) 18%, var(--compass-paper));
+  stroke: var(--brand);
+}
+
+.compass-point.is-hot .compass-letter,
+.compass-point:focus-visible .compass-letter {
+  fill: var(--brand);
+}
+
+.compass-point:focus-visible {
+  outline: none;
+}
+
+.compass-point.ordinal:focus-visible .compass-petal.solid {
+  stroke: var(--brand);
+  stroke-width: 2;
+}
+
+.direction-compass-hint {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--brand);
+}
+
+.picker-group:has(.direction-compass) h3 {
+  margin-bottom: 2px;
+}
+
+html[data-theme="dark"] .direction-compass {
+  --compass-ink: #f2efe8;
+  --compass-paper: #1c1a18;
 }
 
 /* ---------- forms ---------- */
@@ -1605,12 +1777,7 @@ html[data-theme="dark"] .chip.ref {
 }
 
 @media (min-width: 600px) {
-  .thumb {
-    width: 180px;
-    height: 180px;
-  }
-
-  .card-main {
+  .card-body {
     --card-media-size: 180px;
   }
 }
@@ -2636,9 +2803,7 @@ html[data-theme="dark"] .home-report-d {
 
   .card.ai-working::before,
   .ai-writing-pulse,
-  .ai-spinner,
-  .section-text-wrap.is-ai-reveal .section-text,
-  .section-text-wrap.is-ai-reveal .crossref-text {
+  .ai-spinner {
     animation: none;
   }
 }

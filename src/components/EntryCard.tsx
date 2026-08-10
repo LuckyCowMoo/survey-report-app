@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -86,13 +87,33 @@ function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
   const [open, setOpen] = useState(false);
   const [frame, setFrame] = useState<ExpandFrame | null>(null);
   const [withTransition, setWithTransition] = useState(false);
+  /**
+   * True when the photo can grow taller than the square thumb without needing
+   * more than 20% horizontal crop (see highlight expand logic).
+   */
+  const [canGrowY, setCanGrowY] = useState(false);
   const naturalRef = useRef({ w: 1, h: 1 });
+
+  const syncGrowAxis = (el: HTMLImageElement) => {
+    const nw = el.naturalWidth;
+    const nh = el.naturalHeight;
+    if (!nw || !nh) return;
+    naturalRef.current = { w: nw, h: nh };
+    // Square thumb uses cover; growing taller adds horizontal crop once vertical
+    // crop is gone. Allow grow only while that stays within 20%.
+    setCanGrowY(nh / nw > 0.8);
+  };
 
   useEffect(() => {
     const u = imagePreviewUrl(bytes, name);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [bytes, name]);
+
+  useEffect(() => {
+    const el = imgRef.current;
+    if (el?.complete) syncGrowAxis(el);
+  }, [url]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -169,7 +190,7 @@ function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
     <>
       <button
         type="button"
-        className="thumb-btn"
+        className={`thumb-btn${canGrowY ? " can-grow-y" : ""}`}
         onClick={openLightbox}
         aria-label={`Enlarge ${name}`}
       >
@@ -179,6 +200,7 @@ function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
           src={url}
           alt={name}
           loading="lazy"
+          onLoad={(e) => syncGrowAxis(e.currentTarget)}
         />
       </button>
 
@@ -279,26 +301,319 @@ export default function EntryCard({
   onActivate
 }: Props) {
   const [showPicker, setShowPicker] = useState(false);
-  const [aiReveal, setAiReveal] = useState(false);
+  /** Progressive text shown while a large paste types in; null = show section.text. */
+  const [revealDisplay, setRevealDisplay] = useState<string | null>(null);
   const [noteExpanded, setNoteExpanded] = useState(false);
   const wasAiWorkingRef = useRef(false);
+  const textRevealTimerRef = useRef(0);
+  const cardMainRef = useRef<HTMLDivElement>(null);
+  const sectionTextRef = useRef<HTMLTextAreaElement>(null);
+  /** Compact-mode text height — highlighted area never shrinks below this. */
+  const minTextHeightRef = useRef(0);
+  /** Last applied text-box height; image is only re-evaluated when this changes. */
+  const lastTextBoxHeightRef = useRef(0);
+  const lastThumbHeightRef = useRef(0);
   const chip = statusChip(section);
   const boxTone = textBoxTone(section);
   const paragraph = section.libraryId ? libraryParagraph(section.libraryId) : undefined;
+  const bodyExpanded = focused || showPicker;
+
+  // Highlighted: auto-size text to content (down to compact minimum). Unhighlighted: scroll.
+  useLayoutEffect(() => {
+    // Keep the box locked while characters type in so only the text appears to move.
+    if (revealDisplay !== null) return;
+
+    const main = cardMainRef.current;
+    const text = sectionTextRef.current;
+    if (!main) return;
+
+    const mediaSize =
+      Number.parseFloat(
+        getComputedStyle(main).getPropertyValue("--card-media-size")
+      ) || 132;
+    const thumb = main.parentElement?.querySelector<HTMLElement>(
+      ".thumb-btn.can-grow-y"
+    );
+    let raf = 0;
+    let clearTimer = 0;
+
+    const setMainHeight = (px: number) => {
+      main.style.maxHeight = "none";
+      main.style.height = `${px}px`;
+    };
+
+    const setThumbHeight = (px: number | "") => {
+      if (!thumb) return;
+      thumb.style.height = px === "" ? "" : `${px}px`;
+    };
+
+    const thumbHeightFor = (mainH: number) => {
+      const img = thumb?.querySelector("img");
+      const nw = img?.naturalWidth ?? 0;
+      const nh = img?.naturalHeight ?? 0;
+      const maxByCrop =
+        nw > 0 && nh > 0 ? (mediaSize * nh) / (nw * 0.8) : mediaSize;
+      return Math.max(mediaSize, Math.min(mainH, maxByCrop));
+    };
+
+    if (!bodyExpanded) {
+      minTextHeightRef.current = 0;
+      lastTextBoxHeightRef.current = 0;
+      lastThumbHeightRef.current = 0;
+      const mainFrom = main.getBoundingClientRect().height;
+      const thumbFrom = thumb?.getBoundingClientRect().height ?? mediaSize;
+      if (text) {
+        text.style.height = `${text.getBoundingClientRect().height}px`;
+      }
+      setMainHeight(mainFrom);
+      setThumbHeight(thumbFrom);
+      void main.offsetHeight;
+      raf = requestAnimationFrame(() => {
+        setMainHeight(mediaSize);
+        setThumbHeight(mediaSize);
+        clearTimer = window.setTimeout(() => {
+          main.style.height = "";
+          main.style.maxHeight = "";
+          setThumbHeight("");
+          if (text) {
+            text.style.height = "";
+            text.style.minHeight = "";
+          }
+        }, 300);
+      });
+      return () => {
+        cancelAnimationFrame(raf);
+        window.clearTimeout(clearTimer);
+      };
+    }
+
+    // Lock the compact text height as the minimum the first time we expand.
+    if (minTextHeightRef.current <= 0 && text) {
+      minTextHeightRef.current = Math.max(
+        48,
+        text.getBoundingClientRect().height
+      );
+    }
+
+    const textFrom = text?.getBoundingClientRect().height ?? 0;
+    const mainFrom = main.getBoundingClientRect().height;
+    const thumbFrom =
+      lastThumbHeightRef.current ||
+      thumb?.getBoundingClientRect().height ||
+      mediaSize;
+    const alreadyExpanded = lastTextBoxHeightRef.current > 0;
+
+    // Measure content height reliably (0px then scrollHeight).
+    if (text) {
+      text.style.transition = "none";
+      text.style.minHeight = "0";
+      text.style.height = "0px";
+      void text.offsetHeight;
+    }
+    const textNeeded = text?.scrollHeight ?? 0;
+    const textTo = Math.max(minTextHeightRef.current, textNeeded);
+    const textBoxResized =
+      Math.abs(textTo - lastTextBoxHeightRef.current) > 0.5 || !alreadyExpanded;
+
+    if (text) {
+      text.style.height = `${textTo}px`;
+      text.style.minHeight = `${minTextHeightRef.current}px`;
+    }
+    main.style.transition = "none";
+    main.style.height = "auto";
+    main.style.maxHeight = "none";
+    if (thumb) {
+      thumb.style.transition = "none";
+      setThumbHeight(thumbFrom);
+    }
+    void main.offsetHeight;
+    const mainTo = Math.max(mediaSize, main.scrollHeight);
+    const thumbTo = thumbHeightFor(mainTo);
+
+    // Typing that doesn't change the text-box height: leave the image alone.
+    if (alreadyExpanded && !textBoxResized) {
+      if (text) {
+        text.style.height = `${lastTextBoxHeightRef.current}px`;
+        text.style.minHeight = `${minTextHeightRef.current}px`;
+        text.style.transition = "";
+      }
+      main.style.transition = "";
+      setMainHeight(mainFrom);
+      setThumbHeight(thumbFrom);
+      if (thumb) {
+        void thumb.offsetHeight;
+        thumb.style.transition = "";
+      }
+      return;
+    }
+
+    const applyTo = () => {
+      if (text) {
+        text.style.height = `${textTo}px`;
+        text.style.minHeight = `${minTextHeightRef.current}px`;
+      }
+      setMainHeight(mainTo);
+      setThumbHeight(thumbTo);
+      lastTextBoxHeightRef.current = textTo;
+      lastThumbHeightRef.current = thumbTo;
+    };
+
+    // Already open and the text box grew/shrank by a line: update, animate image only if needed.
+    if (alreadyExpanded) {
+      const thumbChanged = Math.abs(thumbTo - thumbFrom) > 0.5;
+      main.style.transition = "";
+      if (text) text.style.transition = "";
+      if (thumb) thumb.style.transition = thumbChanged ? "" : "none";
+      if (text) {
+        text.style.height = `${textTo}px`;
+        text.style.minHeight = `${minTextHeightRef.current}px`;
+      }
+      setMainHeight(mainTo);
+      if (thumbChanged) setThumbHeight(thumbTo);
+      else setThumbHeight(thumbFrom);
+      lastTextBoxHeightRef.current = textTo;
+      if (thumbChanged) lastThumbHeightRef.current = thumbTo;
+      if (thumb && !thumbChanged) {
+        void thumb.offsetHeight;
+        thumb.style.transition = "";
+      }
+      return;
+    }
+
+    // First highlight: animate from compact sizes up.
+    if (text) text.style.height = `${textFrom}px`;
+    setMainHeight(mainFrom);
+    setThumbHeight(thumbFrom);
+    void main.offsetHeight;
+
+    raf = requestAnimationFrame(() => {
+      main.style.transition = "";
+      if (text) text.style.transition = "";
+      if (thumb) thumb.style.transition = "";
+      applyTo();
+    });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(clearTimer);
+    };
+  }, [bodyExpanded, section.text, noteExpanded, section.entry.note, revealDisplay]);
 
   const otherSections = useMemo(
     () => sectionNumbers.filter((n) => n !== section.entry.number),
     [sectionNumbers, section.entry.number]
   );
 
+  const cancelTextReveal = () => {
+    window.clearInterval(textRevealTimerRef.current);
+    setRevealDisplay(null);
+  };
+
+  const lockRevealTextHeight = (texts: string[]) => {
+    const el = sectionTextRef.current;
+    if (!el) return;
+    const prevValue = el.value;
+    const prevHeight = el.style.height;
+    const prevMin = el.style.minHeight;
+    let finalH = minTextHeightRef.current || 48;
+    for (const sample of texts) {
+      el.value = sample;
+      el.style.height = "0px";
+      el.style.minHeight = "0";
+      finalH = Math.max(finalH, el.scrollHeight);
+    }
+    el.value = prevValue;
+    el.style.height = prevHeight;
+    el.style.minHeight = prevMin;
+    el.style.height = `${finalH}px`;
+    el.style.minHeight = `${finalH}px`;
+  };
+
+  /**
+   * Type new text in (1.5s ease-in-out). With `replace`, first erase the old
+   * text with the same motion in reverse at 4× speed, then type the new text.
+   */
+  const triggerTextReveal = (
+    prevText: string,
+    nextText: string,
+    opts?: { replace?: boolean }
+  ) => {
+    const prev = prevText;
+    const next = nextText;
+    const prevTrim = prev.trim();
+    const nextTrim = next.trim();
+    const replace = Boolean(opts?.replace);
+
+    if (replace) {
+      if (prevTrim === nextTrim) return;
+    } else {
+      // Same treatment as AI paste: only for a large block appearing at once.
+      const nowLarge = nextTrim.length >= 60;
+      const grewALot = nextTrim.length - prevTrim.length >= 40;
+      const wasShort = prevTrim.length < 50;
+      if (!nowLarge || (!grewALot && !wasShort)) return;
+    }
+
+    window.clearInterval(textRevealTimerRef.current);
+    lockRevealTextHeight(replace ? [prev, next] : [next]);
+
+    const typeMs = 1500;
+    const eraseMs = typeMs / 4;
+    const tickMs = 16;
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+
+    const startType = () => {
+      if (!next.length) {
+        setRevealDisplay(null);
+        return;
+      }
+      const startedAt = performance.now();
+      setRevealDisplay("");
+      textRevealTimerRef.current = window.setInterval(() => {
+        const t = Math.min(1, (performance.now() - startedAt) / typeMs);
+        const shown = Math.floor(easeInOut(t) * next.length);
+        if (t >= 1) {
+          window.clearInterval(textRevealTimerRef.current);
+          setRevealDisplay(null);
+          return;
+        }
+        setRevealDisplay(next.slice(0, shown));
+      }, tickMs);
+    };
+
+    const startErase = () => {
+      const startedAt = performance.now();
+      setRevealDisplay(prev);
+      textRevealTimerRef.current = window.setInterval(() => {
+        const t = Math.min(1, (performance.now() - startedAt) / eraseMs);
+        // Reverse of the type-in curve: characters disappear from the end.
+        const remaining = Math.ceil((1 - easeInOut(t)) * prev.length);
+        if (t >= 1) {
+          window.clearInterval(textRevealTimerRef.current);
+          startType();
+          return;
+        }
+        setRevealDisplay(prev.slice(0, remaining));
+      }, tickMs);
+    };
+
+    if (replace && prevTrim.length > 0) startErase();
+    else startType();
+  };
+
+  useEffect(() => {
+    return () => window.clearInterval(textRevealTimerRef.current);
+  }, []);
+
   useEffect(() => {
     if (wasAiWorkingRef.current && !aiWorking) {
-      setAiReveal(true);
-      const t = window.setTimeout(() => setAiReveal(false), 650);
+      triggerTextReveal("", section.text);
       wasAiWorkingRef.current = false;
-      return () => window.clearTimeout(t);
     }
     wasAiWorkingRef.current = aiWorking;
+    // Only react to AI finishing; text content is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiWorking]);
 
   const pickParagraph = (p: LibraryParagraph) => {
@@ -311,12 +626,14 @@ export default function EntryCard({
         section.placeholderValues[ph.key]?.trim() || fromNote[ph.key] || "";
     }
     const libraryId = resolveLibraryIdForValues(p.id, values);
+    const nextText = renderLibraryText(libraryId, values);
+    triggerTextReveal(section.text, nextText, { replace: true });
     onChange(index, {
       ...section,
       libraryId,
       placeholderValues: values,
       crossrefSection: null,
-      text: renderLibraryText(libraryId, values),
+      text: nextText,
       source: "library",
       needsAttention: hasMissingPlaceholders(libraryId, values),
       pendingReview: false
@@ -328,17 +645,27 @@ export default function EntryCard({
     if (!section.libraryId) return;
     const values = { ...section.placeholderValues, [key]: value };
     const libraryId = resolveLibraryIdForValues(section.libraryId, values);
+    const nextText = renderLibraryText(libraryId, values);
+    const wasMissing = hasMissingPlaceholders(
+      section.libraryId,
+      section.placeholderValues
+    );
+    const stillMissing = hasMissingPlaceholders(libraryId, values);
+    // Reveal when a large block appears, or when the last reading value completes the wording.
+    if (wasMissing && !stillMissing) triggerTextReveal("", nextText);
+    else triggerTextReveal(section.text, nextText);
     onChange(index, {
       ...section,
       libraryId,
       placeholderValues: values,
-      text: renderLibraryText(libraryId, values),
-      needsAttention: hasMissingPlaceholders(libraryId, values),
+      text: nextText,
+      needsAttention: stillMissing,
       pendingReview: false
     });
   };
 
   const editText = (text: string) => {
+    cancelTextReveal();
     onChange(index, {
       ...section,
       text,
@@ -428,13 +755,17 @@ export default function EntryCard({
             name={section.entry.imageNames[0]}
           />
         )}
-        <div className="card-main">
+        <div className="card-main" ref={cardMainRef}>
           {section.entry.note && (
             <button
               type="button"
               className={`note${noteExpanded ? " is-expanded" : ""}`}
-              aria-expanded={noteExpanded}
-              title={noteExpanded ? "Collapse field note" : "Expand field note"}
+              aria-expanded={noteExpanded || bodyExpanded}
+              title={
+                noteExpanded || bodyExpanded
+                  ? "Collapse field note"
+                  : "Expand field note"
+              }
               onClick={(e) => {
                 e.stopPropagation();
                 setNoteExpanded((open) => !open);
@@ -453,13 +784,14 @@ export default function EntryCard({
             onChange={(e) => onChange(index, { ...section, headingLine: e.target.value })}
           />
 
-          <div className={`section-text-wrap${aiReveal ? " is-ai-reveal" : ""}`}>
+          <div className="section-text-wrap">
             {section.source === "crossref" ? (
               <p className={`crossref-text${boxTone ? ` tone-${boxTone}` : ""}`}>
-                {section.text}
+                {revealDisplay ?? section.text}
               </p>
             ) : (
               <textarea
+                ref={sectionTextRef}
                 className={`section-text${boxTone ? ` tone-${boxTone}` : ""}`}
                 rows={3}
                 placeholder={
@@ -469,8 +801,8 @@ export default function EntryCard({
                     ? "Enter the reading(s) below - wording appears when complete"
                     : "Report text for this photo..."
                 }
-                value={section.text}
-                disabled={aiWorking}
+                value={revealDisplay ?? section.text}
+                disabled={aiWorking || revealDisplay !== null}
                 onChange={(e) => editText(e.target.value)}
               />
             )}
