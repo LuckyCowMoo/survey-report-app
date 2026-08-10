@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type TransitionEvent as ReactTransitionEvent
+} from "react";
+import { createPortal } from "react-dom";
 import LibraryPicker from "./LibraryPicker";
 import {
   extractValues,
@@ -22,15 +29,195 @@ interface Props {
   onAskAi: (index: number) => void;
 }
 
+type Rect = { top: number; left: number; width: number; height: number };
+type ImgBox = { top: number; left: number; width: number; height: number };
+type ExpandFrame = { clip: Rect; img: ImgBox; radius: number };
+
+function coverImg(clip: Rect, nw: number, nh: number): ImgBox {
+  const scale = Math.max(clip.width / nw, clip.height / nh) || 1;
+  const width = nw * scale;
+  const height = nh * scale;
+  return {
+    width,
+    height,
+    left: (clip.width - width) / 2,
+    top: (clip.height - height) / 2
+  };
+}
+
+function expandedFrame(nw: number, nh: number, pad = 12): ExpandFrame {
+  const maxW = window.innerWidth - pad * 2;
+  const maxH = window.innerHeight - pad * 2;
+  const scale = Math.min(maxW / nw, maxH / nh) || 1;
+  const width = nw * scale;
+  const height = nh * scale;
+  const clip: Rect = {
+    left: (window.innerWidth - width) / 2,
+    top: (window.innerHeight - height) / 2,
+    width,
+    height
+  };
+  return {
+    clip,
+    img: { left: 0, top: 0, width, height },
+    radius: 4
+  };
+}
+
+function collapsedFrame(thumb: Rect, nw: number, nh: number): ExpandFrame {
+  return {
+    clip: thumb,
+    img: coverImg(thumb, nw, nh),
+    radius: 8
+  };
+}
+
 function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
+  const imgRef = useRef<HTMLImageElement>(null);
   const [url, setUrl] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [frame, setFrame] = useState<ExpandFrame | null>(null);
+  const [withTransition, setWithTransition] = useState(false);
+  const naturalRef = useRef({ w: 1, h: 1 });
+
   useEffect(() => {
     const u = imagePreviewUrl(bytes, name);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [bytes, name]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded, open, animating, frame]);
+
+  const measureThumb = (): Rect | null => {
+    const el = imgRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { top: r.top, left: r.left, width: r.width, height: r.height };
+  };
+
+  const openLightbox = () => {
+    const el = imgRef.current;
+    const thumb = measureThumb();
+    if (!el || !url || !thumb || expanded || animating) return;
+    const nw = el.naturalWidth || thumb.width;
+    const nh = el.naturalHeight || thumb.height;
+    naturalRef.current = { w: nw, h: nh };
+
+    const start = collapsedFrame(thumb, nw, nh);
+    const end = expandedFrame(nw, nh);
+    setFrame(start);
+    setWithTransition(false);
+    setExpanded(true);
+    setOpen(false);
+    setAnimating(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setWithTransition(true);
+        setFrame(end);
+        setOpen(true);
+      });
+    });
+  };
+
+  const close = () => {
+    if (!expanded || !frame || (animating && !open)) return;
+    const thumb = measureThumb();
+    if (!thumb) {
+      setExpanded(false);
+      setFrame(null);
+      return;
+    }
+    const { w: nw, h: nh } = naturalRef.current;
+    setAnimating(true);
+    setOpen(false);
+    setWithTransition(true);
+    setFrame(collapsedFrame(thumb, nw, nh));
+  };
+
+  const onFrameTransitionEnd = (e: ReactTransitionEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.propertyName !== "width" && e.propertyName !== "transform") return;
+    if (open) {
+      setAnimating(false);
+      return;
+    }
+    setExpanded(false);
+    setAnimating(false);
+    setWithTransition(false);
+    setFrame(null);
+  };
+
   if (!url) return <div className="thumb placeholder" />;
-  return <img className="thumb" src={url} alt={name} loading="lazy" />;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="thumb-btn"
+        onClick={openLightbox}
+        aria-label={`Enlarge ${name}`}
+      >
+        <img
+          ref={imgRef}
+          className={`thumb${expanded ? " is-expanded-source" : ""}`}
+          src={url}
+          alt={name}
+          loading="lazy"
+        />
+      </button>
+
+      {expanded &&
+        frame &&
+        createPortal(
+          <div
+            className={`thumb-lightbox${open ? " is-open" : ""}`}
+            onClick={close}
+            role="dialog"
+            aria-modal="true"
+            aria-label={name}
+          >
+            <div
+              className={`thumb-lightbox-clip${withTransition ? " is-animated" : ""}`}
+              style={{
+                top: frame.clip.top,
+                left: frame.clip.left,
+                width: frame.clip.width,
+                height: frame.clip.height,
+                borderRadius: frame.radius
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                close();
+              }}
+              onTransitionEnd={onFrameTransitionEnd}
+            >
+              <img
+                className={`thumb-lightbox-img${withTransition ? " is-animated" : ""}`}
+                src={url}
+                alt={name}
+                draggable={false}
+                style={{
+                  width: frame.img.width,
+                  height: frame.img.height,
+                  transform: `translate(${frame.img.left}px, ${frame.img.top}px)`
+                }}
+              />
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  );
 }
 
 function statusChip(s: SectionState): { label: string; cls: string } {

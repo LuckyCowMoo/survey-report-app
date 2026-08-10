@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { library } from "../lib/matcher";
 import type { LibraryParagraph } from "../types";
 
@@ -28,7 +29,7 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
     return [...byGroup.entries()];
   }, [query]);
 
-  return (
+  return createPortal(
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet tall" onClick={(e) => e.stopPropagation()}>
         <h2>Standard wording</h2>
@@ -59,6 +60,7 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
