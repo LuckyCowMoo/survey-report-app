@@ -38,12 +38,18 @@ import {
 import {
   findLatestLibraryMatchBySource,
   loadLibraryProject,
+  saveProjectDraftToLibrary,
   type LibraryReportMeta
 } from "./lib/reportLibrary";
 import {
+  buildReportProject,
+  encodeReportProject,
   fingerprintSourceEntries,
+  fingerprintSourceSections,
   type ReportProject
 } from "./lib/reportProject";
+import { reportFileName } from "./lib/docxGenerator";
+import { coverThumbnailBlob, houseNameFromAddress } from "./lib/reportCover";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
 type Step = AppStep;
@@ -151,6 +157,7 @@ export default function App() {
   } | null>(null);
   const detailsSuggestRanRef = useRef(false);
   const detailsSuggestAbortRef = useRef<AbortController | null>(null);
+  const [saveAndLeaveBusy, setSaveAndLeaveBusy] = useState(false);
 
   const flaggedCount = useMemo(
     () => sections.filter((s) => s.needsAttention).length,
@@ -225,7 +232,8 @@ export default function App() {
   const goForward = useCallback(() => {
     if (showSettings || showGuide || currentAppHist().overlay) return false;
 
-    const nav = window.navigation as { canGoForward?: boolean } | undefined;
+    const nav = (window as unknown as { navigation?: { canGoForward?: boolean } })
+      .navigation;
     if (nav?.canGoForward) {
       history.forward();
       return true;
@@ -296,7 +304,8 @@ export default function App() {
     const onMouseUp = (e: MouseEvent) => {
       if (e.button !== 4) return;
       if (stepRef.current === "home") {
-        const nav = window.navigation as { canGoForward?: boolean } | undefined;
+        const nav = (window as unknown as { navigation?: { canGoForward?: boolean } })
+      .navigation;
         if (!nav?.canGoForward) {
           continueForward();
           return;
@@ -653,9 +662,56 @@ export default function App() {
     detailsSuggestRanRef.current = false;
     setDetailsSuggestBusy(null);
     setDetailsSuggestError(null);
+    setSaveAndLeaveBusy(false);
     setStep("home");
     replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
+
+  const saveAndLeave = useCallback(async () => {
+    if (sections.length === 0 || saveAndLeaveBusy) return;
+    const designStep = step === "review" ? "review" : "details";
+    setSaveAndLeaveBusy(true);
+    setError(null);
+    try {
+      const fileName = reportFileName(metadata);
+      const coverThumb = await coverThumbnailBlob(sections);
+      const sourceFingerprint = await fingerprintSourceSections(sections);
+      const projectBlob = encodeReportProject(
+        buildReportProject({
+          sections,
+          metadata,
+          extras,
+          warnings,
+          fileName,
+          step: designStep,
+          sourceFingerprint
+        })
+      );
+      await saveProjectDraftToLibrary({
+        projectBlob,
+        fileName,
+        propertyAddress: metadata.propertyAddress,
+        houseName: houseNameFromAddress(metadata.propertyAddress),
+        clientName: metadata.clientName,
+        surveyDate: metadata.surveyDate,
+        coverThumb,
+        sourceFingerprint,
+        step: designStep
+      });
+      reset();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setSaveAndLeaveBusy(false);
+    }
+  }, [
+    sections,
+    saveAndLeaveBusy,
+    step,
+    metadata,
+    extras,
+    warnings,
+    reset
+  ]);
 
   return (
     <div
@@ -742,6 +798,8 @@ export default function App() {
             aiErrors={aiErrors}
             onDismissAiError={dismissAiError}
             onContinue={() => navigateTo("details")}
+            onSaveAndLeave={() => void saveAndLeave()}
+            saveAndLeaveBusy={saveAndLeaveBusy}
             onFocusSection={focusSection}
             focusedSectionIndex={focusedSectionIndex}
             dwellSectionIndex={reviewDwellIndex}
@@ -754,6 +812,8 @@ export default function App() {
             onMetadata={setMetadata}
             onExtras={setExtras}
             onContinue={() => navigateTo("generate")}
+            onSaveAndLeave={() => void saveAndLeave()}
+            saveAndLeaveBusy={saveAndLeaveBusy}
             aiConfigured={activeDetailsSuggestAi(settings).apiKey.length > 0}
             suggestBusy={detailsSuggestBusy}
             suggestError={detailsSuggestError}

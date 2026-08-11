@@ -608,7 +608,13 @@ export default function StudioAside({
       slideTimerRef.current = 0;
     }
 
-    if (canSlide) {
+    if (
+      canSlide &&
+      current &&
+      next &&
+      prevFocus != null &&
+      nextFocus != null
+    ) {
       const dir: SlideDir = nextFocus > prevFocus ? "up" : "down";
       const span = Math.abs(nextFocus - prevFocus);
 

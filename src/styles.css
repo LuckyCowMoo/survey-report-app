@@ -196,7 +196,7 @@ body {
 /* ---------- layout ---------- */
 .content {
   flex: 1;
-  padding: 16px 14px calc(env(safe-area-inset-bottom, 0px) + 90px);
+  padding: 16px 14px calc(env(safe-area-inset-bottom, 0px) + 150px);
 }
 
 .panel {
@@ -1632,6 +1632,9 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
   right: 0;
   bottom: 0;
   z-index: 15;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 12px 14px calc(env(safe-area-inset-bottom, 0px) + 12px);
   width: auto;
   max-width: none;
@@ -1643,8 +1646,16 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
   pointer-events: none;
 }
 
-.bottom-bar .btn {
+.bottom-bar .btn,
+.bottom-bar .details-continue-hint {
   pointer-events: auto;
+}
+
+.bottom-bar .details-continue-hint {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--card, #fff) 92%, transparent);
 }
 
 /* Wide desktop: content column + studio aside, shared 10px gutters */
@@ -1656,7 +1667,7 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
     --page-gutter: 14px;
     /* Shared vertical band for left content scrollport and right studio */
     --studio-top: calc(12px + 58px + 16px);
-    --studio-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    --studio-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
     width: auto;
     max-width: none;
     height: 100dvh;
@@ -1721,7 +1732,7 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
   position: fixed;
   top: calc(64px + env(safe-area-inset-top, 0px));
   right: max(6px, env(safe-area-inset-right, 0px));
-  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(148px + env(safe-area-inset-bottom, 0px));
   z-index: 6;
   width: 14px;
   padding: 0;
@@ -2577,7 +2588,7 @@ html:not([data-theme="original"]) .app.app-home .content {
   html:not([data-theme="original"]) .app.app-aside {
     --page-gutter: 14px;
     --studio-top: calc(12px + 58px + 18px);
-    --studio-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    --studio-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
     width: auto;
     max-width: none;
     margin-left: max(var(--page-gutter), env(safe-area-inset-left, 0px));
@@ -2657,7 +2668,7 @@ html:not([data-theme="original"]) .topbar-spacer {
 }
 
 html:not([data-theme="original"]) .content {
-  padding: 30px 28px calc(env(safe-area-inset-bottom, 0px) + 100px);
+  padding: 30px 28px calc(env(safe-area-inset-bottom, 0px) + 160px);
 }
 
 html:not([data-theme="original"]) .panel,
@@ -3336,7 +3347,7 @@ html[data-theme="dark"] .home-report-d {
   }
 
   html:not([data-theme="original"]) .content {
-    padding: 20px 13px calc(env(safe-area-inset-bottom, 0px) + 90px);
+    padding: 20px 13px calc(env(safe-area-inset-bottom, 0px) + 150px);
   }
 
   html:not([data-theme="original"]) .home {

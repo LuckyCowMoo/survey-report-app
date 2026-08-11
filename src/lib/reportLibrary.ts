@@ -51,6 +51,20 @@ export interface SaveReportInput {
   sourceFingerprint?: string;
 }
 
+export interface SaveProjectDraftInput {
+  /** Proprietary project snapshot for reopening design state. */
+  projectBlob: Blob;
+  fileName: string;
+  propertyAddress?: string;
+  houseName?: string;
+  clientName?: string;
+  surveyDate?: string;
+  coverThumb?: Blob | null;
+  sourceFingerprint?: string;
+  /** Design step to reopen at (review or details). */
+  step?: "review" | "details";
+}
+
 export interface SaveReportResult {
   id: string;
   backend: LibraryBackend;
@@ -413,6 +427,107 @@ export async function saveReportToLibrary(
   await idbPutReport({
     ...baseMeta,
     blob: input.blob,
+    projectBlob
+  });
+  return { id, backend: "app", fileName };
+}
+
+/**
+ * Save design state mid-flow (no Word generate) so Past reports can reopen it.
+ * Reuses an existing library entry when the same source fingerprint is already saved.
+ */
+export async function saveProjectDraftToLibrary(
+  input: SaveProjectDraftInput
+): Promise<SaveReportResult> {
+  const existing = await listLibraryReports();
+  const propertyAddress = input.propertyAddress?.trim() || "";
+  const houseName = input.houseName?.trim() || "";
+  const clientName = input.clientName?.trim() || "";
+  const surveyDate = input.surveyDate?.trim() || "";
+
+  let id = newReportId();
+  let fileName = uniqueReportFileName(input.fileName, existing, {
+    propertyAddress,
+    houseName,
+    clientName,
+    surveyDate
+  });
+  let prev: LibraryRecord | undefined;
+
+  if (input.sourceFingerprint) {
+    const match = existing.find(
+      (r) => r.hasProject && r.sourceFingerprint === input.sourceFingerprint
+    );
+    if (match) {
+      id = match.id;
+      fileName = match.fileName;
+      prev = await idbGetReport(match.id);
+    }
+  }
+
+  let projectBlob = input.projectBlob;
+  try {
+    const project = await decodeReportProject(input.projectBlob);
+    projectBlob = encodeReportProject({
+      ...project,
+      fileName,
+      step: input.step ?? project.step
+    });
+  } catch {
+    // Keep the original project blob if it cannot be rewritten.
+  }
+
+  const baseMeta: LibraryReportMeta = {
+    id,
+    fileName,
+    savedAt: Date.now(),
+    propertyAddress,
+    houseName,
+    clientName,
+    surveyDate,
+    size: prev?.blob?.size ?? projectBlob.size,
+    backend: prev?.backend ?? "app",
+    hasProject: true,
+    ...(input.sourceFingerprint
+      ? { sourceFingerprint: input.sourceFingerprint }
+      : prev?.sourceFingerprint
+        ? { sourceFingerprint: prev.sourceFingerprint }
+        : {}),
+    ...(input.coverThumb
+      ? { coverThumb: input.coverThumb }
+      : prev?.coverThumb
+        ? { coverThumb: prev.coverThumb }
+        : {})
+  };
+
+  if (canLinkReportFolder()) {
+    const dir = await getStoredDirectoryHandle();
+    if (dir && (await ensureDirectoryPermission(dir))) {
+      try {
+        // Drafts store the reopenable project beside any existing Word copy.
+        await writeBlobToDirectory(
+          dir,
+          projectFileNameFromDocx(fileName),
+          projectBlob
+        );
+        const meta: LibraryRecord = {
+          ...baseMeta,
+          backend: "folder",
+          ...(prev?.blob ? { blob: prev.blob } : {}),
+          projectBlob
+        };
+        await idbPutReport(meta);
+        return { id, backend: "folder", fileName, folderName: dir.name };
+      } catch {
+        // Permission lost or write failed — fall through to app storage.
+      }
+    }
+  }
+
+  await idbPutReport({
+    ...baseMeta,
+    backend: "app",
+    ...(prev?.blob ? { blob: prev.blob } : {}),
     projectBlob
   });
   return { id, backend: "app", fileName };

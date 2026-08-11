@@ -17,6 +17,8 @@ interface Props {
   aiBatchRunning: boolean;
   onDismissAiError: (index: number) => void;
   onContinue: () => void;
+  onSaveAndLeave: () => void;
+  saveAndLeaveBusy?: boolean;
   onFocusSection: (index: number) => void;
   focusedSectionIndex: number | null;
   /** Section index currently running the review dwell fill, if any. */
@@ -38,6 +40,8 @@ export default function ReviewScreen({
   aiBatchRunning,
   onDismissAiError,
   onContinue,
+  onSaveAndLeave,
+  saveAndLeaveBusy = false,
   onFocusSection,
   focusedSectionIndex,
   dwellSectionIndex
@@ -112,7 +116,20 @@ export default function ReviewScreen({
       ))}
 
       <div className="bottom-bar">
-        <button className="btn primary big" onClick={onContinue}>
+        <button
+          type="button"
+          className="btn big"
+          disabled={busy || saveAndLeaveBusy || aiBatchRunning}
+          onClick={onSaveAndLeave}
+        >
+          {saveAndLeaveBusy ? "Saving…" : "Save & leave"}
+        </button>
+        <button
+          type="button"
+          className="btn primary big"
+          disabled={busy || saveAndLeaveBusy}
+          onClick={onContinue}
+        >
           Continue to report details
         </button>
       </div>
