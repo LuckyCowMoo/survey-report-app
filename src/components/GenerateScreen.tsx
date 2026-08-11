@@ -41,15 +41,6 @@ function yieldToUi(): Promise<void> {
   });
 }
 
-function canShareFiles(): boolean {
-  try {
-    const probe = new File([new Blob()], "probe.docx", { type: DOCX_MIME });
-    return !!navigator.canShare?.({ files: [probe] });
-  } catch {
-    return false;
-  }
-}
-
 export default function GenerateScreen({
   sections,
   metadata,
@@ -64,7 +55,6 @@ export default function GenerateScreen({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ blob: Blob; name: string } | null>(null);
   const folderCapable = canLinkReportFolder();
-  const shareCapable = canShareFiles();
   const [folderName, setFolderName] = useState<string | null>(null);
   const [librarySave, setLibrarySave] = useState<SaveReportResult | null>(null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
@@ -251,7 +241,7 @@ export default function GenerateScreen({
     if (!result) return;
     const name = resolveFileName(fileName, recommendedName);
     const file = new File([result.blob], name, { type: DOCX_MIME });
-    if (navigator.canShare?.({ files: [file] })) {
+    if (navigator.canShare?.({ files: [file] }) && navigator.share) {
       try {
         await navigator.share({ files: [file], title: name });
         return;
@@ -259,6 +249,8 @@ export default function GenerateScreen({
         if (err instanceof DOMException && err.name === "AbortError") return;
       }
     }
+    // Desktop / unsupported Web Share: still offer an export path.
+    downloadCopy();
   };
 
   const downloadCopy = () => {
@@ -359,7 +351,7 @@ export default function GenerateScreen({
             {folderCapable && !folderName && (
               <button
                 type="button"
-                className="btn primary big"
+                className="btn big"
                 disabled={libraryBusy}
                 onClick={() => void onLinkFolder()}
               >
@@ -375,15 +367,13 @@ export default function GenerateScreen({
               </p>
             )}
 
-            {shareCapable && (
-              <button
-                type="button"
-                className={`btn big${folderCapable && !folderName ? "" : " primary"}`}
-                onClick={() => void share()}
-              >
-                Share
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn primary big"
+              onClick={() => void share()}
+            >
+              Share
+            </button>
 
             <button
               type="button"
