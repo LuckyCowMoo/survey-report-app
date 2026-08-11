@@ -17,7 +17,18 @@ import {
   resolveLibraryIdForValues
 } from "../lib/matcher";
 import { imagePreviewUrl } from "../lib/imageUtils";
+import { PIP_DWELL_MS, PIP_FLASH_MS, PIP_REVERSE_MS } from "../lib/pipTiming";
+import { scrolledRecently } from "../lib/recentScroll";
+import {
+  getScrollRoot,
+  isProgrammaticScroll,
+  readScrollTop,
+  writeScrollTop
+} from "../lib/scrollRoot";
 import type { LibraryParagraph, SectionState } from "../types";
+
+/** Hover must dwell this long before mouse highlights a section. */
+const HOVER_ACTIVATE_MS = 500;
 
 interface Props {
   section: SectionState;
@@ -30,6 +41,8 @@ interface Props {
   aiError?: string | null;
   /** True when this card is the focused / highlighted section. */
   focused?: boolean;
+  /** True while the review dwell timer is running on this section (pip + chip fill). */
+  dwelling?: boolean;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
   onDismissAiError?: (index: number) => void;
@@ -118,10 +131,13 @@ function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
   useEffect(() => {
     if (!expanded) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      close();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded, open, animating, frame]);
 
@@ -249,7 +265,10 @@ function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
 }
 
 function statusChip(s: SectionState): { label: string; cls: string } {
-  if (s.needsAttention) return { label: "Needs attention", cls: "chip warn" };
+  // Classes mirror studio pip tones (see .studio-pip.tone-*).
+  if (s.pendingNoteConfirm)
+    return { label: "Confirm note", cls: "chip note-confirm" };
+  if (s.needsAttention) return { label: "Needs attention", cls: "chip attention" };
   if (s.pendingReview) return { label: "Review wording", cls: "chip review" };
   switch (s.source) {
     case "library":
@@ -264,7 +283,7 @@ function statusChip(s: SectionState): { label: string; cls: string } {
     case "manual":
       return { label: "Your wording", cls: "chip manual" };
     default:
-      return { label: "Empty", cls: "chip warn" };
+      return { label: "Empty", cls: "chip empty" };
   }
 }
 
@@ -272,7 +291,7 @@ function statusChip(s: SectionState): { label: string; cls: string } {
 function textBoxTone(
   s: SectionState
 ): "library" | "ai" | "manual" | null {
-  if (s.needsAttention || s.pendingReview) return null;
+  if (s.needsAttention || s.pendingReview || s.pendingNoteConfirm) return null;
   switch (s.source) {
     case "library":
       return "library";
@@ -295,6 +314,7 @@ export default function EntryCard({
   aiWorking,
   aiError = null,
   focused = false,
+  dwelling = false,
   onChange,
   onAskAi,
   onDismissAiError,
@@ -306,26 +326,141 @@ export default function EntryCard({
   const [noteExpanded, setNoteExpanded] = useState(false);
   const wasAiWorkingRef = useRef(false);
   const textRevealTimerRef = useRef(0);
+  const cardRef = useRef<HTMLDivElement>(null);
   const cardMainRef = useRef<HTMLDivElement>(null);
   const sectionTextRef = useRef<HTMLTextAreaElement>(null);
+  const statusChipRef = useRef<HTMLSpanElement>(null);
+  const chipDwellFillRef = useRef(0);
+  const chipDwellActiveRef = useRef(dwelling);
+  const chipFlashTimerRef = useRef(0);
+  const [chipFlash, setChipFlash] = useState(false);
   /** Compact-mode text height — highlighted area never shrinks below this. */
   const minTextHeightRef = useRef(0);
   /** Last applied text-box height; image is only re-evaluated when this changes. */
   const lastTextBoxHeightRef = useRef(0);
   const lastThumbHeightRef = useRef(0);
+  const focusChaseRafRef = useRef(0);
+  const focusChaseRef = useRef<{ lastTop: number; lastScroll: number } | null>(
+    null
+  );
+  const hoverActivateTimerRef = useRef(0);
+  const clearHoverActivate = () => {
+    if (hoverActivateTimerRef.current) {
+      window.clearTimeout(hoverActivateTimerRef.current);
+      hoverActivateTimerRef.current = 0;
+    }
+  };
+  const flashStatusChip = () => {
+    if (chipFlashTimerRef.current) {
+      window.clearTimeout(chipFlashTimerRef.current);
+    }
+    setChipFlash(true);
+    chipFlashTimerRef.current = window.setTimeout(() => {
+      chipFlashTimerRef.current = 0;
+      setChipFlash(false);
+    }, PIP_FLASH_MS);
+  };
+
+  useEffect(
+    () => () => {
+      clearHoverActivate();
+      if (chipFlashTimerRef.current) {
+        window.clearTimeout(chipFlashTimerRef.current);
+      }
+    },
+    []
+  );
+
+  const chipPending =
+    section.pendingNoteConfirm || section.pendingReview;
+  const chipDwelling = dwelling && chipPending;
+  chipDwellActiveRef.current = chipDwelling;
+
+  // Striped status chip: left→right solid fill at the same pace as the pip dwell.
+  useEffect(() => {
+    const el = statusChipRef.current;
+    if (!chipPending) {
+      chipDwellFillRef.current = 0;
+      el?.style.setProperty("--dwell-fill", "0");
+      return;
+    }
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced && chipDwelling) {
+      chipDwellFillRef.current = 1;
+      el?.style.setProperty("--dwell-fill", "1");
+      flashStatusChip();
+      return;
+    }
+    if (!chipDwelling && chipDwellFillRef.current <= 0) {
+      el?.style.setProperty("--dwell-fill", "0");
+      return;
+    }
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(48, now - last);
+      last = now;
+      const prev = chipDwellFillRef.current;
+      let next = prev;
+      if (chipDwellActiveRef.current) {
+        next = Math.min(1, next + dt / PIP_DWELL_MS);
+      } else {
+        next = Math.max(0, next - dt / PIP_REVERSE_MS);
+      }
+      if (next !== prev) {
+        chipDwellFillRef.current = next;
+        statusChipRef.current?.style.setProperty(
+          "--dwell-fill",
+          next.toFixed(4)
+        );
+        if (prev < 1 && next >= 1) flashStatusChip();
+      }
+      if (next > 0 || chipDwellActiveRef.current) {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    el?.style.setProperty("--dwell-fill", chipDwellFillRef.current.toFixed(4));
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [chipPending, chipDwelling, section.entry.number]);
+
   const chip = statusChip(section);
   const boxTone = textBoxTone(section);
   const paragraph = section.libraryId ? libraryParagraph(section.libraryId) : undefined;
   const bodyExpanded = focused || showPicker;
 
+  const chaseFocusedCard = () => {
+    const card = cardRef.current;
+    const chase = focusChaseRef.current;
+    if (!card || !chase) return;
+    // Don't fight pip-driven scroll-to-section animations.
+    if (isProgrammaticScroll()) {
+      chase.lastTop = card.getBoundingClientRect().top;
+      chase.lastScroll = readScrollTop(getScrollRoot());
+      return;
+    }
+    const scrollRoot = getScrollRoot();
+    const scrollTop = readScrollTop(scrollRoot);
+    const scrollDelta = scrollTop - chase.lastScroll;
+    const top = card.getBoundingClientRect().top;
+    const expectedTop = chase.lastTop - scrollDelta;
+    const layoutDelta = top - expectedTop;
+    if (Math.abs(layoutDelta) > 0.5) {
+      writeScrollTop(scrollRoot, scrollTop + layoutDelta);
+      chase.lastScroll = scrollTop + layoutDelta;
+      chase.lastTop = top - layoutDelta;
+    } else {
+      chase.lastScroll = scrollTop;
+      chase.lastTop = top;
+    }
+  };
+
   // Highlighted: auto-size text to content (down to compact minimum). Unhighlighted: scroll.
   useLayoutEffect(() => {
-    // Keep the box locked while characters type in so only the text appears to move.
-    if (revealDisplay !== null) return;
-
     const main = cardMainRef.current;
     const text = sectionTextRef.current;
     if (!main) return;
+    const revealing = revealDisplay !== null;
 
     const mediaSize =
       Number.parseFloat(
@@ -459,11 +594,14 @@ export default function EntryCard({
     };
 
     // Already open and the text box grew/shrank by a line: update, animate image only if needed.
+    // During type-in/erase reveal, skip CSS height easing so the box tracks the visible text.
     if (alreadyExpanded) {
       const thumbChanged = Math.abs(thumbTo - thumbFrom) > 0.5;
-      main.style.transition = "";
-      if (text) text.style.transition = "";
-      if (thumb) thumb.style.transition = thumbChanged ? "" : "none";
+      main.style.transition = revealing ? "none" : "";
+      if (text) text.style.transition = revealing ? "none" : "";
+      if (thumb) {
+        thumb.style.transition = revealing || !thumbChanged ? "none" : "";
+      }
       if (text) {
         text.style.height = `${textTo}px`;
         text.style.minHeight = `${minTextHeightRef.current}px`;
@@ -473,9 +611,9 @@ export default function EntryCard({
       else setThumbHeight(thumbFrom);
       lastTextBoxHeightRef.current = textTo;
       if (thumbChanged) lastThumbHeightRef.current = thumbTo;
-      if (thumb && !thumbChanged) {
+      if (thumb && (revealing || !thumbChanged)) {
         void thumb.offsetHeight;
-        thumb.style.transition = "";
+        if (!revealing) thumb.style.transition = "";
       }
       return;
     }
@@ -499,6 +637,46 @@ export default function EntryCard({
     };
   }, [bodyExpanded, section.text, noteExpanded, section.entry.note, revealDisplay]);
 
+  // After height layout: pin this card in the viewport while neighbours collapse.
+  useLayoutEffect(() => {
+    if (!focused) {
+      focusChaseRef.current = null;
+      return;
+    }
+    const card = cardRef.current;
+    if (!card) return;
+    if (!focusChaseRef.current) {
+      focusChaseRef.current = {
+        lastTop: card.getBoundingClientRect().top,
+        lastScroll: readScrollTop(getScrollRoot())
+      };
+      return;
+    }
+    chaseFocusedCard();
+  }, [focused, bodyExpanded, section.text, noteExpanded, revealDisplay]);
+
+  useEffect(() => {
+    if (!focused) return;
+    const card = cardRef.current;
+    if (!card) return;
+    if (!focusChaseRef.current) {
+      focusChaseRef.current = {
+        lastTop: card.getBoundingClientRect().top,
+        lastScroll: readScrollTop(getScrollRoot())
+      };
+    }
+    const startedAt = performance.now();
+    const tick = () => {
+      chaseFocusedCard();
+      // Cover collapse/expand height (280ms) + highlight scale (180ms).
+      if (performance.now() - startedAt < 360) {
+        focusChaseRafRef.current = window.requestAnimationFrame(tick);
+      }
+    };
+    focusChaseRafRef.current = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(focusChaseRafRef.current);
+  }, [focused]);
+
   const otherSections = useMemo(
     () => sectionNumbers.filter((n) => n !== section.entry.number),
     [sectionNumbers, section.entry.number]
@@ -509,29 +687,10 @@ export default function EntryCard({
     setRevealDisplay(null);
   };
 
-  const lockRevealTextHeight = (texts: string[]) => {
-    const el = sectionTextRef.current;
-    if (!el) return;
-    const prevValue = el.value;
-    const prevHeight = el.style.height;
-    const prevMin = el.style.minHeight;
-    let finalH = minTextHeightRef.current || 48;
-    for (const sample of texts) {
-      el.value = sample;
-      el.style.height = "0px";
-      el.style.minHeight = "0";
-      finalH = Math.max(finalH, el.scrollHeight);
-    }
-    el.value = prevValue;
-    el.style.height = prevHeight;
-    el.style.minHeight = prevMin;
-    el.style.height = `${finalH}px`;
-    el.style.minHeight = `${finalH}px`;
-  };
-
   /**
    * Type new text in (1.5s ease-in-out). With `replace`, first erase the old
    * text with the same motion in reverse at 4× speed, then type the new text.
+   * Box height tracks the visible text via the layout effect on `revealDisplay`.
    */
   const triggerTextReveal = (
     prevText: string,
@@ -555,7 +714,6 @@ export default function EntryCard({
     }
 
     window.clearInterval(textRevealTimerRef.current);
-    lockRevealTextHeight(replace ? [prev, next] : [next]);
 
     const typeMs = 1500;
     const eraseMs = typeMs / 4;
@@ -636,7 +794,8 @@ export default function EntryCard({
       text: nextText,
       source: "library",
       needsAttention: hasMissingPlaceholders(libraryId, values),
-      pendingReview: false
+      pendingReview: false,
+      pendingNoteConfirm: false
     });
     setShowPicker(false);
   };
@@ -660,7 +819,8 @@ export default function EntryCard({
       placeholderValues: values,
       text: nextText,
       needsAttention: stillMissing,
-      pendingReview: false
+      pendingReview: false,
+      pendingNoteConfirm: false
     });
   };
 
@@ -673,7 +833,8 @@ export default function EntryCard({
       crossrefSection: null,
       source: "manual",
       needsAttention: text.trim().length === 0,
-      pendingReview: false
+      pendingReview: false,
+      pendingNoteConfirm: false
     });
   };
 
@@ -685,7 +846,8 @@ export default function EntryCard({
         text: "",
         source: "empty",
         needsAttention: true,
-        pendingReview: false
+        pendingReview: false,
+        pendingNoteConfirm: false
       });
       return;
     }
@@ -697,18 +859,44 @@ export default function EntryCard({
       text: `As illustrated in section ${n}`,
       source: "crossref",
       needsAttention: false,
-      pendingReview: false
+      pendingReview: false,
+      pendingNoteConfirm: false
     });
   };
 
   return (
     <div
+      ref={cardRef}
       id={`section-card-${section.entry.number}`}
       className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${aiError ? " ai-error" : ""}${focused || showPicker ? " is-active" : ""}`}
       aria-busy={aiWorking}
-      onFocusCapture={() => onActivate?.(index)}
-      onPointerDownCapture={() => onActivate?.(index)}
-      onMouseEnter={() => onActivate?.(index)}
+      onFocusCapture={() => {
+        clearHoverActivate();
+        onActivate?.(index);
+      }}
+      onPointerDownCapture={(e) => {
+        // Touch: wait for tap (click). Pointer-down would highlight mid-scroll.
+        if (e.pointerType === "touch") return;
+        clearHoverActivate();
+        onActivate?.(index);
+      }}
+      onClick={() => {
+        clearHoverActivate();
+        onActivate?.(index);
+      }}
+      onMouseEnter={() => {
+        if (document.documentElement.dataset.pointerInput === "coarse") return;
+        // After recent scrolling, require a click — hover would catch cards sliding under the cursor.
+        if (scrolledRecently(HOVER_ACTIVATE_MS)) return;
+        if (focused) return;
+        clearHoverActivate();
+        hoverActivateTimerRef.current = window.setTimeout(() => {
+          hoverActivateTimerRef.current = 0;
+          if (scrolledRecently(HOVER_ACTIVATE_MS)) return;
+          onActivate?.(index);
+        }, HOVER_ACTIVATE_MS);
+      }}
+      onMouseLeave={clearHoverActivate}
     >
       {aiError && (
         <div className="ai-error-overlay" role="alert">
@@ -741,7 +929,12 @@ export default function EntryCard({
             Writing…
           </span>
         ) : (
-          <span className={chip.cls}>{chip.label}</span>
+          <span
+            ref={statusChipRef}
+            className={`${chip.cls}${chipFlash ? " is-flash" : ""}`}
+          >
+            {chip.label}
+          </span>
         )}
         {section.entry.created && (
           <span className="card-date">{section.entry.created}</span>

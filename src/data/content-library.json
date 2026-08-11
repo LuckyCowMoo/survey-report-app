@@ -20,7 +20,7 @@
       "id": "weather-north",
       "group": "Weather / orientation",
       "topic": "North-facing property",
-      "keywords": ["north facing", "north"],
+      "keywords": ["north facing", "north", "n facing"],
       "placeholders": [],
       "text": "The weather conditions can pose significant challenges for a north-facing house, as it generally receives less direct sunlight, resulting in prolonged periods of dampness and lower temperatures. This reduced sunlight exposure can hinder the natural drying process of moisture within walls and external surfaces, increasing the risk of damp-related issues such as mould growth, timber decay, and deterioration of building materials. Additionally, exposure to persistent rain and high humidity levels can exacerbate these problems, leading to increased maintenance requirements and potential structural concerns if not appropriately managed."
     },
@@ -28,7 +28,7 @@
       "id": "weather-northeast",
       "group": "Weather / orientation",
       "topic": "Northeast-facing property",
-      "keywords": ["northeast facing", "north east", "northeast"],
+      "keywords": ["northeast facing", "north east", "northeast", "ne facing"],
       "placeholders": [],
       "text": "Weather conditions can have a significant impact on Northeast facing properties, potentially leading to issues such as dampness, water ingress, and structural deterioration. Heavy rainfall can cause flooding or leaks, while frost and low temperatures may result in frozen pipes and damage to roofing materials. Windstorms can damage windows, roofs, and external fixtures, and persistent moisture can contribute to the development of mould and decay in building structures. Consequently, it is essential for property owners to undertake regular maintenance and preventative measures to mitigate these weather-related risks."
     },
@@ -36,7 +36,7 @@
       "id": "weather-east",
       "group": "Weather / orientation",
       "topic": "East-facing property",
-      "keywords": ["east facing", "east"],
+      "keywords": ["east facing", "east", "e facing"],
       "placeholders": [],
       "text": "Weather conditions greatly affect an east-facing property, as it receives early morning sun and prevailing easterly weather. This exposure can increase moisture retention and dampness, especially during wetter months, promoting mould growth and damp issues. East-facing façades are also vulnerable to wind-driven rain, which can accelerate deterioration of exterior surfaces and window seals. If not properly maintained and weatherproofed, these factors may lead to increased maintenance, structural issues, and reduced durability over time."
     },
@@ -44,7 +44,7 @@
       "id": "weather-southeast",
       "group": "Weather / orientation",
       "topic": "Southeast-facing property",
-      "keywords": ["southeast facing", "south east", "southeast"],
+      "keywords": ["southeast facing", "south east", "southeast", "se facing"],
       "placeholders": [],
       "text": "A southeast facing property is particularly vulnerable to weather-related issues such as increased exposure to sunlight, rain, and wind, which can accelerate wear and tear. Prolonged exposure to sunlight may cause fading and deterioration of external surfaces and paintwork, while frequent rain can lead to dampness, mould growth, and structural damage if not properly managed. Additionally, wind-driven moisture can infiltrate gaps and cracks, increasing the risk of water ingress and decay. Without adequate maintenance and waterproofing measures, these weather conditions can significantly compromise the property's external integrity and internal comfort."
     },
@@ -52,7 +52,7 @@
       "id": "weather-south",
       "group": "Weather / orientation",
       "topic": "South-facing property",
-      "keywords": ["south facing", "south"],
+      "keywords": ["south facing", "south", "s facing"],
       "placeholders": [],
       "text": "Weather conditions can significantly affect south-facing properties, impacting thermal performance and maintenance. Increased sunlight can raise internal temperatures and accelerate wear on paint, roofing, and finishes. Heavy rain, wind, and frost can cause dampness, damp-proofing issues, and surface erosion. Regular maintenance, effective insulation, and durable weatherproofing are essential to protect and preserve these properties over time."
     },
@@ -60,7 +60,7 @@
       "id": "weather-southwest",
       "group": "Weather / orientation",
       "topic": "Southwest-facing property",
-      "keywords": ["southwest facing", "south west", "southwest"],
+      "keywords": ["southwest facing", "south west", "southwest", "sw facing"],
       "placeholders": [],
       "text": "A south-west facing property in the UK is particularly susceptible to the effects of the weather, as it often receives the most sunlight and exposure to the prevailing SW winds. While this orientation can provide benefits such as natural light and warmth, it can also lead to accelerated weather-related wear and tear. For example, the increased exposure to rain and wind can result in faster deterioration of roof coverings, guttering, and external façades, as well as potential issues with damp and mould due to the prolonged exposure to moisture. Additionally, the angle of exposure may cause uneven weathering of external surfaces or lead to higher heating and cooling demands. Regular maintenance and weatherproofing are essential to protect such properties and ensure their longevity in the face of the UK's often changeable climate."
     },
@@ -68,7 +68,7 @@
       "id": "weather-west",
       "group": "Weather / orientation",
       "topic": "West-facing property",
-      "keywords": ["west facing", "west"],
+      "keywords": ["west facing", "west", "w facing"],
       "placeholders": [],
       "text": "Weather conditions can significantly impact a west-facing property by exposing it to afternoon and evening sunlight, which can lead to increased warmth during the warmer months and potential heat buildup. Additionally, such properties may be more vulnerable to the effects of prevailing westerly winds, resulting in stronger drafts and possible water ingress if not properly protected. Over time, exposure to rain, wind, and sometimes snow can also affect the exterior materials, leading to quicker wear and the need for regular maintenance."
     },
@@ -76,7 +76,7 @@
       "id": "weather-northwest",
       "group": "Weather / orientation",
       "topic": "Northwest-facing property",
-      "keywords": ["northwest facing", "north west", "northwest"],
+      "keywords": ["northwest facing", "north west", "northwest", "nw facing"],
       "placeholders": [],
       "text": "Weather conditions can have a significant impact on a northwest-facing property, potentially leading to issues such as dampness and mould due to increased exposure to rain and moisture. The orientation toward the northwest exposes the property to prevailing winds and higher levels of rainfall, which may cause wear and tear on the exterior, including damage to roofing, fascia, and guttering systems. Additionally, persistent damp conditions can affect the structural integrity of walls and foundations over time, increasing the risk of mould growth and deterioration of internal finishes. Adequate waterproofing, insulation, and regular maintenance are essential to mitigate these weather-related risks and preserve the property's condition."
     },
@@ -120,7 +120,7 @@
       "id": "dew-point",
       "group": "Dew point",
       "topic": "Dew point measurement",
-      "keywords": ["dew point", "dew"],
+      "keywords": ["dew point", "dew", "dp"],
       "placeholders": [
         { "key": "dew_temp", "label": "Dew point (°C)", "default": "15.5" }
       ],

@@ -1,6 +1,84 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent
+} from "react";
+import { createPortal } from "react-dom";
 import { imagePreviewUrl } from "../lib/imageUtils";
+import { PIP_DWELL_MS, PIP_FLASH_MS, PIP_REVERSE_MS } from "../lib/pipTiming";
+import { scrollElementIntoViewCentered } from "../lib/scrollRoot";
 import type { SectionState } from "../types";
+
+const LOUPE_ZOOM_DEFAULT = 2.65;
+const LOUPE_ZOOM_MIN = 1.25;
+const LOUPE_ZOOM_MAX = 8;
+const LOUPE_ZOOM_STEP = 0.18;
+
+type LoupeView = {
+  src: string;
+  imgW: number;
+  imgH: number;
+  left: number;
+  top: number;
+  shell: { left: number; top: number; width: number; height: number };
+  /** Crop outline on the studio photo, in photo-local px. */
+  outline: { left: number; top: number; width: number; height: number };
+};
+
+/** Map pointer on an object-fit:cover image to 0–1 of the natural bitmap. */
+function coverFocus(
+  img: HTMLImageElement,
+  clientX: number,
+  clientY: number
+): {
+  nx: number;
+  ny: number;
+  dispW: number;
+  dispH: number;
+  ox: number;
+  oy: number;
+  imgRect: DOMRect;
+  inside: boolean;
+} {
+  const rect = img.getBoundingClientRect();
+  const nw = img.naturalWidth || 1;
+  const nh = img.naturalHeight || 1;
+  const scale = Math.max(rect.width / nw, rect.height / nh);
+  const dispW = nw * scale;
+  const dispH = nh * scale;
+  const ox = (rect.width - dispW) / 2;
+  const oy = (rect.height - dispH) / 2;
+  const x = (clientX - rect.left - ox) / dispW;
+  const y = (clientY - rect.top - oy) / dispH;
+  return {
+    nx: Math.min(1, Math.max(0, x)),
+    ny: Math.min(1, Math.max(0, y)),
+    dispW,
+    dispH,
+    ox,
+    oy,
+    imgRect: rect,
+    inside: x >= 0 && x <= 1 && y >= 0 && y <= 1
+  };
+}
+
+/** Loupe panel: 67% of the left column, centred in that column. */
+function leftColumnShell(): LoupeView["shell"] | null {
+  const content = document.querySelector<HTMLElement>(".app.app-aside .content");
+  if (!content) return null;
+  const r = content.getBoundingClientRect();
+  if (r.width < 80 || r.height < 80) return null;
+  const width = r.width * 0.67;
+  const height = r.height * 0.67;
+  return {
+    left: r.left + (r.width - width) / 2,
+    top: r.top + (r.height - height) / 2,
+    width,
+    height
+  };
+}
 
 type FlowStep = "review" | "details" | "generate";
 
@@ -8,14 +86,14 @@ interface Props {
   step: FlowStep;
   sections: SectionState[];
   focusedIndex: number;
-  /** Section the user is actively dwelling on (review only); drives yellow→green fill. */
+  /** Section the user is actively dwelling on (review only); drives yellow→green / stripe→blue fill. */
   dwellIndex: number | null;
   /** Section currently being written by AI (slow purple fill). */
   busySectionIndex: number | null;
   /** Entry numbers of sections with an active AI error overlay. */
   aiErrorSectionNums?: ReadonlySet<number>;
   onJumpSection?: (index: number) => void;
-  /** Fired when a pending-review pip fill reaches full green. */
+  /** Fired when a pending-review / note-confirm pip fill reaches completion. */
   onDwellComplete?: (index: number) => void;
 }
 
@@ -32,25 +110,28 @@ const PAN_SPEED = 0.012; // fraction of overflow range per second (almost imperc
 const PAN_PAUSE_MIN_MS = 2500;
 const PAN_PAUSE_MAX_MS = 5500;
 const PAN_MIN_DURATION = 18;
-/** Time focused on a yellow pip to fill it fully green. */
-const PIP_DWELL_MS = 5000;
-/** Time for a partial green fill to drain back to yellow after leaving early. */
-const PIP_REVERSE_MS = 2800;
 /** Default top→bottom colour transition for status changes. */
 const PIP_TRANSITION_MS = 660;
 /** Slow crawl toward purple while AI is generating a section. */
 const PIP_AI_FILL_MS = 4800;
-const PIP_FLASH_MS = 480;
 /** Mexican-wave pulse when moving between review / details / generate. */
 const PIP_WAVE_MS = 350;
 const PIP_WAVE_STAGGER_MS = 32;
 
 const FLOW_ORDER: FlowStep[] = ["review", "details", "generate"];
 
-type PipTone = "attention" | "review" | "ai" | "library" | "manual" | "empty";
+type PipTone =
+  | "attention"
+  | "noteConfirm"
+  | "review"
+  | "ai"
+  | "library"
+  | "manual"
+  | "empty";
 
 const PIP_COLORS: Record<PipTone, string> = {
   attention: "#ff5a36",
+  noteConfirm: "#eab308",
   review: "#eab308",
   ai: "#8b5cf6",
   library: "#22a06b",
@@ -76,6 +157,7 @@ function easeInOut(t: number): number {
 
 /** Settled pip colour from section status (ignores in-flight AI). */
 function pipTone(s: SectionState): PipTone {
+  if (s.pendingNoteConfirm) return "noteConfirm";
   if (s.needsAttention) return "attention";
   if (s.pendingReview) return "review";
   switch (s.source) {
@@ -89,6 +171,20 @@ function pipTone(s: SectionState): PipTone {
     default:
       return "empty";
   }
+}
+
+function isDwellPending(s: SectionState): boolean {
+  return s.pendingReview || s.pendingNoteConfirm;
+}
+
+/** Target tone while dwelling on a pending pip. */
+function dwellTarget(s: SectionState): PipTone {
+  return s.pendingNoteConfirm ? "manual" : "library";
+}
+
+/** Starting tone for a dwell fill. */
+function dwellFrom(s: SectionState): PipTone {
+  return s.pendingNoteConfirm ? "noteConfirm" : "review";
 }
 
 function effectiveTone(anim: PipAnim): PipTone {
@@ -165,9 +261,13 @@ export default function StudioAside({
   const [pipWaves, setPipWaves] = useState<
     Array<{ id: number; direction: "forward" | "reverse" }>
   >([]);
+  const [loupe, setLoupe] = useState<LoupeView | null>(null);
+  const loupeZoomRef = useRef(LOUPE_ZOOM_DEFAULT);
+  const loupePointerRef = useRef<{ x: number; y: number } | null>(null);
   const pipAnimsRef = useRef<Map<number, PipAnim>>(new Map());
   const dwellCompleteFiredRef = useRef<Set<number>>(new Set());
   const flashTimersRef = useRef<Map<number, number>>(new Map());
+  const photoImgRef = useRef<HTMLImageElement>(null);
   const waveIdRef = useRef(0);
   const waveTimeoutsRef = useRef<Map<number, number>>(new Map());
   const prevStepRef = useRef<FlowStep | null>(null);
@@ -265,7 +365,8 @@ export default function StudioAside({
       const activeDwellNum =
         step === "review" &&
         dwellIndex !== null &&
-        sections[dwellIndex]?.pendingReview
+        sections[dwellIndex] &&
+        isDwellPending(sections[dwellIndex])
           ? sections[dwellIndex].entry.number
           : null;
 
@@ -299,17 +400,19 @@ export default function StudioAside({
               progress: Math.min(0.9, updated.progress + dt / PIP_AI_FILL_MS)
             };
           }
-        } else if (s.pendingReview) {
+        } else if (isDwellPending(s)) {
+          const fromTone = dwellFrom(s);
+          const toTone = dwellTarget(s);
           if (dwelling) {
-            if (anim.to === "library" && anim.from === "review") {
+            if (anim.to === toTone && anim.from === fromTone) {
               updated = {
                 ...anim,
                 progress: Math.min(1, anim.progress + (reduced ? 1 : dt / PIP_DWELL_MS))
               };
             } else {
-              updated = { from: "review", to: "library", progress: reduced ? 1 : 0 };
-              if (anim.to === "library" && anim.progress > 0) {
-                updated = { from: "review", to: "library", progress: anim.progress };
+              updated = { from: fromTone, to: toTone, progress: reduced ? 1 : 0 };
+              if (anim.to === toTone && anim.progress > 0) {
+                updated = { from: fromTone, to: toTone, progress: anim.progress };
               }
             }
             if (updated.progress >= 1 && !dwellCompleteFiredRef.current.has(num)) {
@@ -318,14 +421,14 @@ export default function StudioAside({
               const idx = sections.findIndex((x) => x.entry.number === num);
               if (idx >= 0) onDwellCompleteRef.current?.(idx);
             }
-          } else if (anim.to === "library" && anim.from === "review" && anim.progress > 0) {
+          } else if (anim.to === toTone && anim.from === fromTone && anim.progress > 0) {
             updated = {
               ...anim,
               progress: Math.max(0, anim.progress - (reduced ? 1 : dt / PIP_REVERSE_MS))
             };
             dwellCompleteFiredRef.current.delete(num);
-          } else if (anim.to !== "review" || anim.progress < 1) {
-            updated = startTransition(anim, "review");
+          } else if (anim.to !== fromTone || anim.progress < 1) {
+            updated = startTransition(anim, fromTone);
             if (updated.progress < 1) {
               const before = updated.progress;
               updated = {
@@ -537,24 +640,151 @@ export default function StudioAside({
   const useStudioHero = step === "details" || step === "generate";
   const photoSrc = useStudioHero ? studioHero : url;
   const heroCaption = step === "generate" ? "Generate report" : "Report details";
+  const loupeEnabled = step === "review";
+
+  const updateLoupe = (clientX: number, clientY: number, zoom = loupeZoomRef.current) => {
+    if (!loupeEnabled) {
+      setLoupe(null);
+      return;
+    }
+    const img = photoImgRef.current;
+    const photo = photoRef.current;
+    const src = photoSrc;
+    if (!img || !src || !img.naturalWidth) {
+      setLoupe(null);
+      return;
+    }
+    const shell = leftColumnShell();
+    if (!shell) {
+      setLoupe(null);
+      return;
+    }
+    const { nx, ny, dispW, dispH, ox, oy, imgRect, inside } = coverFocus(
+      img,
+      clientX,
+      clientY
+    );
+    if (!inside) {
+      setLoupe(null);
+      return;
+    }
+    loupePointerRef.current = { x: clientX, y: clientY };
+    const pr = photo?.getBoundingClientRect();
+    if (photo && pr) {
+      photo.style.setProperty("--loupe-x", `${clientX - pr.left}px`);
+      photo.style.setProperty("--loupe-y", `${clientY - pr.top}px`);
+    }
+    const imgW = dispW * zoom;
+    const imgH = dispH * zoom;
+    // Region of the source image currently filling the loupe panel.
+    const viewW = shell.width / zoom;
+    const viewH = shell.height / zoom;
+    const outlineLeft =
+      (pr ? imgRect.left - pr.left : 0) + ox + nx * dispW - viewW / 2;
+    const outlineTop =
+      (pr ? imgRect.top - pr.top : 0) + oy + ny * dispH - viewH / 2;
+    setLoupe({
+      src,
+      imgW,
+      imgH,
+      left: shell.width / 2 - nx * imgW,
+      top: shell.height / 2 - ny * imgH,
+      shell,
+      outline: {
+        left: outlineLeft,
+        top: outlineTop,
+        width: viewW,
+        height: viewH
+      }
+    });
+  };
+
+  const clearLoupe = () => {
+    photoRef.current?.style.removeProperty("--loupe-x");
+    photoRef.current?.style.removeProperty("--loupe-y");
+    loupePointerRef.current = null;
+    loupeZoomRef.current = LOUPE_ZOOM_DEFAULT;
+    setLoupe(null);
+  };
+
+  useEffect(() => {
+    setLoupe(null);
+    loupePointerRef.current = null;
+    loupeZoomRef.current = LOUPE_ZOOM_DEFAULT;
+  }, [photoSrc, step]);
+
+  // Non-passive so we can prevent the page from scrolling while zooming.
+  useEffect(() => {
+    if (!loupeEnabled) return;
+    const photo = photoRef.current;
+    if (!photo) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!photoSrc) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const direction = e.deltaY > 0 ? -1 : e.deltaY < 0 ? 1 : 0;
+      if (!direction) return;
+      const next = Math.min(
+        LOUPE_ZOOM_MAX,
+        Math.max(
+          LOUPE_ZOOM_MIN,
+          loupeZoomRef.current + direction * LOUPE_ZOOM_STEP
+        )
+      );
+      if (next === loupeZoomRef.current) return;
+      loupeZoomRef.current = next;
+      const ptr = loupePointerRef.current;
+      if (ptr) updateLoupe(ptr.x, ptr.y, next);
+      else updateLoupe(e.clientX, e.clientY, next);
+    };
+    photo.addEventListener("wheel", onWheel, { passive: false });
+    return () => photo.removeEventListener("wheel", onWheel);
+    // updateLoupe closes over latest photoSrc / layout.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loupeEnabled, photoSrc, step]);
 
   return (
+    <>
     <aside className="studio-aside" aria-label="Studio preview">
       <div
         ref={photoRef}
-        className={`studio-aside-photo${useStudioHero ? " is-details" : ""}`}
+        className={`studio-aside-photo${useStudioHero ? " is-details" : ""}${loupe ? " is-loupe-source" : ""}`}
+        onPointerMove={
+          loupeEnabled
+            ? (e) => {
+                if (e.pointerType === "touch") return;
+                updateLoupe(e.clientX, e.clientY);
+              }
+            : undefined
+        }
+        onPointerLeave={loupeEnabled ? clearLoupe : undefined}
+        onPointerCancel={loupeEnabled ? clearLoupe : undefined}
       >
         {photoSrc ? (
           <img
+            ref={photoImgRef}
             key={photoSrc}
             src={photoSrc}
             alt={useStudioHero ? "Stack of survey reports" : ""}
+            draggable={false}
           />
         ) : (
           <div className="studio-aside-empty">
             <span>No photo</span>
             <small>Focus a section to preview it here</small>
           </div>
+        )}
+        {loupe && (
+          <div
+            className="studio-loupe-outline"
+            aria-hidden
+            style={{
+              left: loupe.outline.left,
+              top: loupe.outline.top,
+              width: loupe.outline.width,
+              height: loupe.outline.height
+            }}
+          />
         )}
         {step === "review" && section && (
           <div className="studio-aside-caption">
@@ -582,9 +812,12 @@ export default function StudioAside({
             const filling = !errored && anim.progress < 1;
             const flashing = !errored && flashingPips.has(s.entry.number);
             const tone = errored ? "error" : filling ? anim.from : anim.to;
+            // Striped bases keep their CSS gradient (not a solid fill colour).
+            const stripedFrom =
+              anim.from === "noteConfirm" || anim.from === "review";
             const fillStyle = filling
               ? ({
-                  background: PIP_COLORS[anim.from],
+                  ...(stripedFrom ? {} : { background: PIP_COLORS[anim.from] }),
                   ["--dwell-fill"]: anim.progress.toFixed(4),
                   ["--pip-to"]: PIP_COLORS[anim.to]
                 } as CSSProperties)
@@ -598,7 +831,11 @@ export default function StudioAside({
                 title={
                   errored
                     ? `Section ${s.entry.number} — AI error`
-                    : `Section ${s.entry.number}`
+                    : s.pendingNoteConfirm
+                      ? `Section ${s.entry.number} — confirm field note`
+                      : s.pendingReview
+                        ? `Section ${s.entry.number} — review wording`
+                        : `Section ${s.entry.number}`
                 }
                 aria-label={
                   errored
@@ -608,12 +845,13 @@ export default function StudioAside({
                       : `Section ${s.entry.number}, ${tone}`
                 }
                 aria-current={current ? "true" : undefined}
-                onClick={() => {
+                onMouseEnter={() => {
                   if (step !== "review") return;
                   onJumpSection?.(i);
-                  document
-                    .getElementById(`section-card-${s.entry.number}`)
-                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  const card = document.getElementById(
+                    `section-card-${s.entry.number}`
+                  );
+                  if (card) scrollElementIntoViewCentered(card);
                 }}
               >
                 {pipWaves.map((w) => (
@@ -660,5 +898,33 @@ export default function StudioAside({
         </div>
       </div>
     </aside>
+    {loupe &&
+      createPortal(
+        <div
+          className="studio-loupe"
+          aria-hidden
+          style={{
+            left: loupe.shell.left,
+            top: loupe.shell.top,
+            width: loupe.shell.width,
+            height: loupe.shell.height
+          }}
+        >
+          <div className="studio-loupe-frame">
+            <img
+              src={loupe.src}
+              alt=""
+              draggable={false}
+              style={{
+                width: loupe.imgW,
+                height: loupe.imgH,
+                transform: `translate(${loupe.left}px, ${loupe.top}px)`
+              }}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

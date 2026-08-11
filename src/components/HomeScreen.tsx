@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import FloatingReports from "./FloatingReports";
 import { IconBook, IconSettings } from "./icons";
 
@@ -7,10 +7,29 @@ interface Props {
   busy: boolean;
   onShowGuide: () => void;
   onShowSettings: () => void;
+  /** Lets the app trigger Import (e.g. browser/mouse forward on the home page). */
+  importTriggerRef?: MutableRefObject<(() => void) | null>;
 }
 
-export default function HomeScreen({ onFile, busy, onShowGuide, onShowSettings }: Props) {
+export default function HomeScreen({
+  onFile,
+  busy,
+  onShowGuide,
+  onShowSettings,
+  importTriggerRef
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!importTriggerRef) return;
+    importTriggerRef.current = () => {
+      if (busy) return;
+      inputRef.current?.click();
+    };
+    return () => {
+      importTriggerRef.current = null;
+    };
+  }, [importTriggerRef, busy]);
 
   return (
     <div className="home">

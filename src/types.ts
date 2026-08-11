@@ -33,9 +33,15 @@ export interface SectionState {
   needsAttention: boolean;
   /**
    * Soft library match: wording looks complete but confidence is low.
-   * Yellow pip + highlight until the section has been focused for ~5s.
+   * Yellow/green striped pip until the section has been focused for ~5s.
    */
   pendingReview: boolean;
+  /**
+   * Long unrecognised field note kept as the surveyor's prose.
+   * Yellow/blue striped pip until focused ~5s (confirms no cleanup needed → blue manual),
+   * or until Ask AI rewrites it (→ purple).
+   */
+  pendingNoteConfirm: boolean;
   /** Candidate library ids suggested by the matcher, best first. */
   suggestions: string[];
 }

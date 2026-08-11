@@ -19,6 +19,8 @@ interface Props {
   onContinue: () => void;
   onFocusSection: (index: number) => void;
   focusedSectionIndex: number;
+  /** Section index currently running the review dwell fill, if any. */
+  dwellSectionIndex: number | null;
 }
 
 export default function ReviewScreen({
@@ -37,7 +39,8 @@ export default function ReviewScreen({
   onDismissAiError,
   onContinue,
   onFocusSection,
-  focusedSectionIndex
+  focusedSectionIndex,
+  dwellSectionIndex
 }: Props) {
   const [showWarnings, setShowWarnings] = useState(false);
   const sectionNumbers = useMemo(
@@ -100,6 +103,7 @@ export default function ReviewScreen({
           aiWorking={busySectionIndex === i}
           aiError={aiErrors[i] ?? null}
           focused={focusedSectionIndex === i}
+          dwelling={dwellSectionIndex === i}
           onChange={onChange}
           onAskAi={onAskAi}
           onDismissAiError={onDismissAiError}

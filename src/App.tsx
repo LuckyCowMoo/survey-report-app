@@ -14,9 +14,16 @@ import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
 import { activeAi, loadSettings, saveSettings, type AppSettings } from "./lib/settings";
 import { usePointerInputMode } from "./lib/pointerInput";
+import {
+  currentAppHist,
+  pushAppHist,
+  readAppHist,
+  replaceAppHist,
+  type AppStep
+} from "./lib/appHistory";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
-type Step = "home" | "review" | "details" | "generate";
+type Step = AppStep;
 
 function defaultMetadata(settings: AppSettings): ReportMetadata {
   return {
@@ -82,6 +89,7 @@ export default function App() {
   const [aiErrors, setAiErrors] = useState<Record<number, string>>({});
   const [aiBatchRunning, setAiBatchRunning] = useState(false);
   const aiBatchAbortRef = useRef<AbortController | null>(null);
+  const importTriggerRef = useRef<(() => void) | null>(null);
 
   const flaggedCount = useMemo(
     () => sections.filter((s) => s.needsAttention).length,
@@ -97,6 +105,159 @@ export default function App() {
     return nums;
   }, [aiErrors, sections]);
 
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  const navigateTo = useCallback((next: Step) => {
+    setStep(next);
+    pushAppHist({ app: 1, step: next });
+  }, []);
+
+  const openSettings = useCallback(() => {
+    setShowSettings(true);
+    pushAppHist({ app: 1, step: stepRef.current, overlay: "settings" });
+  }, []);
+
+  const openGuide = useCallback(() => {
+    setShowGuide(true);
+    pushAppHist({ app: 1, step: stepRef.current, overlay: "guide" });
+  }, []);
+
+  const dismissOverlay = useCallback(() => {
+    if (currentAppHist().overlay) history.back();
+    else {
+      setShowSettings(false);
+      setShowGuide(false);
+    }
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (showSettings || showGuide || step !== "home") {
+      history.back();
+      return true;
+    }
+    return false;
+  }, [showSettings, showGuide, step]);
+
+  /** Same destinations as Continue, or Import on the home page. */
+  const continueForward = useCallback(() => {
+    if (step === "home") {
+      if (busy !== null) return false;
+      importTriggerRef.current?.();
+      return Boolean(importTriggerRef.current);
+    }
+    if (step === "review" && sections.length > 0) {
+      navigateTo("details");
+      return true;
+    }
+    if (step === "details") {
+      navigateTo("generate");
+      return true;
+    }
+    return false;
+  }, [step, sections.length, navigateTo, busy]);
+
+  /**
+   * Browser/mouse forward when the history stack allows it; otherwise advance
+   * like Continue / Import. Home Import must stay synchronous (file-picker gesture).
+   */
+  const goForward = useCallback(() => {
+    if (showSettings || showGuide || currentAppHist().overlay) return false;
+
+    const nav = window.navigation as { canGoForward?: boolean } | undefined;
+    if (nav?.canGoForward) {
+      history.forward();
+      return true;
+    }
+
+    // No forward history — Import on home, or Continue on later steps.
+    if (step === "home" || nav) {
+      return continueForward();
+    }
+
+    let moved = false;
+    const onPop = () => {
+      moved = true;
+    };
+    window.addEventListener("popstate", onPop, { once: true });
+    history.forward();
+    window.setTimeout(() => {
+      window.removeEventListener("popstate", onPop);
+      if (!moved) continueForward();
+    }, 50);
+    return true;
+  }, [showSettings, showGuide, continueForward, step]);
+
+  // Keep React state in sync with browser / Android back & forward.
+  useEffect(() => {
+    replaceAppHist({ app: 1, step: "home" });
+    const onPop = (e: PopStateEvent) => {
+      const s = readAppHist(e.state);
+      setShowSettings(s.overlay === "settings");
+      setShowGuide(s.overlay === "guide");
+      setStep(s.step);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    /** If native history forward didn't move us, advance like Continue. */
+    const synthesizeForwardIfNeeded = () => {
+      const before = stepRef.current;
+      window.setTimeout(() => {
+        if (stepRef.current !== before) return;
+        if (showSettings || showGuide || currentAppHist().overlay) return;
+        // Home Import needs a direct gesture — handled synchronously in onMouseUp.
+        if (stepRef.current === "home") return;
+        continueForward();
+      }, 50);
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (showSettings || showGuide || step !== "home") {
+          e.preventDefault();
+          goBack();
+        }
+        return;
+      }
+      // Alt+→ / BrowserForward — prefer real history forward, else Continue/Import.
+      if (
+        e.key === "BrowserForward" ||
+        (e.altKey && e.key === "ArrowRight")
+      ) {
+        e.preventDefault();
+        goForward();
+      }
+    };
+    // Mouse side-button forward: browser often history.forward()s first.
+    const onMouseUp = (e: MouseEvent) => {
+      if (e.button !== 4) return;
+      if (stepRef.current === "home") {
+        const nav = window.navigation as { canGoForward?: boolean } | undefined;
+        if (!nav?.canGoForward) {
+          continueForward();
+          return;
+        }
+      }
+      synthesizeForwardIfNeeded();
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [
+    goBack,
+    goForward,
+    continueForward,
+    showSettings,
+    showGuide,
+    step
+  ]);
+
   const focusSection = useCallback((index: number) => {
     setFocusedSectionIndex(index);
     setReviewDwellIndex(index);
@@ -105,43 +266,61 @@ export default function App() {
   const completeDwellReview = useCallback((index: number) => {
     setSections((prev) => {
       const cur = prev[index];
-      if (!cur?.pendingReview) return prev;
-      return prev.map((s, i) => (i === index ? { ...s, pendingReview: false } : s));
+      if (!cur) return prev;
+      if (cur.pendingReview) {
+        return prev.map((s, i) =>
+          i === index ? { ...s, pendingReview: false } : s
+        );
+      }
+      if (cur.pendingNoteConfirm) {
+        return prev.map((s, i) =>
+          i === index
+            ? { ...s, pendingNoteConfirm: false, needsAttention: false }
+            : s
+        );
+      }
+      return prev;
     });
   }, []);
 
-  const handleSettingsSave = useCallback((next: AppSettings) => {
-    setSettings(next);
-    saveSettings(next);
-    setMetadata((m) => ({
-      ...m,
-      companyName: next.companyName,
-      website: next.website
-    }));
-    setShowSettings(false);
-  }, []);
+  const handleSettingsSave = useCallback(
+    (next: AppSettings) => {
+      setSettings(next);
+      saveSettings(next);
+      setMetadata((m) => ({
+        ...m,
+        companyName: next.companyName,
+        website: next.website
+      }));
+      dismissOverlay();
+    },
+    [dismissOverlay]
+  );
 
-  const handleFile = useCallback(async (file: File) => {
-    setBusy("Reading document...");
-    setError(null);
-    setAiErrors({});
-    aiBatchAbortRef.current?.abort();
-    aiBatchAbortRef.current = null;
-    setAiBatchRunning(false);
-    try {
-      const data = await file.arrayBuffer();
-      const parsed = await parseShorthandDocx(data);
-      setSections(matchEntries(parsed.entries));
-      setWarnings(parsed.warnings);
-      setFocusedSectionIndex(0);
-      setReviewDwellIndex(null);
-      setStep("review");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(null);
-    }
-  }, []);
+  const handleFile = useCallback(
+    async (file: File) => {
+      setBusy("Reading document...");
+      setError(null);
+      setAiErrors({});
+      aiBatchAbortRef.current?.abort();
+      aiBatchAbortRef.current = null;
+      setAiBatchRunning(false);
+      try {
+        const data = await file.arrayBuffer();
+        const parsed = await parseShorthandDocx(data);
+        setSections(matchEntries(parsed.entries));
+        setWarnings(parsed.warnings);
+        setFocusedSectionIndex(0);
+        setReviewDwellIndex(null);
+        navigateTo("review");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(null);
+      }
+    },
+    [navigateTo]
+  );
 
   // Test hook: ?sample=<url> loads a document over HTTP through the same
   // pipeline as the file picker (used by automated tests; harmless otherwise).
@@ -166,7 +345,7 @@ export default function App() {
         setError(
           `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
         );
-        setShowSettings(true);
+        openSettings();
         return;
       }
       setBusy(`Asking AI about section ${sections[index].entry.number}...`);
@@ -190,7 +369,7 @@ export default function App() {
         setBusySectionIndex(null);
       }
     },
-    [sections, settings, updateSection]
+    [sections, settings, updateSection, openSettings]
   );
 
   const runAiForAllFlagged = useCallback(async () => {
@@ -199,7 +378,7 @@ export default function App() {
       setError(
         `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
       );
-      setShowSettings(true);
+      openSettings();
       return;
     }
 
@@ -244,7 +423,7 @@ export default function App() {
       setBusy(null);
       setBusySectionIndex(null);
     }
-  }, [sections, settings]);
+  }, [sections, settings, openSettings]);
 
   const stopAiBatch = useCallback(() => {
     aiBatchAbortRef.current?.abort();
@@ -271,7 +450,10 @@ export default function App() {
     setAiBatchRunning(false);
     setFocusedSectionIndex(0);
     setReviewDwellIndex(null);
+    setShowSettings(false);
+    setShowGuide(false);
     setStep("home");
+    replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
 
   return (
@@ -290,9 +472,7 @@ export default function App() {
             type="button"
             className="topbar-btn topbar-btn-icon"
             aria-label="Back"
-            onClick={() =>
-              setStep(step === "review" ? "home" : step === "details" ? "review" : "details")
-            }
+            onClick={() => goBack()}
           >
             <span className="topbar-btn-glyph" aria-hidden>
               <IconBack />
@@ -308,7 +488,7 @@ export default function App() {
             type="button"
             className="topbar-btn topbar-btn-icon"
             aria-label="Settings"
-            onClick={() => setShowSettings(true)}
+            onClick={openSettings}
           >
             <span className="topbar-btn-glyph" aria-hidden>
               <IconSettings />
@@ -335,8 +515,9 @@ export default function App() {
           <HomeScreen
             onFile={handleFile}
             busy={busy !== null}
-            onShowGuide={() => setShowGuide(true)}
-            onShowSettings={() => setShowSettings(true)}
+            onShowGuide={openGuide}
+            onShowSettings={openSettings}
+            importTriggerRef={importTriggerRef}
           />
         )}
         {step === "review" && (
@@ -354,9 +535,10 @@ export default function App() {
             aiBatchRunning={aiBatchRunning}
             aiErrors={aiErrors}
             onDismissAiError={dismissAiError}
-            onContinue={() => setStep("details")}
+            onContinue={() => navigateTo("details")}
             onFocusSection={focusSection}
             focusedSectionIndex={focusedSectionIndex}
+            dwellSectionIndex={reviewDwellIndex}
           />
         )}
         {step === "details" && (
@@ -365,7 +547,7 @@ export default function App() {
             extras={extras}
             onMetadata={setMetadata}
             onExtras={setExtras}
-            onContinue={() => setStep("generate")}
+            onContinue={() => navigateTo("generate")}
           />
         )}
         {step === "generate" && (
@@ -383,11 +565,11 @@ export default function App() {
         <SettingsSheet
           settings={settings}
           onSave={handleSettingsSave}
-          onClose={() => setShowSettings(false)}
+          onClose={dismissOverlay}
         />
       )}
 
-      {showGuide && <KeywordGuide onClose={() => setShowGuide(false)} />}
+      {showGuide && <KeywordGuide onClose={dismissOverlay} />}
 
       {(step === "review" || step === "details" || step === "generate") &&
         sections.length > 0 && (

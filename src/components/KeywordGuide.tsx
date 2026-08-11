@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { library } from "../lib/matcher";
 import type { LibraryParagraph } from "../types";
 
@@ -16,15 +16,20 @@ const SMART_PHRASES: Array<{ phrase: string; effect: string }> = [
     effect:
       "Maximum-saturation reading wording; add \"masonry\" or \"brick\" for the masonry-resistance wording instead"
   },
-  { phrase: "baseline", effect: "Baseline moisture reading wording" },
   {
-    phrase: "dew point 16°",
-    effect: "Dew point wording - the temperature is filled in automatically"
+    phrase: "baseline kitchen / baseline landing / ...",
+    effect:
+      "Baseline moisture reading wording — add a room/area (kitchen, bathroom, landing, bedroom, …) to fill where it was taken"
   },
   {
-    phrase: "rh 65%",
+    phrase: "Dp 8.7 / dew 15.5 / dew point 16°",
     effect:
-      "Relative humidity - picks the above/within-threshold wording from the % (over 55% = high) and fills the value in"
+      "Dew point wording - fills in the temperature (Dp/dew, with or without a ° sign)"
+  },
+  {
+    phrase: "rh 41.6 / rh 65%",
+    effect:
+      "Relative humidity - fills in the reading (with or without a % sign) and picks above/within-threshold wording (over 55% = high)"
   },
   {
     phrase: "air quality",
@@ -47,8 +52,9 @@ const SMART_PHRASES: Array<{ phrase: string; effect: string }> = [
     effect: "Three-readings-at-heights wording with the height filled in"
   },
   {
-    phrase: "facing north / facing south west / ...",
-    effect: "Weather-exposure wording for that orientation"
+    phrase: "N / SW / facing north / facing NE / ...",
+    effect:
+      "Weather-exposure wording for that orientation (single- or double-letter abbreviations work)"
   },
   { phrase: "front / front elevation", effect: "Front elevation photo wording" },
   { phrase: "rear / back / rear elevation", effect: "Rear elevation photo wording" },
@@ -61,10 +67,10 @@ const SMART_PHRASES: Array<{ phrase: string; effect: string }> = [
 
 const TIPS: string[] = [
   "Short notes (up to ~11 words) are matched against the keywords below.",
-  "Longer notes are kept word-for-word as your own text for that photo (the AI can polish them into house style).",
-  "Photos with no note are flagged so you or the AI can decide from the photo.",
-  "Values in the note - like 65%, 16° or 1.2m - are automatically filled into the standard wording.",
-  "Anything that isn't a confident match is flagged \"needs attention\" on the review screen, never silently guessed.",
+  "Longer notes are kept word-for-word as your own text for that photo.",
+  "Photos with no note are flagged for clarification or attention.",
+  "Values in the note - like rh 41.6, dew 15.5, 65%, 16° or 1.2m - are automatically filled into the standard wording.",
+  "Anything that isn't a confident match is flagged \"needs attention\" on the review screen.",
   "If standard wording needs a meter reading (e.g. relative humidity) and it isn't in the note, Ask AI first tries to read it from the photo; if it cannot, it writes a generic paragraph instead of inventing a number."
 ];
 
@@ -74,13 +80,24 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
     tone: "attention",
     label: "Orange",
     meaning:
-      "Needs attention — empty, missing readings, long notes to polish, or no confident match"
+      "Needs attention — empty, missing readings, or no confident match"
+  },
+  {
+    tone: "noteConfirm",
+    label: "Yellow / blue stripes",
+    meaning:
+      "Long field note — kept as written. Review this section to confirm accuracy and the pip will become blue"
+  },
+  {
+    tone: "manual",
+    label: "Blue",
+    meaning: "Your wording — confirmed field note, edited text, or a cross-reference"
   },
   {
     tone: "review",
-    label: "Yellow",
+    label: "Yellow / green stripes",
     meaning:
-      "Review wording — standard text is filled in but confidence is low; the pip fills green top-to-bottom while you look (about 5s). Leave early and it drains back to yellow"
+      "Standard text is filled in but confidence is low. Review this section to confirm accuracy and the pip will become green"
   },
   {
     tone: "library",
@@ -90,18 +107,14 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
   {
     tone: "ai",
     label: "Purple",
-    meaning: "AI written — wording came from Ask AI. While AI is generating, the pip slowly fills purple to show that section is in progress"
+    meaning:
+      "AI written — wording generated using ask AI feature based on picture and notes"
   },
   {
     tone: "error",
-    label: "Purple / black stripes",
+    label: "Red",
     meaning:
       "AI error — Ask AI failed on this section; open the card overlay to read the message, dismiss it, or try again"
-  },
-  {
-    tone: "manual",
-    label: "Blue",
-    meaning: "Your wording — handwritten / edited text, or a cross-reference"
   },
   {
     tone: "empty",
@@ -112,6 +125,11 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
 
 export default function KeywordGuide({ onClose }: Props) {
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useLayoutEffect(() => {
+    searchRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const groups = useMemo(() => {
     const map = new Map<string, LibraryParagraph[]>();
@@ -152,6 +170,7 @@ export default function KeywordGuide({ onClose }: Props) {
         </p>
 
         <input
+          ref={searchRef}
           type="search"
           className="guide-search"
           placeholder="Filter topics and keywords..."

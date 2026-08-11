@@ -318,6 +318,7 @@ export function applyResolution(
     next.source = "ai";
     next.needsAttention = hasMissingPlaceholders(libraryId, values);
     next.pendingReview = false;
+    next.pendingNoteConfirm = false;
   } else if (r.action === "bespoke" && r.text) {
     next.libraryId = null;
     next.placeholderValues = {};
@@ -325,6 +326,7 @@ export function applyResolution(
     next.source = "ai";
     next.needsAttention = false;
     next.pendingReview = false;
+    next.pendingNoteConfirm = false;
   } else if (r.action === "crossref" && r.crossrefSection) {
     next.libraryId = null;
     next.crossrefSection = r.crossrefSection;
@@ -332,6 +334,7 @@ export function applyResolution(
     next.source = "crossref";
     next.needsAttention = false;
     next.pendingReview = false;
+    next.pendingNoteConfirm = false;
   }
   return next;
 }

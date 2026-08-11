@@ -6,6 +6,7 @@
  *  - Deterministic keyword rules cover the everyday cases for free.
  *  - Anything terse, empty or unusual is flagged `needsAttention` so the
  *    Claude step (or the surveyor) can resolve it with the photo for context.
+ *  - Long unrecognised prose gets `pendingNoteConfirm` (striped pip → confirm as manual)
  *  - Low-confidence library matches with complete wording get `pendingReview`
  *    (yellow) until the surveyor has looked at the section for a few seconds.
  *  - A long note is treated as the surveyor's own prose: it becomes the text
@@ -36,6 +37,7 @@ function normalise(note: string): string {
     .replace(/\binfa\s*red\b/g, "infrared")
     .replace(/\binfra\s*red\b/g, "infrared")
     .replace(/\bdew\s*piont\b/g, "dew point")
+    .replace(/\bdp\b/g, "dew point")
     .replace(/\br\.?h\.?\b/g, "rh")
     .replace(/\s+/g, " ")
     .trim();
@@ -45,16 +47,87 @@ export interface ExtractedValues {
   percent?: string;
   temperature?: string;
   height?: string;
+  /** Phrasing for {{baseline_location}}, e.g. "the kitchen wall". */
+  location?: string;
+}
+
+/**
+ * Common rooms/areas that can follow "baseline" in shorthand notes.
+ * Longer / more specific patterns first.
+ */
+const BASELINE_AREAS: Array<{ pattern: RegExp; location: string }> = [
+  { pattern: /\bfirst[-\s]?floor\s+landing\b/, location: "the first-floor landing wall" },
+  { pattern: /\bsecond[-\s]?floor\s+landing\b/, location: "the second-floor landing wall" },
+  { pattern: /\bground[-\s]?floor\s+hallway\b/, location: "the ground-floor hallway wall" },
+  { pattern: /\bfront\s+bedroom\b/, location: "the front bedroom wall" },
+  { pattern: /\brear\s+bedroom\b/, location: "the rear bedroom wall" },
+  { pattern: /\bmaster\s+bedroom\b/, location: "the master bedroom wall" },
+  { pattern: /\bbedroom\s*(\d+)\b/, location: "the bedroom $1 wall" },
+  { pattern: /\bliving\s*rooms?\b|\blounge\b|\bsitting\s*rooms?\b/, location: "the living room wall" },
+  { pattern: /\bdining\s*rooms?\b/, location: "the dining room wall" },
+  { pattern: /\bshower\s*rooms?\b/, location: "the shower room wall" },
+  { pattern: /\bunder\s*stairs?\b|\bunderstairs\b/, location: "the under-stairs wall" },
+  { pattern: /\bchimney\s*breast\b/, location: "the chimney breast" },
+  { pattern: /\ben[-\s]?suite\b|\bensuite\b/, location: "the en-suite wall" },
+  { pattern: /\bcloakrooms?\b/, location: "the cloakroom wall" },
+  { pattern: /\bconservatory\b/, location: "the conservatory wall" },
+  { pattern: /\butility\b/, location: "the utility room wall" },
+  { pattern: /\bbathrooms?\b/, location: "the bathroom wall" },
+  { pattern: /\bkitchens?\b/, location: "the kitchen wall" },
+  { pattern: /\bhallways?\b|\bhall\b/, location: "the hallway wall" },
+  { pattern: /\blandings?\b/, location: "the landing wall" },
+  { pattern: /\bbedrooms?\b/, location: "the bedroom wall" },
+  { pattern: /\bcellars?\b|\bbasements?\b/, location: "the cellar wall" },
+  { pattern: /\bcupboards?\b/, location: "the cupboard wall" },
+  { pattern: /\bgarages?\b/, location: "the garage wall" },
+  { pattern: /\bporch\b/, location: "the porch wall" },
+  { pattern: /\bstud(?:y|ies)\b|\boffices?\b/, location: "the study wall" },
+  { pattern: /\bwc\b|\btoilets?\b/, location: "the WC wall" },
+  { pattern: /\bstairs?\b|\bstairwell\b/, location: "the stairwell wall" }
+];
+
+function extractBaselineLocation(note: string): string | undefined {
+  if (!/\bbaseline\b|\bbase\s*line\b/i.test(note)) return undefined;
+  for (const { pattern, location } of BASELINE_AREAS) {
+    const m = pattern.exec(note);
+    if (!m) continue;
+    if (location.includes("$1") && m[1]) {
+      return location.replace("$1", m[1]);
+    }
+    return location;
+  }
+  return undefined;
 }
 
 export function extractValues(note: string): ExtractedValues {
   const out: ExtractedValues = {};
+  // Prefer an explicit percent sign; also accept "Rh 41.6" / "41.6 rh" / "humidity 46".
   const pct = /(\d+(?:\.\d+)?)\s*%/.exec(note);
-  if (pct) out.percent = pct[1];
+  if (pct) {
+    out.percent = pct[1];
+  } else {
+    const rhNum =
+      /\brh\b\s*[:=]?\s*(\d+(?:\.\d+)?)/i.exec(note) ||
+      /(\d+(?:\.\d+)?)\s*\brh\b/i.exec(note) ||
+      /\bhumidity\b\s*[:=]?\s*(\d+(?:\.\d+)?)/i.exec(note);
+    if (rhNum) out.percent = rhNum[1];
+  }
+  // Prefer an explicit degree marker; also accept "dew 15.5" / "Dp 8.7" / "dew point 16".
   const temp = /(-?\d+(?:\.\d+)?)\s*(?:°\s*c?|degrees?\b|deg\b)/i.exec(note);
-  if (temp) out.temperature = temp[1];
+  if (temp) {
+    out.temperature = temp[1];
+  } else {
+    const dewNum =
+      /\bdew\s*point\b\s*[:=]?\s*(-?\d+(?:\.\d+)?)/i.exec(note) ||
+      /\bdp\b\s*[:=]?\s*(-?\d+(?:\.\d+)?)/i.exec(note) ||
+      /\bdew\b\s*[:=]?\s*(-?\d+(?:\.\d+)?)/i.exec(note) ||
+      /(-?\d+(?:\.\d+)?)\s*\b(?:dew(?:\s*point)?|dp)\b/i.exec(note);
+    if (dewNum) out.temperature = dewNum[1];
+  }
   const height = /(\d+(?:\.\d+)?)\s*(mm|m|cm|metres?|meters?)\b/i.exec(note);
   if (height) out.height = `${height[1]}${height[2].toLowerCase()}`;
+  const location = extractBaselineLocation(note);
+  if (location) out.location = location;
   return out;
 }
 
@@ -84,7 +157,7 @@ function rankedSuggestions(note: string, limit = 4): string[] {
  * Only shorthand extraction or the surveyor's own typing may fill them.
  */
 export function isReadingPlaceholder(key: string): boolean {
-  return /rh|percent|pin_value|temp|dew|height|diff/i.test(key);
+  return /rh|percent|pin_value|temp|dew|height|diff|baseline_location/i.test(key);
 }
 
 /**
@@ -153,6 +226,8 @@ export function placeholderValuesFromNote(
       values[ph.key] = extracted.temperature;
     } else if (/height/.test(ph.key) && extracted.height) {
       values[ph.key] = extracted.height;
+    } else if (/baseline_location|location/.test(ph.key) && extracted.location) {
+      values[ph.key] = extracted.location;
     } else {
       values[ph.key] = "";
     }
@@ -216,13 +291,37 @@ function specialRules(
   if (/^\d+(\.\d+)?\s*(m|mm|cm|metres?|meters?)$/.test(note)) {
     return { id: "three-readings-heights", high: false };
   }
-  if (/facing/.test(note)) {
-    const dir = /north\s*east|northeast|north\s*west|northwest|south\s*east|southeast|south\s*west|southwest|north|south|east|west/.exec(
-      note
-    )?.[0];
-    if (dir) {
-      const id = "weather-" + dir.replace(/\s+/g, "");
-      if (byId.has(id)) return { id, high: true };
+  // Orientation: full words ("facing north") or letter abbreviations (N, SW, …).
+  {
+    const DIR_ABBREV: Record<string, string> = {
+      n: "north",
+      ne: "northeast",
+      e: "east",
+      se: "southeast",
+      s: "south",
+      sw: "southwest",
+      w: "west",
+      nw: "northwest"
+    };
+    const bareAbbr = /^(ne|nw|se|sw|n|e|s|w)$/.exec(note)?.[1];
+    if (bareAbbr) {
+      return { id: `weather-${DIR_ABBREV[bareAbbr]}`, high: true };
+    }
+    if (/\bfacing\b/.test(note)) {
+      const dirWord =
+        /north\s*east|northeast|north\s*west|northwest|south\s*east|southeast|south\s*west|southwest|north|south|east|west/.exec(
+          note
+        )?.[0];
+      const dirAbbr = /\b(ne|nw|se|sw|n|e|s|w)\b/.exec(note)?.[1];
+      const key = dirWord
+        ? dirWord.replace(/\s+/g, "")
+        : dirAbbr
+          ? DIR_ABBREV[dirAbbr]
+          : null;
+      if (key) {
+        const id = `weather-${key}`;
+        if (byId.has(id)) return { id, high: true };
+      }
     }
   }
   if (/^front$/.test(note) || /front elevation/.test(note)) {
@@ -256,6 +355,7 @@ export function matchEntries(entries: ShorthandEntry[]): SectionState[] {
       source: "empty",
       needsAttention: false,
       pendingReview: false,
+      pendingNoteConfirm: false,
       suggestions
     };
 
@@ -283,10 +383,11 @@ export function matchEntries(entries: ShorthandEntry[]): SectionState[] {
     const matched = special ?? (suggestions[0] ? { id: suggestions[0], high: false } : null);
 
     if (wordCount >= WORD_COUNT_LONG_NOTE) {
-      // The surveyor wrote real prose - keep it, offer AI polish.
+      // The surveyor wrote real prose - keep it; confirm as-is or polish with AI.
       state.source = "manual";
       state.text = entry.note;
       state.needsAttention = true;
+      state.pendingNoteConfirm = true;
       // Track whether this looks like the start of a run of reading photos.
       inReadingRun = /moisture mapp|readings (were|taken)|three readings/.test(note);
       readingCounter = 0;

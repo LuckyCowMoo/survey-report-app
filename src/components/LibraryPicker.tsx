@@ -1,4 +1,6 @@
 import {
+  useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -6,6 +8,11 @@ import {
   type PointerEvent as ReactPointerEvent
 } from "react";
 import { createPortal } from "react-dom";
+import {
+  currentAppHist,
+  dismissAppOverlay,
+  pushAppHist
+} from "../lib/appHistory";
 import { library } from "../lib/matcher";
 import type { LibraryParagraph } from "../types";
 
@@ -80,6 +87,62 @@ function PickerItemButton({
       <span>{paragraph.text.slice(0, 110)}...</span>
     </button>
   );
+}
+
+/** Higher = closer match for the search box / Enter-to-pick. */
+function searchScore(p: LibraryParagraph, q: string): number {
+  if (!q) return 0;
+  const topic = p.topic.toLowerCase();
+  const group = p.group.toLowerCase();
+  let s = 0;
+
+  if (topic === q) s += 1000;
+  else if (topic.startsWith(q)) s += 500;
+  else if (topic.includes(q)) s += 300;
+
+  for (const kw of p.keywords) {
+    const k = kw.toLowerCase();
+    if (k === q) s += 400;
+    else if (k.startsWith(q)) s += 220;
+    else if (k.includes(q)) s += 120;
+    if (q.includes(k)) s += k.length >= 8 ? 60 : k.length >= 4 ? 40 : 16;
+  }
+
+  if (group === q) s += 80;
+  else if (group.includes(q)) s += 40;
+
+  if (p.text.toLowerCase().includes(q)) s += 8;
+  return s;
+}
+
+function matchesQuery(p: LibraryParagraph, q: string): boolean {
+  if (!q) return true;
+  return (
+    p.topic.toLowerCase().includes(q) ||
+    p.group.toLowerCase().includes(q) ||
+    p.text.toLowerCase().includes(q) ||
+    p.keywords.some((k) => k.toLowerCase().includes(q))
+  );
+}
+
+function bestSearchMatch(query: string): LibraryParagraph | null {
+  const q = query.toLowerCase().trim();
+  if (!q) return null;
+  const candidates = library.photoParagraphs.filter((p) => matchesQuery(p, q));
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  let best = candidates[0];
+  let bestS = searchScore(best, q);
+  for (let i = 1; i < candidates.length; i++) {
+    const p = candidates[i];
+    const s = searchScore(p, q);
+    if (s > bestS) {
+      best = p;
+      bestS = s;
+    }
+  }
+  return best;
 }
 
 type DirDef = {
@@ -319,17 +382,28 @@ function DirectionCompass({
 
 export default function LibraryPicker({ onPick, onClose }: Props) {
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useLayoutEffect(() => {
+    searchRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  // Push a history entry so Escape / browser back dismisses this sheet first.
+  useEffect(() => {
+    const base = currentAppHist();
+    pushAppHist({ ...base, overlay: "library" });
+    const onPop = () => onCloseRef.current();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const dismiss = () => dismissAppOverlay("library", onClose);
 
   const groups = useMemo(() => {
     const q = query.toLowerCase().trim();
-    const filtered = library.photoParagraphs.filter(
-      (p) =>
-        q === "" ||
-        p.topic.toLowerCase().includes(q) ||
-        p.group.toLowerCase().includes(q) ||
-        p.text.toLowerCase().includes(q) ||
-        p.keywords.some((k) => k.toLowerCase().includes(q))
-    );
+    const filtered = library.photoParagraphs.filter((p) => matchesQuery(p, q));
     const byGroup = new Map<string, LibraryParagraph[]>();
     for (const p of filtered) {
       const list = byGroup.get(p.group) ?? [];
@@ -339,23 +413,42 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
     return [...byGroup.entries()];
   }, [query]);
 
+  const pickClosest = () => {
+    const best = bestSearchMatch(query);
+    if (best) {
+      onPick(best);
+      dismiss();
+    }
+  };
+
+  const pickAndDismiss = (p: LibraryParagraph) => {
+    onPick(p);
+    dismiss();
+  };
+
   return createPortal(
-    <div className="sheet-backdrop" onClick={onClose}>
+    <div className="sheet-backdrop" onClick={dismiss}>
       <div className="sheet tall" onClick={(e) => e.stopPropagation()}>
         <h2>Standard wording</h2>
         <input
+          ref={searchRef}
           className="search"
           type="search"
           placeholder="Search topics..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            pickClosest();
+          }}
         />
         <div className="picker-list">
           {groups.map(([group, items]) => (
             <div key={group} className="picker-group">
               <h3>{group}</h3>
               {group === WEATHER_GROUP ? (
-                <DirectionCompass paragraphs={items} onPick={onPick} />
+                <DirectionCompass paragraphs={items} onPick={pickAndDismiss} />
               ) : (
                 toPickerRows(items).map((row) =>
                   row.kind === "pair" ? (
@@ -363,14 +456,20 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
                       key={`${row.left.id}|${row.right.id}`}
                       className="picker-choice-row"
                     >
-                      <PickerItemButton paragraph={row.left} onPick={onPick} />
-                      <PickerItemButton paragraph={row.right} onPick={onPick} />
+                      <PickerItemButton
+                        paragraph={row.left}
+                        onPick={pickAndDismiss}
+                      />
+                      <PickerItemButton
+                        paragraph={row.right}
+                        onPick={pickAndDismiss}
+                      />
                     </div>
                   ) : (
                     <PickerItemButton
                       key={row.item.id}
                       paragraph={row.item}
-                      onPick={onPick}
+                      onPick={pickAndDismiss}
                     />
                   )
                 )
@@ -380,7 +479,7 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
           {groups.length === 0 && <p className="muted">No matches.</p>}
         </div>
         <div className="sheet-actions">
-          <button className="btn" onClick={onClose}>
+          <button className="btn" onClick={dismiss}>
             Close
           </button>
         </div>
