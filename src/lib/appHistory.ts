@@ -1,4 +1,4 @@
-export type AppStep = "home" | "review" | "details" | "generate";
+export type AppStep = "home" | "past" | "review" | "details" | "generate";
 export type AppOverlay = "settings" | "guide" | "library";
 
 export type AppHistState = {

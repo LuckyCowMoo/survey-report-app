@@ -1,7 +1,9 @@
+import { matchesStudioLayout } from "./studioLayout";
+
 /** Desktop aside: left column is the scroll root; otherwise the window. */
 export function getScrollRoot(): HTMLElement | Window {
   if (typeof window === "undefined") return window;
-  if (window.matchMedia("(min-width: 1100px)").matches) {
+  if (matchesStudioLayout()) {
     const el = document.querySelector<HTMLElement>(".app.app-aside .content");
     if (el) return el;
   }

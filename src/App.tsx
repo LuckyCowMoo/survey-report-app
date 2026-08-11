@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HomeScreen from "./components/HomeScreen";
+import PastReportsScreen from "./components/PastReportsScreen";
 import ReviewScreen from "./components/ReviewScreen";
 import DetailsScreen from "./components/DetailsScreen";
 import GenerateScreen from "./components/GenerateScreen";
@@ -21,9 +22,31 @@ import {
   replaceAppHist,
   type AppStep
 } from "./lib/appHistory";
+import {
+  findLatestLibraryMatchBySource,
+  loadLibraryProject,
+  type LibraryReportMeta
+} from "./lib/reportLibrary";
+import {
+  fingerprintSourceEntries,
+  type ReportProject
+} from "./lib/reportProject";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
 type Step = AppStep;
+
+type PendingSourceMatch = {
+  sections: SectionState[];
+  warnings: string[];
+  match: LibraryReportMeta;
+};
+
+function libraryDisplayTitle(report: LibraryReportMeta): string {
+  return (
+    report.fileName.replace(/\.docx$/i, "").replace(/\.dmsr$/i, "") ||
+    "Untitled report"
+  );
+}
 
 function defaultMetadata(settings: AppSettings): ReportMetadata {
   return {
@@ -73,7 +96,9 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  const [focusedSectionIndex, setFocusedSectionIndex] = useState(0);
+  const [focusedSectionIndex, setFocusedSectionIndex] = useState<number | null>(
+    null
+  );
   /** Section the user has actively focused; dwell timer only runs for this. */
   const [reviewDwellIndex, setReviewDwellIndex] = useState<number | null>(null);
   const [step, setStep] = useState<Step>("home");
@@ -90,6 +115,9 @@ export default function App() {
   const [aiBatchRunning, setAiBatchRunning] = useState(false);
   const aiBatchAbortRef = useRef<AbortController | null>(null);
   const importTriggerRef = useRef<(() => void) | null>(null);
+  const [pendingSourceMatch, setPendingSourceMatch] =
+    useState<PendingSourceMatch | null>(null);
+  const [resumeBusy, setResumeBusy] = useState(false);
 
   const flaggedCount = useMemo(
     () => sections.filter((s) => s.needsAttention).length,
@@ -297,30 +325,97 @@ export default function App() {
     [dismissOverlay]
   );
 
+  const beginFreshImport = useCallback(
+    (nextSections: SectionState[], nextWarnings: string[]) => {
+      setSections(nextSections);
+      setWarnings(nextWarnings);
+      setFocusedSectionIndex(null);
+      setReviewDwellIndex(null);
+      navigateTo("review");
+    },
+    [navigateTo]
+  );
+
   const handleFile = useCallback(
     async (file: File) => {
       setBusy("Reading document...");
       setError(null);
       setAiErrors({});
+      setPendingSourceMatch(null);
       aiBatchAbortRef.current?.abort();
       aiBatchAbortRef.current = null;
       setAiBatchRunning(false);
       try {
         const data = await file.arrayBuffer();
         const parsed = await parseShorthandDocx(data);
-        setSections(matchEntries(parsed.entries));
-        setWarnings(parsed.warnings);
-        setFocusedSectionIndex(0);
-        setReviewDwellIndex(null);
-        navigateTo("review");
+        const nextSections = matchEntries(parsed.entries);
+        const fingerprint = await fingerprintSourceEntries(parsed.entries);
+        const match = await findLatestLibraryMatchBySource(fingerprint);
+        if (match) {
+          setPendingSourceMatch({
+            sections: nextSections,
+            warnings: parsed.warnings,
+            match
+          });
+          return;
+        }
+        beginFreshImport(nextSections, parsed.warnings);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setBusy(null);
       }
     },
+    [beginFreshImport]
+  );
+
+  /** Reopen a proprietary past-report project at pre-generation design state. */
+  const openProject = useCallback(
+    (project: ReportProject) => {
+      setError(null);
+      setAiErrors({});
+      aiBatchAbortRef.current?.abort();
+      aiBatchAbortRef.current = null;
+      setAiBatchRunning(false);
+      setBusySectionIndex(null);
+      setBusy(null);
+      setSections(project.sections);
+      setWarnings(project.warnings);
+      setMetadata(project.metadata);
+      setExtras(project.extras);
+      setFocusedSectionIndex(null);
+      setReviewDwellIndex(null);
+      // Stack review under details so Back from details returns to section review.
+      navigateTo("review");
+      if (project.step === "details") {
+        navigateTo("details");
+      }
+    },
     [navigateTo]
   );
+
+  const resumeMatchedProject = useCallback(async () => {
+    if (!pendingSourceMatch || resumeBusy) return;
+    setResumeBusy(true);
+    setError(null);
+    try {
+      const project = await loadLibraryProject(pendingSourceMatch.match.id);
+      setPendingSourceMatch(null);
+      openProject(project);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setResumeBusy(false);
+    }
+  }, [pendingSourceMatch, resumeBusy, openProject]);
+
+  const startFreshDespiteMatch = useCallback(() => {
+    if (!pendingSourceMatch || resumeBusy) return;
+    const { sections: nextSections, warnings: nextWarnings } =
+      pendingSourceMatch;
+    setPendingSourceMatch(null);
+    beginFreshImport(nextSections, nextWarnings);
+  }, [pendingSourceMatch, resumeBusy, beginFreshImport]);
 
   // Test hook: ?sample=<url> loads a document over HTTP through the same
   // pipeline as the file picker (used by automated tests; harmless otherwise).
@@ -448,10 +543,11 @@ export default function App() {
     aiBatchAbortRef.current?.abort();
     aiBatchAbortRef.current = null;
     setAiBatchRunning(false);
-    setFocusedSectionIndex(0);
+    setFocusedSectionIndex(null);
     setReviewDwellIndex(null);
     setShowSettings(false);
     setShowGuide(false);
+    setPendingSourceMatch(null);
     setStep("home");
     replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
@@ -480,6 +576,7 @@ export default function App() {
             <span className="topbar-btn-label">Back</span>
           </button>
           <h1 className="topbar-title">
+            {step === "past" && "Past reports"}
             {step === "review" && "Review sections"}
             {step === "details" && "Report details"}
             {step === "generate" && "Generate"}
@@ -517,8 +614,12 @@ export default function App() {
             busy={busy !== null}
             onShowGuide={openGuide}
             onShowSettings={openSettings}
+            onShowPastReports={() => navigateTo("past")}
             importTriggerRef={importTriggerRef}
           />
+        )}
+        {step === "past" && (
+          <PastReportsScreen onOpenProject={openProject} />
         )}
         {step === "review" && (
           <ReviewScreen
@@ -555,6 +656,7 @@ export default function App() {
             sections={sections}
             metadata={metadata}
             extras={extras}
+            warnings={warnings}
             flaggedCount={flaggedCount}
             onRestart={reset}
           />
@@ -571,6 +673,58 @@ export default function App() {
 
       {showGuide && <KeywordGuide onClose={dismissOverlay} />}
 
+      {pendingSourceMatch && (
+        <div
+          className="sheet-backdrop"
+          onClick={() => {
+            if (!resumeBusy) setPendingSourceMatch(null);
+          }}
+        >
+          <div
+            className="sheet past-delete-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="resume-match-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="resume-match-title">Continue saved report?</h2>
+            <p>
+              This field notes document matches{" "}
+              <strong>{libraryDisplayTitle(pendingSourceMatch.match)}</strong>
+              {pendingSourceMatch.match.houseName ||
+              pendingSourceMatch.match.clientName
+                ? ` (${[
+                    pendingSourceMatch.match.houseName,
+                    pendingSourceMatch.match.clientName
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")})`
+                : ""}
+              . Continue from that saved work, or start a new report from the
+              import?
+            </p>
+            <div className="sheet-actions">
+              <button
+                type="button"
+                className="btn"
+                disabled={resumeBusy}
+                onClick={startFreshDespiteMatch}
+              >
+                Start fresh
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={resumeBusy}
+                onClick={() => void resumeMatchedProject()}
+              >
+                {resumeBusy ? "Opening…" : "Continue saved"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {(step === "review" || step === "details" || step === "generate") &&
         sections.length > 0 && (
         <StudioAside
@@ -580,6 +734,8 @@ export default function App() {
           dwellIndex={step === "review" ? reviewDwellIndex : null}
           busySectionIndex={busySectionIndex}
           aiErrorSectionNums={aiErrorSectionNums}
+          pipJumpOnHover={settings.pipJumpOnHover}
+          studioPhotoPassThrough={settings.studioPhotoPassThrough}
           onJumpSection={focusSection}
           onDwellComplete={completeDwellReview}
         />

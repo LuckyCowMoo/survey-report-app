@@ -13,6 +13,16 @@ export interface AppSettings {
   geminiModel: string;
   companyName: string;
   website: string;
+  /**
+   * When true, hovering a review status pip jumps to that section.
+   * When false, a click/tap is required.
+   */
+  pipJumpOnHover: boolean;
+  /**
+   * When true, the studio photo scrolls through every in-between section
+   * image when jumping across multiple sections on Review.
+   */
+  studioPhotoPassThrough: boolean;
 }
 
 export const DEFAULT_MODEL = "claude-sonnet-5";
@@ -42,7 +52,9 @@ export function loadSettings(): AppSettings {
     geminiApiKey: "",
     geminiModel: DEFAULT_GEMINI_MODEL,
     companyName: "DampMaster",
-    website: "www.dampmaster.com"
+    website: "www.dampmaster.com",
+    pipJumpOnHover: true,
+    studioPhotoPassThrough: false
   };
   try {
     const raw = localStorage.getItem(KEY);

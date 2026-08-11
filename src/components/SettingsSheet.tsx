@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_MODEL,
   type AppSettings
 } from "../lib/settings";
+import { usePointerInputModeValue } from "../lib/pointerInput";
+import {
+  canLinkReportFolder,
+  getLinkedFolderName,
+  linkReportFolder,
+  unlinkReportFolder
+} from "../lib/reportLibrary";
 import ThemePicker from "./ThemeToggle";
 
 interface Props {
@@ -57,8 +64,29 @@ function ApiKeyField({
   );
 }
 
+function pipJumpLabel(hover: boolean, pointer: "fine" | "coarse"): string {
+  if (hover) return "hover pip to move";
+  return pointer === "fine" ? "click pip to move" : "tap pip to move";
+}
+
 export default function SettingsSheet({ settings, onSave, onClose }: Props) {
   const [draft, setDraft] = useState<AppSettings>(settings);
+  const pointerMode = usePointerInputModeValue();
+  const folderCapable = canLinkReportFolder();
+  const [folderName, setFolderName] = useState<string | null>(null);
+  const [folderBusy, setFolderBusy] = useState(false);
+  const [folderError, setFolderError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!folderCapable) return;
+    void getLinkedFolderName().then((name) => {
+      if (!cancelled) setFolderName(name);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [folderCapable]);
 
   const set = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -73,12 +101,111 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
     });
   };
 
+  const onLinkFolder = async () => {
+    setFolderError(null);
+    setFolderBusy(true);
+    try {
+      const name = await linkReportFolder();
+      setFolderName(name);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setFolderError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setFolderBusy(false);
+    }
+  };
+
+  const onUnlinkFolder = async () => {
+    setFolderError(null);
+    setFolderBusy(true);
+    try {
+      await unlinkReportFolder();
+      setFolderName(null);
+    } catch (err) {
+      setFolderError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setFolderBusy(false);
+    }
+  };
+
+  const jumpLabel = pipJumpLabel(draft.pipJumpOnHover, pointerMode);
+
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <h2>Settings</h2>
 
         <ThemePicker />
+
+        <div className="pip-jump-row">
+          <button
+            type="button"
+            className={`pill-switch${draft.pipJumpOnHover ? " is-on" : ""}`}
+            role="switch"
+            aria-checked={draft.pipJumpOnHover}
+            aria-label={jumpLabel}
+            onClick={() => set("pipJumpOnHover", !draft.pipJumpOnHover)}
+          >
+            <span className="pill-switch-thumb" aria-hidden />
+          </button>
+          <span className="pip-jump-label">{jumpLabel}</span>
+        </div>
+
+        <div className="pip-jump-row">
+          <button
+            type="button"
+            className={`pill-switch${draft.studioPhotoPassThrough ? " is-on" : ""}`}
+            role="switch"
+            aria-checked={draft.studioPhotoPassThrough}
+            aria-label="scroll through in-between photos"
+            onClick={() =>
+              set("studioPhotoPassThrough", !draft.studioPhotoPassThrough)
+            }
+          >
+            <span className="pill-switch-thumb" aria-hidden />
+          </button>
+          <span className="pip-jump-label">scroll through in-between photos</span>
+        </div>
+
+        <div className="library-settings">
+          <span className="library-settings-label">Report library</span>
+          {folderCapable ? (
+            <>
+              <p className="muted library-settings-copy">
+                {folderName
+                  ? `Finished reports are written to “${folderName}” on this computer.`
+                  : "This browser can link a folder. That’s the recommended place to keep finished reports so they aren’t downloaded twice."}
+              </p>
+              {folderError && <p className="warn-text">{folderError}</p>}
+              <div className="library-settings-actions">
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={folderBusy}
+                  onClick={() => void onLinkFolder()}
+                >
+                  {folderName ? "Change folder" : "Link a reports folder"}
+                </button>
+                {folderName && (
+                  <button
+                    type="button"
+                    className="btn small"
+                    disabled={folderBusy}
+                    onClick={() => void onUnlinkFolder()}
+                  >
+                    Use app storage instead
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="muted library-settings-copy">
+              This device can’t link a disk folder, so finished reports are kept
+              in this app’s storage as reopenable projects (with a Word copy for
+              share and download).
+            </p>
+          )}
+        </div>
 
         <label className="field">
           <span>AI service</span>

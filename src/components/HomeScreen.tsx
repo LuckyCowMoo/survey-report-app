@@ -1,12 +1,13 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import FloatingReports from "./FloatingReports";
-import { IconBook, IconSettings } from "./icons";
+import { IconBook, IconGrid, IconSettings } from "./icons";
 
 interface Props {
   onFile: (file: File) => void;
   busy: boolean;
   onShowGuide: () => void;
   onShowSettings: () => void;
+  onShowPastReports: () => void;
   /** Lets the app trigger Import (e.g. browser/mouse forward on the home page). */
   importTriggerRef?: MutableRefObject<(() => void) | null>;
 }
@@ -16,6 +17,7 @@ export default function HomeScreen({
   busy,
   onShowGuide,
   onShowSettings,
+  onShowPastReports,
   importTriggerRef
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +73,16 @@ export default function HomeScreen({
         </button>
 
         <div className="home-secondary-actions">
+          <button
+            className="btn home-guide-btn home-past-btn"
+            aria-label="Past reports"
+            onClick={onShowPastReports}
+          >
+            <span className="home-btn-icon" aria-hidden>
+              <IconGrid className="home-btn-glyph" />
+            </span>
+            <span className="home-btn-label">Past reports</span>
+          </button>
           <button
             className="btn home-guide-btn"
             aria-label="Guide"

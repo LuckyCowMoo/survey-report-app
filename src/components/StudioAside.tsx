@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { imagePreviewUrl } from "../lib/imageUtils";
 import { PIP_DWELL_MS, PIP_FLASH_MS, PIP_REVERSE_MS } from "../lib/pipTiming";
 import { scrollElementIntoViewCentered } from "../lib/scrollRoot";
+import { matchesStudioLayout } from "../lib/studioLayout";
 import type { SectionState } from "../types";
 
 const LOUPE_ZOOM_DEFAULT = 2.65;
@@ -85,13 +86,19 @@ type FlowStep = "review" | "details" | "generate";
 interface Props {
   step: FlowStep;
   sections: SectionState[];
-  focusedIndex: number;
+  focusedIndex: number | null;
   /** Section the user is actively dwelling on (review only); drives yellow→green / stripe→blue fill. */
   dwellIndex: number | null;
   /** Section currently being written by AI (slow purple fill). */
   busySectionIndex: number | null;
   /** Entry numbers of sections with an active AI error overlay. */
   aiErrorSectionNums?: ReadonlySet<number>;
+  /** When true, hovering a review pip jumps to that section; otherwise click/tap. */
+  pipJumpOnHover?: boolean;
+  /**
+   * When true, studio photo scrolls through in-between section images on long jumps.
+   */
+  studioPhotoPassThrough?: boolean;
   onJumpSection?: (index: number) => void;
   /** Fired when a pending-review / note-confirm pip fill reaches completion. */
   onDwellComplete?: (index: number) => void;
@@ -117,8 +124,22 @@ const PIP_AI_FILL_MS = 4800;
 /** Mexican-wave pulse when moving between review / details / generate. */
 const PIP_WAVE_MS = 350;
 const PIP_WAVE_STAGGER_MS = 32;
+/** Review studio photo slide when the focused section changes. */
+const PHOTO_SLIDE_MS = 480;
+/** Per in-between frame when pass-through scrolling is on. */
+const PHOTO_PASS_STEP_MS = 220;
+const PHOTO_PASS_MAX_MS = 1600;
 
 const FLOW_ORDER: FlowStep[] = ["review", "details", "generate"];
+
+type SlideDir = "up" | "down";
+
+type ReviewSlide = {
+  src: string;
+  /** True when src is a blob: object URL that must be revoked. */
+  objectUrl: boolean;
+  sectionNum: number | null;
+};
 
 type PipTone =
   | "attention"
@@ -130,6 +151,7 @@ type PipTone =
   | "empty";
 
 const PIP_COLORS: Record<PipTone, string> = {
+  // Hardcoded — same as .btn.primary / --brand; avoid var() on <button> (UA dark remap).
   attention: "#ff5a36",
   noteConfirm: "#eab308",
   review: "#eab308",
@@ -194,7 +216,7 @@ function effectiveTone(anim: PipAnim): PipTone {
 /** Desktop aside: left column is the scroll root; otherwise the window. */
 function getScrollRoot(): HTMLElement | null {
   if (typeof window === "undefined") return null;
-  if (!window.matchMedia("(min-width: 1100px)").matches) return null;
+  if (!matchesStudioLayout()) return null;
   return document.querySelector<HTMLElement>(".app.app-aside .content");
 }
 
@@ -248,12 +270,31 @@ export default function StudioAside({
   dwellIndex,
   busySectionIndex,
   aiErrorSectionNums,
+  pipJumpOnHover = true,
+  studioPhotoPassThrough = false,
   onJumpSection,
   onDwellComplete
 }: Props) {
   const section =
-    sections[Math.min(Math.max(focusedIndex, 0), Math.max(sections.length - 1, 0))];
-  const [url, setUrl] = useState<string | null>(null);
+    focusedIndex == null
+      ? undefined
+      : sections[
+          Math.min(Math.max(focusedIndex, 0), Math.max(sections.length - 1, 0))
+        ];
+  const [reviewSlide, setReviewSlide] = useState<ReviewSlide | null>(null);
+  const [reviewOutgoing, setReviewOutgoing] = useState<{
+    slide: ReviewSlide;
+    dir: SlideDir;
+  } | null>(null);
+  const [reviewPass, setReviewPass] = useState<{
+    frames: ReviewSlide[];
+    dir: SlideDir;
+    ms: number;
+  } | null>(null);
+  const reviewSlideRef = useRef<ReviewSlide | null>(null);
+  const prevFocusRef = useRef<number | null>(null);
+  const slideTimerRef = useRef(0);
+  const passFramesRef = useRef<ReviewSlide[] | null>(null);
   const [studioHero, setStudioHero] = useState(() => pickDetailsHero());
   const [scroll, setScroll] = useState({ progress: 0, thumb: 0.2 });
   const [pipAnims, setPipAnims] = useState<Map<number, PipAnim>>(() => new Map());
@@ -264,6 +305,8 @@ export default function StudioAside({
   const [loupe, setLoupe] = useState<LoupeView | null>(null);
   const loupeZoomRef = useRef(LOUPE_ZOOM_DEFAULT);
   const loupePointerRef = useRef<{ x: number; y: number } | null>(null);
+  const loupeTouchActiveRef = useRef(false);
+  const loupePinchRef = useRef<{ dist: number; zoom: number } | null>(null);
   const pipAnimsRef = useRef<Map<number, PipAnim>>(new Map());
   const dwellCompleteFiredRef = useRef<Set<number>>(new Set());
   const flashTimersRef = useRef<Map<number, number>>(new Map());
@@ -489,18 +532,179 @@ export default function StudioAside({
   }, [step, dwellIndex, busySectionIndex, sections]);
 
   useEffect(() => {
+    const revoke = (slide: ReviewSlide | null | undefined) => {
+      if (slide?.objectUrl) URL.revokeObjectURL(slide.src);
+    };
+    const clearPass = (keep?: ReviewSlide | null) => {
+      const frames = passFramesRef.current;
+      passFramesRef.current = null;
+      if (frames) {
+        for (const frame of frames) {
+          if (keep && frame.src === keep.src) continue;
+          revoke(frame);
+        }
+      }
+      setReviewPass(null);
+    };
+
     if (step !== "review") {
-      setUrl(null);
+      if (slideTimerRef.current) {
+        window.clearTimeout(slideTimerRef.current);
+        slideTimerRef.current = 0;
+      }
+      clearPass();
+      revoke(reviewSlideRef.current);
+      reviewSlideRef.current = null;
+      setReviewSlide(null);
+      setReviewOutgoing((cur) => {
+        revoke(cur?.slide);
+        return null;
+      });
+      prevFocusRef.current = null;
       return;
     }
-    if (!section?.entry.images.length) {
-      setUrl(null);
+
+    let next: ReviewSlide | null = null;
+    if (section?.entry.images.length) {
+      next = {
+        src: imagePreviewUrl(
+          section.entry.images[0],
+          section.entry.imageNames[0]
+        ),
+        objectUrl: true,
+        sectionNum: section.entry.number
+      };
+    }
+
+    const current = reviewSlideRef.current;
+    const prevFocus = prevFocusRef.current;
+    const nextFocus = focusedIndex;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    // Same focused photo — keep the existing object URL.
+    if (
+      current &&
+      next &&
+      current.sectionNum != null &&
+      current.sectionNum === next.sectionNum
+    ) {
+      revoke(next);
+      prevFocusRef.current = nextFocus;
       return;
     }
-    const next = imagePreviewUrl(section.entry.images[0], section.entry.imageNames[0]);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [step, section?.entry.images, section?.entry.imageNames, section?.entry.number]);
+
+    const canSlide =
+      !reduceMotion &&
+      current != null &&
+      next != null &&
+      prevFocus != null &&
+      nextFocus != null &&
+      prevFocus !== nextFocus;
+
+    if (slideTimerRef.current) {
+      window.clearTimeout(slideTimerRef.current);
+      slideTimerRef.current = 0;
+    }
+
+    if (canSlide) {
+      const dir: SlideDir = nextFocus > prevFocus ? "up" : "down";
+      const span = Math.abs(nextFocus - prevFocus);
+
+      if (studioPhotoPassThrough && span > 1) {
+        const stepIdx = nextFocus > prevFocus ? 1 : -1;
+        const travel: ReviewSlide[] = [current];
+        for (let i = prevFocus + stepIdx; i !== nextFocus; i += stepIdx) {
+          const s = sections[i];
+          if (!s?.entry.images.length) continue;
+          travel.push({
+            src: imagePreviewUrl(s.entry.images[0], s.entry.imageNames[0]),
+            objectUrl: true,
+            sectionNum: s.entry.number
+          });
+        }
+        travel.push(next);
+
+        if (travel.length > 2) {
+          clearPass();
+          setReviewOutgoing((cur) => {
+            revoke(cur?.slide);
+            return null;
+          });
+          const ms = Math.min(
+            PHOTO_PASS_MAX_MS,
+            Math.max(PHOTO_SLIDE_MS, PHOTO_PASS_STEP_MS * (travel.length - 1))
+          );
+          passFramesRef.current = travel;
+          setReviewPass({ frames: travel, dir, ms });
+          reviewSlideRef.current = next;
+          setReviewSlide(next);
+          slideTimerRef.current = window.setTimeout(() => {
+            clearPass(next);
+            slideTimerRef.current = 0;
+          }, ms);
+          prevFocusRef.current = nextFocus;
+          return;
+        }
+
+        for (const frame of travel) {
+          if (frame !== current && frame !== next) revoke(frame);
+        }
+      }
+
+      clearPass(current);
+      setReviewOutgoing((cur) => {
+        if (cur && cur.slide.src !== current.src) revoke(cur.slide);
+        return { slide: current, dir };
+      });
+      reviewSlideRef.current = next;
+      setReviewSlide(next);
+      slideTimerRef.current = window.setTimeout(() => {
+        setReviewOutgoing((cur) => {
+          revoke(cur?.slide);
+          return null;
+        });
+        slideTimerRef.current = 0;
+      }, PHOTO_SLIDE_MS);
+    } else {
+      clearPass();
+      setReviewOutgoing((cur) => {
+        revoke(cur?.slide);
+        return null;
+      });
+      if (current) revoke(current);
+      reviewSlideRef.current = next;
+      setReviewSlide(next);
+    }
+
+    prevFocusRef.current = nextFocus;
+  }, [
+    step,
+    focusedIndex,
+    studioPhotoPassThrough,
+    sections,
+    section?.entry.images,
+    section?.entry.imageNames,
+    section?.entry.number
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (slideTimerRef.current) window.clearTimeout(slideTimerRef.current);
+      const cur = reviewSlideRef.current;
+      if (cur?.objectUrl) URL.revokeObjectURL(cur.src);
+      reviewSlideRef.current = null;
+      const frames = passFramesRef.current;
+      passFramesRef.current = null;
+      if (frames) {
+        for (const frame of frames) {
+          if (cur && frame.src === cur.src) continue;
+          if (frame.objectUrl) URL.revokeObjectURL(frame.src);
+        }
+      }
+    };
+  }, []);
 
   // Fresh random hero each time details or generate is opened.
   useEffect(() => {
@@ -633,12 +837,51 @@ export default function StudioAside({
   const thumbTop = scroll.progress * (1 - scroll.thumb) * 100;
   const thumbHeight = scroll.thumb * 100;
 
+  const focusedSection = section;
+  const focusedErrored =
+    focusedSection != null &&
+    (aiErrorSectionNums?.has(focusedSection.entry.number) ?? false);
+  const focusedAnim =
+    focusedSection != null
+      ? (pipAnims.get(focusedSection.entry.number) ?? {
+          from: pipTone(focusedSection),
+          to: pipTone(focusedSection),
+          progress: 1
+        })
+      : null;
+  const focusedFilling =
+    focusedAnim != null && !focusedErrored && focusedAnim.progress < 1;
+  const focusedFlashing =
+    focusedSection != null &&
+    !focusedErrored &&
+    flashingPips.has(focusedSection.entry.number);
+  const focusedTone: PipTone | "error" = focusedErrored
+    ? "error"
+    : focusedFilling && focusedAnim
+      ? focusedAnim.from
+      : focusedAnim
+        ? focusedAnim.to
+        : "empty";
+  const focusedStripedFrom =
+    focusedAnim != null &&
+    (focusedAnim.from === "noteConfirm" || focusedAnim.from === "review");
+  const focusedFillStyle =
+    focusedFilling && focusedAnim
+      ? ({
+          ...(focusedStripedFrom
+            ? {}
+            : { ["--pip-from"]: PIP_COLORS[focusedAnim.from] }),
+          ["--dwell-fill"]: focusedAnim.progress.toFixed(4),
+          ["--pip-to"]: PIP_COLORS[focusedAnim.to]
+        } as CSSProperties)
+      : undefined;
+
   const reviewCaption =
     section?.headingLine?.trim() ||
     section?.entry.note?.trim() ||
     (section ? `Section ${section.entry.number}` : "No section");
   const useStudioHero = step === "details" || step === "generate";
-  const photoSrc = useStudioHero ? studioHero : url;
+  const photoSrc = useStudioHero ? studioHero : reviewSlide?.src ?? null;
   const heroCaption = step === "generate" ? "Generate report" : "Report details";
   const loupeEnabled = step === "review";
 
@@ -737,9 +980,83 @@ export default function StudioAside({
       if (ptr) updateLoupe(ptr.x, ptr.y, next);
       else updateLoupe(e.clientX, e.clientY, next);
     };
+
+    // Touch: one finger pans the loupe; two-finger pinch changes zoom.
+    const pinchDist = (t: TouchList) =>
+      Math.hypot(
+        t[0].clientX - t[1].clientX,
+        t[0].clientY - t[1].clientY
+      );
+    const pinchMid = (t: TouchList) => ({
+      x: (t[0].clientX + t[1].clientX) / 2,
+      y: (t[0].clientY + t[1].clientY) / 2
+    });
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!photoSrc) return;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        loupePinchRef.current = {
+          dist: pinchDist(e.touches),
+          zoom: loupeZoomRef.current
+        };
+        const mid = pinchMid(e.touches);
+        updateLoupe(mid.x, mid.y);
+      } else if (e.touches.length === 1) {
+        loupeTouchActiveRef.current = true;
+        loupePinchRef.current = null;
+        updateLoupe(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!photoSrc) return;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dist = pinchDist(e.touches);
+        const pinch = loupePinchRef.current;
+        if (pinch && pinch.dist > 0) {
+          const next = Math.min(
+            LOUPE_ZOOM_MAX,
+            Math.max(LOUPE_ZOOM_MIN, pinch.zoom * (dist / pinch.dist))
+          );
+          loupeZoomRef.current = next;
+          const mid = pinchMid(e.touches);
+          updateLoupe(mid.x, mid.y, next);
+        } else {
+          loupePinchRef.current = {
+            dist,
+            zoom: loupeZoomRef.current
+          };
+        }
+      } else if (e.touches.length === 1 && loupeTouchActiveRef.current) {
+        e.preventDefault();
+        updateLoupe(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) loupePinchRef.current = null;
+      if (e.touches.length === 0) {
+        loupeTouchActiveRef.current = false;
+        clearLoupe();
+      } else if (e.touches.length === 1) {
+        loupeTouchActiveRef.current = true;
+        updateLoupe(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
     photo.addEventListener("wheel", onWheel, { passive: false });
-    return () => photo.removeEventListener("wheel", onWheel);
-    // updateLoupe closes over latest photoSrc / layout.
+    photo.addEventListener("touchstart", onTouchStart, { passive: false });
+    photo.addEventListener("touchmove", onTouchMove, { passive: false });
+    photo.addEventListener("touchend", onTouchEnd);
+    photo.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      photo.removeEventListener("wheel", onWheel);
+      photo.removeEventListener("touchstart", onTouchStart);
+      photo.removeEventListener("touchmove", onTouchMove);
+      photo.removeEventListener("touchend", onTouchEnd);
+      photo.removeEventListener("touchcancel", onTouchEnd);
+    };
+    // updateLoupe / clearLoupe close over latest photoSrc / layout.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loupeEnabled, photoSrc, step]);
 
@@ -748,30 +1065,107 @@ export default function StudioAside({
     <aside className="studio-aside" aria-label="Studio preview">
       <div
         ref={photoRef}
-        className={`studio-aside-photo${useStudioHero ? " is-details" : ""}${loupe ? " is-loupe-source" : ""}`}
+        className={`studio-aside-photo${useStudioHero ? " is-details" : ""}${loupe ? " is-loupe-source" : ""}${loupeEnabled ? " is-loupe-ready" : ""}`}
         onPointerMove={
           loupeEnabled
             ? (e) => {
+                // Touch loupe is handled via non-passive touch listeners above.
                 if (e.pointerType === "touch") return;
                 updateLoupe(e.clientX, e.clientY);
               }
             : undefined
         }
-        onPointerLeave={loupeEnabled ? clearLoupe : undefined}
-        onPointerCancel={loupeEnabled ? clearLoupe : undefined}
+        onPointerLeave={
+          loupeEnabled
+            ? () => {
+                if (loupeTouchActiveRef.current) return;
+                clearLoupe();
+              }
+            : undefined
+        }
+        onPointerCancel={
+          loupeEnabled
+            ? () => {
+                loupeTouchActiveRef.current = false;
+                clearLoupe();
+              }
+            : undefined
+        }
       >
-        {photoSrc ? (
+        {useStudioHero ? (
           <img
             ref={photoImgRef}
-            key={photoSrc}
-            src={photoSrc}
-            alt={useStudioHero ? "Stack of survey reports" : ""}
+            key={studioHero}
+            src={studioHero}
+            alt="Stack of survey reports"
             draggable={false}
           />
         ) : (
-          <div className="studio-aside-empty">
-            <span>No photo</span>
-            <small>Focus a section to preview it here</small>
+          <div className="studio-aside-photo-stage">
+            {reviewPass ? (
+              <div
+                className="studio-aside-photo-flipbook"
+                style={
+                  {
+                    ["--flip-count"]: reviewPass.frames.length,
+                    ["--flip-ms"]: `${reviewPass.ms}ms`,
+                    ["--flip-from"]:
+                      reviewPass.dir === "up"
+                        ? "0%"
+                        : `calc((1 - var(--flip-count)) / var(--flip-count) * 100%)`,
+                    ["--flip-to"]:
+                      reviewPass.dir === "up"
+                        ? `calc((1 - var(--flip-count)) / var(--flip-count) * 100%)`
+                        : "0%"
+                  } as CSSProperties
+                }
+              >
+                {(reviewPass.dir === "up"
+                  ? reviewPass.frames
+                  : [...reviewPass.frames].reverse()
+                ).map((frame, i) => (
+                  <img
+                    key={`${frame.sectionNum ?? "x"}-${i}`}
+                    className="studio-aside-photo-flip-frame"
+                    src={frame.src}
+                    alt=""
+                    draggable={false}
+                    aria-hidden
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                {reviewOutgoing && (
+                  <img
+                    className={`studio-aside-photo-slide is-exit-${reviewOutgoing.dir}`}
+                    src={reviewOutgoing.slide.src}
+                    alt=""
+                    draggable={false}
+                    aria-hidden
+                  />
+                )}
+                {reviewSlide ? (
+                  <img
+                    ref={photoImgRef}
+                    key={reviewSlide.src}
+                    className={`studio-aside-photo-slide${
+                      reviewOutgoing ? ` is-enter-${reviewOutgoing.dir}` : ""
+                    }`}
+                    src={reviewSlide.src}
+                    alt=""
+                    draggable={false}
+                  />
+                ) : (
+                  !reviewOutgoing && (
+                    <div className="studio-aside-empty">
+                      <span>No photo</span>
+                      <small>Focus a section to preview it here</small>
+                    </div>
+                  )
+                )}
+              </>
+            )}
           </div>
         )}
         {loupe && (
@@ -817,7 +1211,9 @@ export default function StudioAside({
               anim.from === "noteConfirm" || anim.from === "review";
             const fillStyle = filling
               ? ({
-                  ...(stripedFrom ? {} : { background: PIP_COLORS[anim.from] }),
+                  ...(stripedFrom
+                    ? {}
+                    : { ["--pip-from"]: PIP_COLORS[anim.from] }),
                   ["--dwell-fill"]: anim.progress.toFixed(4),
                   ["--pip-to"]: PIP_COLORS[anim.to]
                 } as CSSProperties)
@@ -845,7 +1241,7 @@ export default function StudioAside({
                       : `Section ${s.entry.number}, ${tone}`
                 }
                 aria-current={current ? "true" : undefined}
-                onMouseEnter={() => {
+                onClick={() => {
                   if (step !== "review") return;
                   onJumpSection?.(i);
                   const card = document.getElementById(
@@ -853,7 +1249,17 @@ export default function StudioAside({
                   );
                   if (card) scrollElementIntoViewCentered(card);
                 }}
+                onMouseEnter={() => {
+                  if (!pipJumpOnHover || step !== "review") return;
+                  onJumpSection?.(i);
+                  const card = document.getElementById(
+                    `section-card-${s.entry.number}`
+                  );
+                  if (card) scrollElementIntoViewCentered(card);
+                }}
               >
+                {/* Face carries colour — not the <button> — so UA dark mode can't remap it. */}
+                <span className="studio-pip-face" aria-hidden />
                 {pipWaves.map((w) => (
                   <span
                     key={w.id}
@@ -887,14 +1293,20 @@ export default function StudioAside({
         >
           <button
             type="button"
-            className="studio-scroll-thumb"
-            style={{ top: `${thumbTop}%`, height: `${thumbHeight}%` }}
+            className={`studio-scroll-thumb tone-${focusedTone}${focusedFilling ? " is-filling" : ""}${focusedFlashing ? " is-flash" : ""}`}
+            style={{
+              top: `${thumbTop}%`,
+              height: `${thumbHeight}%`,
+              ...focusedFillStyle
+            }}
             aria-label="Drag to scroll"
             onPointerDown={onThumbPointerDown}
             onPointerMove={onThumbPointerMove}
             onPointerUp={onThumbPointerUp}
             onPointerCancel={onThumbPointerUp}
-          />
+          >
+            <span className="studio-scroll-thumb-face" aria-hidden />
+          </button>
         </div>
       </div>
     </aside>

@@ -123,6 +123,44 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
   }
 ];
 
+const PURPOSE_COPY = [
+  "What this tool is for",
+  "This app helps a damp and timber surveyor turn a shorthand site document — numbered photos with short field notes — into a polished, client-ready report. You import the .docx from the Files app (on your computer or mobile device); the app reads it entirely on this device.",
+  "For each photo it tries to match the note to the firm's approved standard wording, filling in values from the note (such as humidity or pin readings). You then review every section, edit or swap wording, add property and client details, choose which damp issues and recommendations apply, and generate the finished report — cover, contents, photo sections, explainers, costs, and limitations — again entirely on the device."
+];
+
+const API_COPY = [
+  "AI API keys (Claude or Gemini)",
+  "Ask AI needs an external Claude (Anthropic) or Gemini (Google) API key to link those LLM providers to this app. Keys stay on this device only and are never uploaded elsewhere by the app, nor are they necessary for all its functionality.",
+  "Link a key in this app",
+  "On the home screen, open Settings.",
+  "Under AI service, pick Claude or Gemini.",
+  "Paste the matching API key into the key field.",
+  "Leave the model name as the default unless you know you need a different one, then tap Save.",
+  "Get a Claude (Anthropic) key",
+  "platform.claude.com",
+  "Settings → API keys",
+  "Create key",
+  "sk-ant-",
+  "Plans & Billing",
+  "Get a Gemini (Google) key",
+  "aistudio.google.com",
+  "Create API key",
+  "AIza",
+  "free tier"
+];
+
+const TOPICS_INTRO =
+  "All topics & keywords outlined keywords are used by more than one topic - add a context word (e.g. pin skirting rather than just pin) so the right wording is chosen; otherwise the section is flagged for review with all candidates suggested.";
+
+function haystack(...parts: string[]): string {
+  return parts.join(" ").toLowerCase();
+}
+
+function matchesQuery(q: string, ...parts: string[]): boolean {
+  return q === "" || haystack(...parts).includes(q);
+}
+
 export default function KeywordGuide({ onClose }: Props) {
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -155,10 +193,56 @@ export default function KeywordGuide({ onClose }: Props) {
   }, []);
 
   const q = query.trim().toLowerCase();
-  const matches = (p: LibraryParagraph) =>
+
+  const showPurpose = matchesQuery(q, ...PURPOSE_COPY);
+
+  const matchingSectionHit = matchesQuery(q, "How matching works");
+  const tipHits = TIPS.filter((t) => matchesQuery(q, t));
+  const showMatching = q === "" || matchingSectionHit || tipHits.length > 0;
+
+  const showApi = matchesQuery(q, ...API_COPY);
+
+  const pipsSectionHit = matchesQuery(
+    q,
+    "Review status pips",
+    "jump-on-hover",
+    "coloured column"
+  );
+  const pipHits = PIP_LEGEND.filter((p) =>
+    matchesQuery(q, p.tone, p.label, p.meaning)
+  );
+  const showPips = q === "" || pipsSectionHit || pipHits.length > 0;
+
+  const smartSectionHit = matchesQuery(q, "Smart phrases", "misspellings");
+  const smartHits = SMART_PHRASES.filter((s) =>
+    matchesQuery(q, s.phrase, s.effect)
+  );
+  const showSmart = q === "" || smartSectionHit || smartHits.length > 0;
+
+  const topicMatch = (p: LibraryParagraph) =>
     q === "" ||
     p.topic.toLowerCase().includes(q) ||
     p.keywords.some((k) => k.toLowerCase().includes(q));
+
+  const visibleGroups = groups
+    .map(([group, paragraphs]) => [group, paragraphs.filter(topicMatch)] as const)
+    .filter(([, paragraphs]) => paragraphs.length > 0);
+
+  const topicsSectionHit = matchesQuery(q, TOPICS_INTRO);
+  const showTopics =
+    q === "" || topicsSectionHit || visibleGroups.length > 0;
+
+  const tipsToShow = q === "" || matchingSectionHit ? TIPS : tipHits;
+  const pipsToShow = q === "" || pipsSectionHit ? PIP_LEGEND : pipHits;
+  const smartToShow = q === "" || smartSectionHit ? SMART_PHRASES : smartHits;
+
+  const anyHit =
+    showPurpose ||
+    showMatching ||
+    showApi ||
+    showPips ||
+    showSmart ||
+    showTopics;
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -173,12 +257,12 @@ export default function KeywordGuide({ onClose }: Props) {
           ref={searchRef}
           type="search"
           className="guide-search"
-          placeholder="Filter topics and keywords..."
+          placeholder="Filter guide, topics, and keywords..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        {q === "" && (
+        {showPurpose && (
           <>
             <h3 className="guide-heading">What this tool is for</h3>
             <p className="muted">
@@ -197,14 +281,22 @@ export default function KeywordGuide({ onClose }: Props) {
               report — cover, contents, photo sections, explainers, costs, and
               limitations — again entirely on the device.
             </p>
+          </>
+        )}
 
+        {showMatching && (
+          <>
             <h3 className="guide-heading">How matching works</h3>
             <ul className="guide-tips">
-              {TIPS.map((t) => (
+              {tipsToShow.map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>
+          </>
+        )}
 
+        {showApi && (
+          <>
             <h3 className="guide-heading">AI API keys (Claude or Gemini)</h3>
             <p className="muted">
               Ask AI needs an external Claude (Anthropic) or Gemini (Google) API
@@ -293,16 +385,21 @@ export default function KeywordGuide({ onClose }: Props) {
                 more.
               </li>
             </ol>
+          </>
+        )}
 
+        {showPips && (
+          <>
             <h3 className="guide-heading">Review status pips</h3>
             <p className="muted">
               On the review screen, the thin coloured column on the right shows
               each photo section&apos;s status at a glance. Colour changes fill
-              top-to-bottom (about 0.7s, or ~5s while you review a yellow pip). Tap
-              a pip to jump to that section.
+              top-to-bottom (about 0.7s, or ~5s while you review a yellow pip). Click
+              or tap a pip to jump to that section — or turn on jump-on-hover in
+              Settings.
             </p>
             <ul className="guide-pip-legend">
-              {PIP_LEGEND.map((p) => (
+              {pipsToShow.map((p) => (
                 <li key={p.tone}>
                   <span className={`guide-pip-swatch tone-${p.tone}`} aria-hidden />
                   <span>
@@ -311,7 +408,11 @@ export default function KeywordGuide({ onClose }: Props) {
                 </li>
               ))}
             </ul>
+          </>
+        )}
 
+        {showSmart && (
+          <>
             <h3 className="guide-heading">Smart phrases</h3>
             <p className="muted">
               These are understood directly, including common misspellings
@@ -319,7 +420,7 @@ export default function KeywordGuide({ onClose }: Props) {
             </p>
             <table className="guide-table">
               <tbody>
-                {SMART_PHRASES.map((s) => (
+                {smartToShow.map((s) => (
                   <tr key={s.phrase}>
                     <td className="guide-phrase">{s.phrase}</td>
                     <td>{s.effect}</td>
@@ -330,41 +431,45 @@ export default function KeywordGuide({ onClose }: Props) {
           </>
         )}
 
-        <h3 className="guide-heading">All topics & keywords</h3>
-        <p className="muted">
-          <span className="chip kw shared">outlined</span> keywords are used by
-          more than one topic - add a context word (e.g. "pin skirting" rather
-          than just "pin") so the right wording is chosen; otherwise the
-          section is flagged for review with all candidates suggested.
-        </p>
-        {groups.map(([group, paragraphs]) => {
-          const visible = paragraphs.filter(matches);
-          if (visible.length === 0) return null;
-          return (
-            <section key={group} className="guide-group">
-              <h4>{group}</h4>
-              {visible.map((p) => (
-                <div key={p.id} className="guide-topic">
-                  <span className="guide-topic-name">{p.topic}</span>
-                  <span className="guide-keywords">
-                    {p.keywords.map((k) => (
-                      <span
-                        key={k}
-                        className={
-                          sharedKeywords.has(k.toLowerCase())
-                            ? "chip kw shared"
-                            : "chip kw"
-                        }
-                      >
-                        {k}
-                      </span>
-                    ))}
-                  </span>
-                </div>
-              ))}
-            </section>
-          );
-        })}
+        {showTopics && (
+          <>
+            <h3 className="guide-heading">All topics & keywords</h3>
+            <p className="muted">
+              <span className="chip kw shared">outlined</span> keywords are used by
+              more than one topic - add a context word (e.g. "pin skirting" rather
+              than just "pin") so the right wording is chosen; otherwise the
+              section is flagged for review with all candidates suggested.
+            </p>
+            {visibleGroups.map(([group, paragraphs]) => (
+              <section key={group} className="guide-group">
+                <h4>{group}</h4>
+                {paragraphs.map((p) => (
+                  <div key={p.id} className="guide-topic">
+                    <span className="guide-topic-name">{p.topic}</span>
+                    <span className="guide-keywords">
+                      {p.keywords.map((k) => (
+                        <span
+                          key={k}
+                          className={
+                            sharedKeywords.has(k.toLowerCase())
+                              ? "chip kw shared"
+                              : "chip kw"
+                          }
+                        >
+                          {k}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </>
+        )}
+
+        {q !== "" && !anyHit && (
+          <p className="muted guide-empty">No guide sections match “{query.trim()}”.</p>
+        )}
 
         <div className="sheet-actions">
           <button className="btn primary" onClick={onClose}>

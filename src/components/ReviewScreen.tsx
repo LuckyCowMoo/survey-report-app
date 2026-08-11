@@ -18,7 +18,7 @@ interface Props {
   onDismissAiError: (index: number) => void;
   onContinue: () => void;
   onFocusSection: (index: number) => void;
-  focusedSectionIndex: number;
+  focusedSectionIndex: number | null;
   /** Section index currently running the review dwell fill, if any. */
   dwellSectionIndex: number | null;
 }

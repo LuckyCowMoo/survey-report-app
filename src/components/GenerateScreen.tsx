@@ -1,12 +1,27 @@
 import { useEffect, useState } from "react";
 import { generateReportBlob, reportFileName } from "../lib/docxGenerator";
 import { imageForDocument, type DocImage } from "../lib/imageUtils";
+import {
+  canLinkReportFolder,
+  getLinkedFolderName,
+  linkReportFolder,
+  saveReportToLibrary,
+  type LibraryBackend,
+  type SaveReportResult
+} from "../lib/reportLibrary";
+import { coverThumbnailBlob, houseNameFromAddress } from "../lib/reportCover";
+import {
+  buildReportProject,
+  encodeReportProject,
+  fingerprintSourceSections
+} from "../lib/reportProject";
 import type { ReportExtras, ReportMetadata, SectionState } from "../types";
 
 interface Props {
   sections: SectionState[];
   metadata: ReportMetadata;
   extras: ReportExtras;
+  warnings?: string[];
   flaggedCount: number;
   onRestart: () => void;
 }
@@ -26,10 +41,20 @@ function yieldToUi(): Promise<void> {
   });
 }
 
+function canShareFiles(): boolean {
+  try {
+    const probe = new File([new Blob()], "probe.docx", { type: DOCX_MIME });
+    return !!navigator.canShare?.({ files: [probe] });
+  } catch {
+    return false;
+  }
+}
+
 export default function GenerateScreen({
   sections,
   metadata,
   extras,
+  warnings = [],
   flaggedCount,
   onRestart
 }: Props) {
@@ -38,6 +63,12 @@ export default function GenerateScreen({
   const [progress, setProgress] = useState<string | null>("Preparing report...");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ blob: Blob; name: string } | null>(null);
+  const folderCapable = canLinkReportFolder();
+  const shareCapable = canShareFiles();
+  const [folderName, setFolderName] = useState<string | null>(null);
+  const [librarySave, setLibrarySave] = useState<SaveReportResult | null>(null);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+  const [libraryBusy, setLibraryBusy] = useState(false);
 
   const issueCount = Object.values(extras.dampIssues).filter(Boolean).length;
   const recommendationCount =
@@ -60,10 +91,61 @@ export default function GenerateScreen({
 
   useEffect(() => {
     let cancelled = false;
+    void getLinkedFolderName().then((name) => {
+      if (!cancelled) setFolderName(name);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const persistToLibrary = async (blob: Blob, name: string) => {
+    setLibraryBusy(true);
+    setLibraryError(null);
+    try {
+      const coverThumb = await coverThumbnailBlob(sections);
+      const sourceFingerprint = await fingerprintSourceSections(sections);
+      const projectBlob = encodeReportProject(
+        buildReportProject({
+          sections,
+          metadata,
+          extras,
+          warnings,
+          fileName: name,
+          step: "details",
+          sourceFingerprint
+        })
+      );
+      const saved = await saveReportToLibrary({
+        blob,
+        projectBlob,
+        fileName: name,
+        propertyAddress: metadata.propertyAddress,
+        houseName: houseNameFromAddress(metadata.propertyAddress),
+        clientName: metadata.clientName,
+        surveyDate: metadata.surveyDate,
+        coverThumb,
+        sourceFingerprint
+      });
+      setLibrarySave(saved);
+      if (saved.backend === "folder" && saved.folderName) {
+        setFolderName(saved.folderName);
+      }
+    } catch (err) {
+      setLibraryError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLibraryBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
 
     const run = async () => {
       setError(null);
       setResult(null);
+      setLibrarySave(null);
+      setLibraryError(null);
       const name = resolveFileName(recommendedName, recommendedName);
       setFileName(name);
       try {
@@ -74,7 +156,6 @@ export default function GenerateScreen({
           done += 1;
           if (s.entry.images.length === 0) continue;
           setProgress(`Preparing photo ${done} of ${sections.length}...`);
-          // Let React paint the progress line before the next heavy encode.
           await yieldToUi();
           if (cancelled) return;
           images.set(
@@ -90,6 +171,8 @@ export default function GenerateScreen({
         const blob = await generateReportBlob({ sections, metadata, extras, images });
         if (cancelled) return;
         setResult({ blob, name });
+        setProgress("Saving to library...");
+        await persistToLibrary(blob, name);
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : String(err));
@@ -109,6 +192,8 @@ export default function GenerateScreen({
   const retry = async () => {
     setError(null);
     setResult(null);
+    setLibrarySave(null);
+    setLibraryError(null);
     const name = resolveFileName(fileName, recommendedName);
     setFileName(name);
     setProgress("Preparing report...");
@@ -130,10 +215,32 @@ export default function GenerateScreen({
       await yieldToUi();
       const blob = await generateReportBlob({ sections, metadata, extras, images });
       setResult({ blob, name });
+      setProgress("Saving to library...");
+      await persistToLibrary(blob, name);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setProgress(null);
+    }
+  };
+
+  const onLinkFolder = async () => {
+    setLibraryError(null);
+    setLibraryBusy(true);
+    try {
+      const name = await linkReportFolder();
+      setFolderName(name);
+      if (result) {
+        await persistToLibrary(
+          result.blob,
+          resolveFileName(fileName, recommendedName)
+        );
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setLibraryError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLibraryBusy(false);
     }
   };
 
@@ -146,14 +253,12 @@ export default function GenerateScreen({
         await navigator.share({ files: [file], title: name });
         return;
       } catch (err) {
-        // User cancelled the share sheet - not an error.
         if (err instanceof DOMException && err.name === "AbortError") return;
       }
     }
-    download();
   };
 
-  const download = () => {
+  const downloadCopy = () => {
     if (!result) return;
     const name = resolveFileName(fileName, recommendedName);
     const url = URL.createObjectURL(result.blob);
@@ -165,6 +270,18 @@ export default function GenerateScreen({
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
   };
+
+  const libraryStatus = (backend: LibraryBackend | null) => {
+    if (libraryBusy && !librarySave) return "Saving to your report library…";
+    if (libraryError) return `Library save failed: ${libraryError}`;
+    if (!librarySave && !backend) return null;
+    if (librarySave?.backend === "folder" || (backend === "folder" && folderName)) {
+      return `Kept in your linked folder “${librarySave?.folderName ?? folderName}”.`;
+    }
+    return "Kept in this app’s storage as a reopenable project (plus a Word copy for share/download).";
+  };
+
+  const statusText = libraryStatus(librarySave?.backend ?? null);
 
   return (
     <div className="generate">
@@ -221,16 +338,62 @@ export default function GenerateScreen({
               spellCheck={false}
               autoComplete="off"
               onChange={(e) => setFileName(e.target.value)}
-              onBlur={() => setFileName(resolveFileName(fileName, recommendedName))}
+              onBlur={() => {
+                const next = resolveFileName(fileName, recommendedName);
+                setFileName(next);
+                void persistToLibrary(result.blob, next);
+              }}
             />
           </label>
+
+          {statusText && (
+            <p className={`library-status${libraryError ? " is-error" : ""}`}>
+              {statusText}
+            </p>
+          )}
+
           <div className="result-actions">
-            <button className="btn primary big" onClick={share}>
-              Share / save
+            {folderCapable && !folderName && (
+              <button
+                type="button"
+                className="btn primary big"
+                disabled={libraryBusy}
+                onClick={() => void onLinkFolder()}
+              >
+                Link a reports folder
+              </button>
+            )}
+
+            {folderCapable && !folderName && (
+              <p className="library-hint">
+                Recommended on this device: choose one folder for finished
+                reports so the app can keep track of them without downloading
+                twice.
+              </p>
+            )}
+
+            {shareCapable && (
+              <button
+                type="button"
+                className={`btn big${folderCapable && !folderName ? "" : " primary"}`}
+                onClick={() => void share()}
+              >
+                Share
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="btn tiny download-copy"
+              onClick={downloadCopy}
+            >
+              Download a copy
             </button>
-            <button className="btn big" onClick={download}>
-              Download
-            </button>
+            <p className="download-copy-note">
+              Not recommended — only if you need an extra file outside the
+              library. Your report is already kept
+              {folderName ? " in the linked folder" : " in app storage"}.
+            </p>
           </div>
           <button className="btn small" onClick={onRestart}>
             Start a new report
