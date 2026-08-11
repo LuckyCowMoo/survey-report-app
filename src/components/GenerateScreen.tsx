@@ -128,6 +128,9 @@ export default function GenerateScreen({
         sourceFingerprint
       });
       setLibrarySave(saved);
+      if (saved.fileName && saved.fileName !== name) {
+        setFileName(saved.fileName);
+      }
       if (saved.backend === "folder" && saved.folderName) {
         setFolderName(saved.folderName);
       }

@@ -1402,6 +1402,60 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
   margin-top: 8px;
 }
 
+.details-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.details-panel-head h2 {
+  margin: 0;
+}
+
+.details-ask-ai {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.details-ai-panel {
+  position: relative;
+}
+
+.details-ai-panel.ai-working {
+  border-color: color-mix(in srgb, #8b5cf6 45%, var(--line, #d5dde4));
+}
+
+.details-ai-panel.ai-error {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--danger) 25%, transparent),
+    0 14px 36px rgba(140, 30, 30, 0.1);
+}
+
+.details-ai-overlay {
+  position: absolute;
+  inset: 12px;
+  z-index: 2;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.details-ai-error-overlay {
+  border-radius: inherit;
+}
+
+.cost-location-field {
+  margin: 8px 0;
+}
+
+.cost-standard-row {
+  margin: 0 0 8px;
+}
+
 .cost-line-foot label {
   display: flex;
   align-items: center;

@@ -140,7 +140,8 @@ async function callClaude(
   imageB64: string | null,
   userText: string,
   system: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  maxTokens = 1200
 ): Promise<string> {
   const content: unknown[] = [];
   if (imageB64) {
@@ -161,7 +162,7 @@ async function callClaude(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1200,
+      max_tokens: maxTokens,
       system,
       messages: [{ role: "user", content }]
     }),
@@ -181,6 +182,7 @@ async function callClaude(
   const data = (await res.json()) as {
     content: Array<{ type: string; text?: string }>;
   };
+  // Prefer explicit text blocks (skip thinking blocks on extended-thinking models).
   return data.content.find((b) => b.type === "text")?.text ?? "";
 }
 
@@ -190,7 +192,8 @@ async function callGemini(
   imageB64: string | null,
   userText: string,
   system: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  maxOutputTokens = 1200
 ): Promise<string> {
   const parts: unknown[] = [];
   if (imageB64) {
@@ -208,7 +211,7 @@ async function callGemini(
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: "user", parts }],
       generationConfig: {
-        maxOutputTokens: 1200,
+        maxOutputTokens,
         responseMimeType: "application/json"
       }
     }),
@@ -227,7 +230,7 @@ async function callGemini(
   }
   const data = (await res.json()) as {
     candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
+      content?: { parts?: Array<{ text?: string; thought?: boolean }> };
       finishReason?: string;
     }>;
     promptFeedback?: { blockReason?: string };
@@ -235,9 +238,18 @@ async function callGemini(
   if (data.promptFeedback?.blockReason) {
     throw new Error(`Gemini blocked the request (${data.promptFeedback.blockReason}).`);
   }
-  const text = (data.candidates?.[0]?.content?.parts ?? [])
+  const candidate = data.candidates?.[0];
+  // Skip thought/reasoning parts — joining them with the answer breaks JSON parse.
+  const text = (candidate?.content?.parts ?? [])
+    .filter((p) => !p.thought)
     .map((p) => p.text ?? "")
     .join("");
+  if (!text.trim()) {
+    const reason = candidate?.finishReason ?? "empty";
+    throw new Error(
+      `Gemini returned no usable text (finish: ${reason}). Try another model or raise the output limit.`
+    );
+  }
   return text;
 }
 
@@ -246,22 +258,113 @@ async function callModel(
   imageB64: string | null,
   userText: string,
   system: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  maxTokens = 1200
 ): Promise<string> {
   return ai.provider === "gemini"
-    ? callGemini(ai.apiKey, ai.model, imageB64, userText, system, signal)
-    : callClaude(ai.apiKey, ai.model, imageB64, userText, system, signal);
+    ? callGemini(ai.apiKey, ai.model, imageB64, userText, system, signal, maxTokens)
+    : callClaude(ai.apiKey, ai.model, imageB64, userText, system, signal, maxTokens);
 }
 
-function parseJsonObject(raw: string): Record<string, unknown> | null {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end <= start) return null;
+/** Text-only model call (no photo) — used for details extras suggestions. */
+export async function callAiText(
+  ai: AiConfig,
+  userText: string,
+  system: string,
+  signal?: AbortSignal
+): Promise<string> {
+  // Higher budget: thinking models spend tokens before the JSON answer.
+  return callModel(ai, null, userText, system, signal, 4096);
+}
+
+export function extractJsonObject(raw: string): Record<string, unknown> | null {
+  return parseJsonObject(raw);
+}
+
+/** Extract a top-level JSON array when the model skips the wrapping object. */
+export function extractJsonArray(raw: string): unknown[] | null {
+  return parseJsonArray(raw);
+}
+
+function tryParseJson(slice: string): unknown | null {
+  const cleaned = slice
+    .replace(/^\uFEFF/, "")
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
   try {
-    return JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
+    return JSON.parse(cleaned);
+  } catch {
+    /* try soft repairs below */
+  }
+  // Trailing commas before } or ]
+  try {
+    return JSON.parse(cleaned.replace(/,\s*([}\]])/g, "$1"));
   } catch {
     return null;
   }
+}
+
+function extractBalancedSlices(raw: string, open: "{" | "[", close: "}" | "]"): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === open) {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (ch === close) {
+      if (depth === 0) continue;
+      depth--;
+      if (depth === 0 && start >= 0) {
+        out.push(raw.slice(start, i + 1));
+        start = -1;
+      }
+    }
+  }
+  return out;
+}
+
+function parseJsonObject(raw: string): Record<string, unknown> | null {
+  if (!raw?.trim()) return null;
+  const direct = tryParseJson(raw);
+  if (direct && typeof direct === "object" && !Array.isArray(direct)) {
+    return direct as Record<string, unknown>;
+  }
+  // Prefer the last complete {...} (answer often follows thought prose).
+  const slices = extractBalancedSlices(raw, "{", "}");
+  for (let i = slices.length - 1; i >= 0; i--) {
+    const parsed = tryParseJson(slices[i]);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  }
+  return null;
+}
+
+function parseJsonArray(raw: string): unknown[] | null {
+  if (!raw?.trim()) return null;
+  const direct = tryParseJson(raw);
+  if (Array.isArray(direct)) return direct;
+  const slices = extractBalancedSlices(raw, "[", "]");
+  for (let i = slices.length - 1; i >= 0; i--) {
+    const parsed = tryParseJson(slices[i]);
+    if (Array.isArray(parsed)) return parsed;
+  }
+  return null;
 }
 
 function parseResolution(raw: string): AiResolution | null {

@@ -13,7 +13,18 @@ import { IconBack, IconSettings } from "./components/icons";
 import { parseShorthandDocx } from "./lib/docxParser";
 import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
-import { activeAi, loadSettings, saveSettings, type AppSettings } from "./lib/settings";
+import {
+  applyDetailsSuggestions,
+  suggestDetailsExtras,
+  type DetailsSuggestScope
+} from "./lib/detailsSuggest";
+import {
+  activeAi,
+  activeDetailsSuggestAi,
+  loadSettings,
+  saveSettings,
+  type AppSettings
+} from "./lib/settings";
 import { usePointerInputMode } from "./lib/pointerInput";
 import {
   currentAppHist,
@@ -118,6 +129,14 @@ export default function App() {
   const [pendingSourceMatch, setPendingSourceMatch] =
     useState<PendingSourceMatch | null>(null);
   const [resumeBusy, setResumeBusy] = useState(false);
+  const [detailsSuggestBusy, setDetailsSuggestBusy] =
+    useState<DetailsSuggestScope | null>(null);
+  const [detailsSuggestError, setDetailsSuggestError] = useState<{
+    scope: DetailsSuggestScope;
+    message: string;
+  } | null>(null);
+  const detailsSuggestRanRef = useRef(false);
+  const detailsSuggestAbortRef = useRef<AbortController | null>(null);
 
   const flaggedCount = useMemo(
     () => sections.filter((s) => s.needsAttention).length,
@@ -331,6 +350,8 @@ export default function App() {
       setWarnings(nextWarnings);
       setFocusedSectionIndex(null);
       setReviewDwellIndex(null);
+      detailsSuggestRanRef.current = false;
+      setDetailsSuggestError(null);
       navigateTo("review");
     },
     [navigateTo]
@@ -385,6 +406,8 @@ export default function App() {
       setExtras(project.extras);
       setFocusedSectionIndex(null);
       setReviewDwellIndex(null);
+      detailsSuggestRanRef.current = false;
+      setDetailsSuggestError(null);
       // Stack review under details so Back from details returns to section review.
       navigateTo("review");
       if (project.step === "details") {
@@ -533,6 +556,65 @@ export default function App() {
     });
   }, []);
 
+  const runDetailsSuggest = useCallback(
+    async (scope: DetailsSuggestScope) => {
+      const ai = activeDetailsSuggestAi(settings);
+      if (!ai.apiKey) {
+        setDetailsSuggestError({
+          scope,
+          message: `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
+        });
+        openSettings();
+        return;
+      }
+      detailsSuggestAbortRef.current?.abort();
+      const ac = new AbortController();
+      detailsSuggestAbortRef.current = ac;
+      setDetailsSuggestBusy(scope);
+      setDetailsSuggestError(null);
+      try {
+        const suggestion = await suggestDetailsExtras(
+          sections,
+          ai,
+          scope,
+          ac.signal
+        );
+        if (ac.signal.aborted) return;
+        setExtras((prev) => applyDetailsSuggestions(prev, suggestion, scope));
+        detailsSuggestRanRef.current = true;
+      } catch (err) {
+        if (ac.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
+        }
+        setDetailsSuggestError({
+          scope,
+          message: err instanceof Error ? err.message : String(err)
+        });
+      } finally {
+        if (detailsSuggestAbortRef.current === ac) {
+          detailsSuggestAbortRef.current = null;
+        }
+        setDetailsSuggestBusy(null);
+      }
+    },
+    [sections, settings, openSettings]
+  );
+
+  // Auto-suggest once ~5s after opening details (when enabled and not yet run).
+  useEffect(() => {
+    if (step !== "details") return;
+    if (!settings.autoSuggestDetailsExtras) return;
+    if (detailsSuggestRanRef.current) return;
+    if (detailsSuggestBusy) return;
+    if (!activeDetailsSuggestAi(settings).apiKey) return;
+
+    const timer = window.setTimeout(() => {
+      if (detailsSuggestRanRef.current) return;
+      void runDetailsSuggest("all");
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [step, settings, detailsSuggestBusy, runDetailsSuggest]);
+
   const reset = useCallback(() => {
     setSections([]);
     setWarnings([]);
@@ -548,6 +630,11 @@ export default function App() {
     setShowSettings(false);
     setShowGuide(false);
     setPendingSourceMatch(null);
+    detailsSuggestAbortRef.current?.abort();
+    detailsSuggestAbortRef.current = null;
+    detailsSuggestRanRef.current = false;
+    setDetailsSuggestBusy(null);
+    setDetailsSuggestError(null);
     setStep("home");
     replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
@@ -649,6 +736,11 @@ export default function App() {
             onMetadata={setMetadata}
             onExtras={setExtras}
             onContinue={() => navigateTo("generate")}
+            aiConfigured={activeDetailsSuggestAi(settings).apiKey.length > 0}
+            suggestBusy={detailsSuggestBusy}
+            suggestError={detailsSuggestError}
+            onAskAi={runDetailsSuggest}
+            onDismissSuggestError={() => setDetailsSuggestError(null)}
           />
         )}
         {step === "generate" && (

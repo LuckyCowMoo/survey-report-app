@@ -1,0 +1,125 @@
+[
+  {
+    "id": "rising-damp",
+    "diagnosis": "Rising Damp",
+    "issueKey": "risingDamp",
+    "signs": "Elevated REL/WME readings at base tapering off at ~1-1.2m; Visual tide marks; White salt efflorescence; Intact continuous horizontal mortar joints.",
+    "recommendationIds": ["rec-chemical-dpc", "rec-replaster-lime"],
+    "costItemIds": [
+      "cost-chemical-dpc",
+      "cost-strip-walls",
+      "cost-replaster",
+      "cost-plasterboard",
+      "cost-waste-removal"
+    ],
+    "notes": "Both replaster and plasterboard may be suggested; surveyor chooses. Prefer locations for strip/replaster/plasterboard."
+  },
+  {
+    "id": "condensation",
+    "diagnosis": "Condensation & Atmospheric Moisture",
+    "issueKey": "condensation",
+    "signs": "Elevated RH (>55-60%); Wall surface temp < calculated Dew point; Black mould (Aspergillus) on external walls/ceilings/reveals; Superficial moisture meter readings.",
+    "recommendationIds": [
+      "rec-indoor-temperature",
+      "rec-piv",
+      "rec-bathroom-extraction",
+      "rec-mould-removal",
+      "rec-isotherm",
+      "rec-insulation-investigation"
+    ],
+    "costItemIds": [
+      "cost-piv-unit",
+      "cost-bathroom-fan",
+      "cost-core-drill",
+      "cost-mould-treatment"
+    ],
+    "notes": "Isotherm vs wall insulation investigation — pick what the notes support. Locations useful for mould treatment and bathroom fans."
+  },
+  {
+    "id": "penetrating-damp",
+    "diagnosis": "Penetrating Damp (Exterior Envelope Failure)",
+    "issueKey": "penetratingDamp",
+    "signs": "Elevated moisture readings at random, localized heights; Blown/cracked exterior render; Defective mortar pointing; Blocked gutters/downpipes; Ivy growth.",
+    "recommendationIds": [
+      "rec-external-render",
+      "rec-external-brickwork",
+      "rec-external-pointing",
+      "rec-roof-review",
+      "rec-guttering",
+      "rec-chimney"
+    ],
+    "costItemIds": [],
+    "notes": "Consultation / third-party only — do not invent DampMaster billed costs for external repairs."
+  },
+  {
+    "id": "plumbing-leak",
+    "diagnosis": "Concealed Plumbing Leak",
+    "issueKey": null,
+    "signs": "Highly localized elevated moisture (e.g., under bath, sink, radiator); No corresponding external architectural defects.",
+    "recommendationIds": ["rec-plumber"],
+    "costItemIds": [],
+    "notes": "Third-party diagnostic recommendation only."
+  },
+  {
+    "id": "blocked-flue",
+    "diagnosis": "Blocked Flue Condensation",
+    "issueKey": null,
+    "signs": "Disused, sealed fireplace; Damp soot staining on internal chimney breast plaster.",
+    "recommendationIds": ["rec-chimney-vent"],
+    "costItemIds": ["cost-core-drill"],
+    "notes": "Core drill adapted for vent installation — location = chimney breast / room."
+  },
+  {
+    "id": "subterranean",
+    "diagnosis": "Subterranean Lateral Damp",
+    "issueKey": null,
+    "signs": "Below-ground masonry (cellar/basement/retaining wall); High lateral hydrostatic pressure; Seeping water; High water table (BS 8102 Grade 3 environment).",
+    "recommendationIds": [
+      "rec-cavity-membrane",
+      "rec-cement-tanking",
+      "rec-liquid-dpm"
+    ],
+    "costItemIds": [
+      "cost-cavity-membrane",
+      "cost-cement-tanking",
+      "cost-liquid-dpm"
+    ],
+    "notes": "Locations for basement/cellar walls and floors."
+  },
+  {
+    "id": "surface-runoff",
+    "diagnosis": "Surface Runoff / Hydrostatic Loading",
+    "issueKey": null,
+    "signs": "External ground level higher than internal floor level; Water pooling at base of exterior walls; Hardstanding sloping toward masonry.",
+    "recommendationIds": ["rec-aco-drainage"],
+    "costItemIds": ["cost-aco-drainage"],
+    "notes": "Location = affected elevation / perimeter."
+  },
+  {
+    "id": "dry-rot",
+    "diagnosis": "Dry Rot (Serpula lacrymans)",
+    "issueKey": null,
+    "signs": "Deep cuboidal cracking across timber grain; White/grey mycelium; Rust-red spore dust; Fleshy fruiting bodies; Timber moisture >28%.",
+    "recommendationIds": ["rec-ulv-subfloor"],
+    "costItemIds": ["cost-ulv-fogging", "cost-waste-removal"],
+    "notes": "Location = subfloor / affected voids."
+  },
+  {
+    "id": "woodworm",
+    "diagnosis": "Woodworm / Wood-boring Beetle Infestation",
+    "issueKey": null,
+    "signs": "Flight holes visible in timber surface; Frass (bore dust) present in attic or subfloor joists.",
+    "recommendationIds": ["rec-ulv-roof"],
+    "costItemIds": ["cost-ulv-fogging"],
+    "notes": "Location = roof void / attic / joists."
+  },
+  {
+    "id": "loft-condensation",
+    "diagnosis": "Thermal Deficit / Loft Condensation",
+    "issueKey": null,
+    "signs": "Loft insulation depth measured at <300mm; Insulation heavily compressed into eaves; Visible condensation on roof timbers.",
+    "recommendationIds": ["rec-loft-insulation", "rec-loft-ventilation"],
+    "costItemIds": ["cost-loft-insulation"],
+    "notes": "Usually whole loft — location optional."
+  }
+]

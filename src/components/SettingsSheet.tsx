@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import {
+  DEFAULT_DETAILS_SUGGEST_MODEL,
+  DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL,
   DEFAULT_GEMINI_MODEL,
   DEFAULT_MODEL,
   type AppSettings
 } from "../lib/settings";
+import {
+  listProviderModels,
+  type AiModelOption
+} from "../lib/aiModels";
 import { usePointerInputModeValue } from "../lib/pointerInput";
 import {
   canLinkReportFolder,
@@ -76,6 +82,10 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
   const [folderName, setFolderName] = useState<string | null>(null);
   const [folderBusy, setFolderBusy] = useState(false);
   const [folderError, setFolderError] = useState<string | null>(null);
+  const [modelOptions, setModelOptions] = useState<AiModelOption[]>([]);
+  const [modelsLive, setModelsLive] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [modelsBusy, setModelsBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +98,34 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
     };
   }, [folderCapable]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const key = draft.provider === "gemini" ? draft.geminiApiKey : draft.apiKey;
+    const selected =
+      draft.provider === "gemini"
+        ? [draft.geminiModel, draft.geminiDetailsSuggestModel]
+        : [draft.model, draft.detailsSuggestModel];
+    setModelsBusy(true);
+    void listProviderModels(draft.provider, key, selected).then((result) => {
+      if (cancelled) return;
+      setModelOptions(result.models);
+      setModelsLive(result.live);
+      setModelsError(result.error ?? null);
+      setModelsBusy(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    draft.provider,
+    draft.apiKey,
+    draft.geminiApiKey,
+    draft.model,
+    draft.geminiModel,
+    draft.detailsSuggestModel,
+    draft.geminiDetailsSuggestModel
+  ]);
+
   const set = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
@@ -97,7 +135,12 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
       apiKey: draft.apiKey.trim(),
       geminiApiKey: draft.geminiApiKey.trim(),
       model: draft.model.trim() || DEFAULT_MODEL,
-      geminiModel: draft.geminiModel.trim() || DEFAULT_GEMINI_MODEL
+      detailsSuggestModel:
+        draft.detailsSuggestModel.trim() || DEFAULT_DETAILS_SUGGEST_MODEL,
+      geminiModel: draft.geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      geminiDetailsSuggestModel:
+        draft.geminiDetailsSuggestModel.trim() ||
+        DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL
     });
   };
 
@@ -167,6 +210,24 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
           <span className="pip-jump-label">scroll through in-between photos</span>
         </div>
 
+        <div className="pip-jump-row">
+          <button
+            type="button"
+            className={`pill-switch${draft.autoSuggestDetailsExtras ? " is-on" : ""}`}
+            role="switch"
+            aria-checked={draft.autoSuggestDetailsExtras}
+            aria-label="auto-suggest details extras"
+            onClick={() =>
+              set("autoSuggestDetailsExtras", !draft.autoSuggestDetailsExtras)
+            }
+          >
+            <span className="pill-switch-thumb" aria-hidden />
+          </button>
+          <span className="pip-jump-label">
+            auto-suggest issues, recommendations & costs
+          </span>
+        </div>
+
         <div className="library-settings">
           <span className="library-settings-label">Report library</span>
           {folderCapable ? (
@@ -232,13 +293,44 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
             />
 
             <label className="field">
-              <span>Claude model</span>
-              <input
-                type="text"
+              <span>Section AI model</span>
+              <select
                 value={draft.model}
-                placeholder={DEFAULT_MODEL}
                 onChange={(e) => set("model", e.target.value)}
-              />
+                disabled={modelsBusy && modelOptions.length === 0}
+              >
+                {modelOptions.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <small>
+                {modelsBusy
+                  ? "Loading models…"
+                  : modelsLive
+                    ? "Live list from Anthropic."
+                    : modelsError || "Using built-in model list."}
+              </small>
+            </label>
+
+            <label className="field">
+              <span>Details suggestions model</span>
+              <select
+                value={draft.detailsSuggestModel}
+                onChange={(e) => set("detailsSuggestModel", e.target.value)}
+                disabled={modelsBusy && modelOptions.length === 0}
+              >
+                {modelOptions.map((m) => (
+                  <option key={`details-${m.id}`} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <small>
+                Used for issues, recommendations, and cost suggestions. Pick a
+                higher-tier model here if you want.
+              </small>
             </label>
           </>
         ) : (
@@ -252,13 +344,44 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
             />
 
             <label className="field">
-              <span>Gemini model</span>
-              <input
-                type="text"
+              <span>Section AI model</span>
+              <select
                 value={draft.geminiModel}
-                placeholder={DEFAULT_GEMINI_MODEL}
                 onChange={(e) => set("geminiModel", e.target.value)}
-              />
+                disabled={modelsBusy && modelOptions.length === 0}
+              >
+                {modelOptions.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <small>
+                {modelsBusy
+                  ? "Loading models…"
+                  : modelsLive
+                    ? "Live list from Google."
+                    : modelsError || "Using built-in model list."}
+              </small>
+            </label>
+
+            <label className="field">
+              <span>Details suggestions model</span>
+              <select
+                value={draft.geminiDetailsSuggestModel}
+                onChange={(e) => set("geminiDetailsSuggestModel", e.target.value)}
+                disabled={modelsBusy && modelOptions.length === 0}
+              >
+                {modelOptions.map((m) => (
+                  <option key={`details-${m.id}`} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <small>
+                Used for issues, recommendations, and cost suggestions. Pick a
+                higher-tier model here if you want.
+              </small>
             </label>
           </>
         )}

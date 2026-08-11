@@ -2,6 +2,7 @@
 
 import {
   decodeReportProject,
+  encodeReportProject,
   fingerprintSourceSections,
   PROJECT_EXT,
   PROJECT_MIME,
@@ -210,6 +211,98 @@ function newReportId(): string {
   return `rpt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function ensureDocxExtension(name: string): string {
+  const trimmed = name.trim() || "report.docx";
+  return /\.docx$/i.test(trimmed) ? trimmed : `${trimmed}.docx`;
+}
+
+function titleWithoutExt(fileName: string): string {
+  return (
+    fileName.replace(/\.docx$/i, "").replace(/\.dmsr$/i, "").trim() || "report"
+  );
+}
+
+/** Split "12 High Street (2)" → { base: "12 High Street", number: 2 }. */
+function parseNumberedTitle(title: string): {
+  base: string;
+  number: number | null;
+} {
+  const m = title.match(/^(.*)\s+\((\d+)\)$/);
+  if (m) return { base: m[1].trim() || "report", number: Number(m[2]) };
+  return { base: title.trim() || "report", number: null };
+}
+
+function reportDetailsKey(d: {
+  propertyAddress?: string;
+  clientName?: string;
+  surveyDate?: string;
+  houseName?: string;
+}): string {
+  return [
+    (d.propertyAddress ?? "").trim().toLowerCase(),
+    (d.clientName ?? "").trim().toLowerCase(),
+    (d.surveyDate ?? "").trim().toLowerCase(),
+    (d.houseName ?? "").trim().toLowerCase()
+  ].join("\0");
+}
+
+/**
+ * When the library already has the same report name + property details,
+ * return the next free "Name (2).docx", "Name (3).docx", …
+ * Also avoids clashing with any existing file name.
+ */
+export function uniqueReportFileName(
+  desiredFileName: string,
+  existing: Array<
+    Pick<
+      LibraryReportMeta,
+      "fileName" | "propertyAddress" | "clientName" | "surveyDate" | "houseName"
+    >
+  >,
+  details: Pick<
+    LibraryReportMeta,
+    "propertyAddress" | "clientName" | "surveyDate" | "houseName"
+  >
+): string {
+  const desired = ensureDocxExtension(desiredFileName);
+  const { base } = parseNumberedTitle(titleWithoutExt(desired));
+  const baseKey = base.toLowerCase();
+  const detailsKey = reportDetailsKey(details);
+
+  const taken = new Set(
+    existing.map((r) => ensureDocxExtension(r.fileName).toLowerCase())
+  );
+
+  const sameNameAndDetails = existing.filter((r) => {
+    if (reportDetailsKey(r) !== detailsKey) return false;
+    const { base: otherBase } = parseNumberedTitle(titleWithoutExt(r.fileName));
+    return otherBase.toLowerCase() === baseKey;
+  });
+
+  if (sameNameAndDetails.length === 0) {
+    if (!taken.has(desired.toLowerCase())) return desired;
+    let n = 2;
+    for (;;) {
+      const candidate = `${base} (${n}).docx`;
+      if (!taken.has(candidate.toLowerCase())) return candidate;
+      n += 1;
+    }
+  }
+
+  let maxN = 0;
+  for (const r of sameNameAndDetails) {
+    const { number } = parseNumberedTitle(titleWithoutExt(r.fileName));
+    maxN = Math.max(maxN, number ?? 1);
+  }
+
+  let n = maxN + 1;
+  for (;;) {
+    const candidate = `${base} (${n}).docx`;
+    if (!taken.has(candidate.toLowerCase())) return candidate;
+    n += 1;
+  }
+}
+
 async function writeBlobToDirectory(
   dir: DirectoryHandle,
   fileName: string,
@@ -258,16 +351,38 @@ function toMeta(record: LibraryRecord): LibraryReportMeta {
 export async function saveReportToLibrary(
   input: SaveReportInput
 ): Promise<SaveReportResult> {
-  const fileName = input.fileName.trim() || "report.docx";
+  const existing = await listLibraryReports();
+  const propertyAddress = input.propertyAddress?.trim() || "";
+  const houseName = input.houseName?.trim() || "";
+  const clientName = input.clientName?.trim() || "";
+  const surveyDate = input.surveyDate?.trim() || "";
+  const fileName = uniqueReportFileName(input.fileName, existing, {
+    propertyAddress,
+    houseName,
+    clientName,
+    surveyDate
+  });
+
+  let projectBlob = input.projectBlob;
+  const requestedName = ensureDocxExtension(input.fileName.trim() || "report.docx");
+  if (fileName !== requestedName) {
+    try {
+      const project = await decodeReportProject(input.projectBlob);
+      projectBlob = encodeReportProject({ ...project, fileName });
+    } catch {
+      // Keep the original project blob if it cannot be rewritten.
+    }
+  }
+
   const id = newReportId();
   const baseMeta: LibraryReportMeta = {
     id,
     fileName,
     savedAt: Date.now(),
-    propertyAddress: input.propertyAddress?.trim() || "",
-    houseName: input.houseName?.trim() || "",
-    clientName: input.clientName?.trim() || "",
-    surveyDate: input.surveyDate?.trim() || "",
+    propertyAddress,
+    houseName,
+    clientName,
+    surveyDate,
     size: input.blob.size,
     backend: "app",
     hasProject: true,
@@ -285,7 +400,7 @@ export async function saveReportToLibrary(
         const meta: LibraryRecord = {
           ...baseMeta,
           backend: "folder",
-          projectBlob: input.projectBlob
+          projectBlob
         };
         await idbPutReport(meta);
         return { id, backend: "folder", fileName, folderName: dir.name };
@@ -298,7 +413,7 @@ export async function saveReportToLibrary(
   await idbPutReport({
     ...baseMeta,
     blob: input.blob,
-    projectBlob: input.projectBlob
+    projectBlob
   });
   return { id, backend: "app", fileName };
 }

@@ -74,6 +74,8 @@ export interface CostLine {
   label: string;
   description: string;
   amount: string;
+  /** Optional areas/rooms where this work applies. */
+  location?: string;
 }
 
 export interface ReportExtras {

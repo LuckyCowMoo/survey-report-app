@@ -1,5 +1,11 @@
-import { useLayoutEffect, useRef, useState, type TextareaHTMLAttributes } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type TextareaHTMLAttributes
+} from "react";
 import { library } from "../lib/matcher";
+import type { DetailsSuggestScope } from "../lib/detailsSuggest";
 import type { CostLine, ReportExtras, ReportMetadata } from "../types";
 
 interface Props {
@@ -8,6 +14,12 @@ interface Props {
   onMetadata: (m: ReportMetadata) => void;
   onExtras: (e: ReportExtras) => void;
   onContinue: () => void;
+  aiConfigured: boolean;
+  /** Which panel(s) are currently drafting. */
+  suggestBusy: DetailsSuggestScope | null;
+  suggestError: { scope: DetailsSuggestScope; message: string } | null;
+  onAskAi: (scope: DetailsSuggestScope) => void;
+  onDismissSuggestError: () => void;
 }
 
 const PROPERTY_TYPES = [
@@ -39,18 +51,115 @@ function AutoGrowTextarea({
   return <textarea ref={ref} value={value} rows={1} {...rest} />;
 }
 
+function AskAiButton({
+  busy,
+  disabled,
+  onClick,
+  label = "Ask AI"
+}: {
+  busy: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={`btn small details-ask-ai${busy ? " ai-busy" : ""}`}
+      disabled={disabled || busy}
+      onClick={onClick}
+    >
+      {busy ? (
+        <>
+          <span className="ai-spinner" aria-hidden />
+          Writing…
+        </>
+      ) : (
+        label
+      )}
+    </button>
+  );
+}
+
+function DetailsAiErrorOverlay({
+  title,
+  message,
+  aiConfigured,
+  busy,
+  onDismiss,
+  onRetry
+}: {
+  title: string;
+  message: string;
+  aiConfigured: boolean;
+  busy: boolean;
+  onDismiss: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="ai-error-overlay details-ai-error-overlay" role="alert">
+      <p className="ai-error-title">{title}</p>
+      <p className="ai-error-message">{message}</p>
+      <div className="ai-error-actions">
+        <button type="button" className="btn small" onClick={onDismiss}>
+          Dismiss
+        </button>
+        <button
+          type="button"
+          className="btn small primary"
+          disabled={!aiConfigured || busy}
+          onClick={onRetry}
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function panelBusy(
+  suggestBusy: DetailsSuggestScope | null,
+  scope: Exclude<DetailsSuggestScope, "all">
+): boolean {
+  return suggestBusy === "all" || suggestBusy === scope;
+}
+
+function panelHasError(
+  suggestError: { scope: DetailsSuggestScope; message: string } | null,
+  scope: Exclude<DetailsSuggestScope, "all">
+): string | null {
+  if (!suggestError) return null;
+  if (suggestError.scope === "all" || suggestError.scope === scope) {
+    return suggestError.message;
+  }
+  return null;
+}
+
 export default function DetailsScreen({
   metadata,
   extras,
   onMetadata,
   onExtras,
-  onContinue
+  onContinue,
+  aiConfigured,
+  suggestBusy,
+  suggestError,
+  onAskAi,
+  onDismissSuggestError
 }: Props) {
   const [recPreview, setRecPreview] = useState<string | null>(null);
   const [costPreview, setCostPreview] = useState<string | null>(null);
 
   const setMeta = <K extends keyof ReportMetadata>(key: K, value: ReportMetadata[K]) =>
     onMetadata({ ...metadata, [key]: value });
+
+  const issuesBusy = panelBusy(suggestBusy, "issues");
+  const recsBusy = panelBusy(suggestBusy, "recommendations");
+  const costsBusy = panelBusy(suggestBusy, "costs");
+  const anyBusy = suggestBusy !== null;
+  const issuesError = panelHasError(suggestError, "issues");
+  const recsError = panelHasError(suggestError, "recommendations");
+  const costsError = panelHasError(suggestError, "costs");
 
   const toggleIssue = (key: keyof ReportExtras["dampIssues"]) =>
     onExtras({
@@ -86,7 +195,8 @@ export default function DetailsScreen({
       itemId: item.id,
       label: item.label,
       description: item.text,
-      amount: ""
+      amount: "",
+      location: ""
     };
     onExtras({ ...extras, costLines: [...extras.costLines, line] });
   };
@@ -104,6 +214,12 @@ export default function DetailsScreen({
 
   const removeCostLine = (id: string) =>
     onExtras({ ...extras, costLines: extras.costLines.filter((l) => l.id !== id) });
+
+  const pasteStandardText = (line: CostLine) => {
+    const item = library.costItems.find((c) => c.id === line.itemId);
+    if (!item) return;
+    updateCostLine(line.id, { description: item.text });
+  };
 
   const total = [
     ...extras.costLines,
@@ -224,16 +340,41 @@ export default function DetailsScreen({
         </label>
       </section>
 
-      <section className="panel">
-        <h2>Issues found at this property</h2>
-        <p className="muted">
-          Ticked issues get their full explainer section and an "is an issue in
-          this property" flag in the report.
-        </p>
+      <section
+        className={`panel details-ai-panel${issuesBusy ? " ai-working" : ""}${issuesError ? " ai-error" : ""}`}
+      >
+        {issuesError && (
+          <DetailsAiErrorOverlay
+            title="AI couldn’t finish issues"
+            message={issuesError}
+            aiConfigured={aiConfigured}
+            busy={anyBusy}
+            onDismiss={onDismissSuggestError}
+            onRetry={() => onAskAi(suggestError?.scope === "all" ? "all" : "issues")}
+          />
+        )}
+        <div className="details-panel-head">
+          <h2>Issues found at this property</h2>
+          <AskAiButton
+            busy={issuesBusy}
+            disabled={!aiConfigured || (anyBusy && !issuesBusy)}
+            onClick={() => onAskAi("issues")}
+          />
+        </div>
+        {issuesBusy && (
+          <div className="ai-writing-overlay details-ai-overlay" aria-hidden>
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-label">Drafting issues…</span>
+          </div>
+        )}
+        <p className="muted">Tick the damp issues identified on site.</p>
         <label className="toggle">
           <input
             type="checkbox"
             checked={extras.dampIssues.risingDamp}
+            disabled={issuesBusy}
             onChange={() => toggleIssue("risingDamp")}
           />
           <span>Rising damp</span>
@@ -242,6 +383,7 @@ export default function DetailsScreen({
           <input
             type="checkbox"
             checked={extras.dampIssues.penetratingDamp}
+            disabled={issuesBusy}
             onChange={() => toggleIssue("penetratingDamp")}
           />
           <span>Penetrating damp</span>
@@ -250,6 +392,7 @@ export default function DetailsScreen({
           <input
             type="checkbox"
             checked={extras.dampIssues.condensation}
+            disabled={issuesBusy}
             onChange={() => toggleIssue("condensation")}
           />
           <span>Condensation</span>
@@ -258,6 +401,7 @@ export default function DetailsScreen({
           <input
             type="checkbox"
             checked={extras.dampIssues.other}
+            disabled={issuesBusy}
             onChange={() => toggleIssue("other")}
           />
           <span>Other</span>
@@ -269,14 +413,44 @@ export default function DetailsScreen({
               rows={4}
               placeholder="Explain the issue and wording for the report…"
               value={extras.otherIssueText}
+              disabled={issuesBusy}
               onChange={(e) => onExtras({ ...extras, otherIssueText: e.target.value })}
             />
           </label>
         )}
       </section>
 
-      <section className="panel">
-        <h2>Recommendations</h2>
+      <section
+        className={`panel details-ai-panel${recsBusy ? " ai-working" : ""}${recsError ? " ai-error" : ""}`}
+      >
+        {recsError && (
+          <DetailsAiErrorOverlay
+            title="AI couldn’t finish recommendations"
+            message={recsError}
+            aiConfigured={aiConfigured}
+            busy={anyBusy}
+            onDismiss={onDismissSuggestError}
+            onRetry={() =>
+              onAskAi(suggestError?.scope === "all" ? "all" : "recommendations")
+            }
+          />
+        )}
+        <div className="details-panel-head">
+          <h2>Recommendations</h2>
+          <AskAiButton
+            busy={recsBusy}
+            disabled={!aiConfigured || (anyBusy && !recsBusy)}
+            onClick={() => onAskAi("recommendations")}
+          />
+        </div>
+        {recsBusy && (
+          <div className="ai-writing-overlay details-ai-overlay" aria-hidden>
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-label">Drafting recommendations…</span>
+          </div>
+        )}
         <p className="muted">Tick the standard recommendations to include.</p>
         {library.recommendations.map((r) => (
           <div key={r.id} className="rec-row">
@@ -284,12 +458,14 @@ export default function DetailsScreen({
               <input
                 type="checkbox"
                 checked={extras.recommendationIds.includes(r.id)}
+                disabled={recsBusy}
                 onChange={() => toggleRec(r.id)}
               />
               <span>{r.label}</span>
             </label>
             <button
               className="btn tiny"
+              disabled={recsBusy}
               onClick={() => setRecPreview(recPreview === r.id ? null : r.id)}
             >
               {recPreview === r.id ? "Hide" : "View"}
@@ -301,6 +477,7 @@ export default function DetailsScreen({
           <input
             type="checkbox"
             checked={extras.otherRecommendation}
+            disabled={recsBusy}
             onChange={() =>
               onExtras({ ...extras, otherRecommendation: !extras.otherRecommendation })
             }
@@ -314,6 +491,7 @@ export default function DetailsScreen({
               rows={4}
               placeholder="Write the recommendation wording for the report…"
               value={extras.otherRecommendationText}
+              disabled={recsBusy}
               onChange={(e) =>
                 onExtras({ ...extras, otherRecommendationText: e.target.value })
               }
@@ -322,31 +500,64 @@ export default function DetailsScreen({
         )}
       </section>
 
-      <section className="panel">
-        <h2>Project plan & costs</h2>
+      <section
+        className={`panel details-ai-panel${costsBusy ? " ai-working" : ""}${costsError ? " ai-error" : ""}`}
+      >
+        {costsError && (
+          <DetailsAiErrorOverlay
+            title="AI couldn’t finish project plan & costs"
+            message={costsError}
+            aiConfigured={aiConfigured}
+            busy={anyBusy}
+            onDismiss={onDismissSuggestError}
+            onRetry={() => onAskAi(suggestError?.scope === "all" ? "all" : "costs")}
+          />
+        )}
+        <div className="details-panel-head">
+          <h2>Project plan & costs</h2>
+          <AskAiButton
+            busy={costsBusy}
+            disabled={!aiConfigured || (anyBusy && !costsBusy)}
+            onClick={() => onAskAi("costs")}
+          />
+        </div>
+        {costsBusy && (
+          <div className="ai-writing-overlay details-ai-overlay" aria-hidden>
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-label">Drafting costs…</span>
+          </div>
+        )}
         <label className="field">
           <span>Areas of work (one line per room/area)</span>
           <textarea
             rows={4}
             placeholder={"Living area: all exterior walls from floor to 1.2 meters\nHallway: interior wall from floor to 1.2 meters"}
             value={extras.projectPlanLines}
+            disabled={costsBusy}
             onChange={(e) => onExtras({ ...extras, projectPlanLines: e.target.value })}
           />
         </label>
 
-        <p className="muted">Tick the standard cost items to include.</p>
+        <p className="muted">
+          Tick the standard cost items. Use the location box when work is limited
+          to specific rooms or elevations — standard wording is pasted for you.
+        </p>
         {library.costItems.map((c) => (
           <div key={c.id} className="rec-row">
             <label className="toggle">
               <input
                 type="checkbox"
                 checked={hasCostItem(c.id)}
+                disabled={costsBusy}
                 onChange={() => toggleCostItem(c.id)}
               />
               <span>{c.label}</span>
             </label>
             <button
               className="btn tiny"
+              disabled={costsBusy}
               onClick={() => setCostPreview(costPreview === c.id ? null : c.id)}
             >
               {costPreview === c.id ? "Hide" : "View"}
@@ -358,6 +569,7 @@ export default function DetailsScreen({
           <input
             type="checkbox"
             checked={extras.otherCost}
+            disabled={costsBusy}
             onChange={() => onExtras({ ...extras, otherCost: !extras.otherCost })}
           />
           <span>Other</span>
@@ -366,9 +578,32 @@ export default function DetailsScreen({
         {extras.costLines.map((line) => (
           <div key={line.id} className="cost-line">
             <div className="cost-line-label">{costLineLabel(line)}</div>
+            <label className="field cost-location-field">
+              <span>Where / areas (optional)</span>
+              <input
+                type="text"
+                value={line.location ?? ""}
+                placeholder="e.g. rear reception & hallway exterior walls to 1.2m"
+                disabled={costsBusy}
+                onChange={(e) =>
+                  updateCostLine(line.id, { location: e.target.value })
+                }
+              />
+            </label>
+            <div className="cost-standard-row">
+              <button
+                type="button"
+                className="btn tiny"
+                disabled={costsBusy || line.itemId === "custom"}
+                onClick={() => pasteStandardText(line)}
+              >
+                Paste standard text
+              </button>
+            </div>
             <AutoGrowTextarea
               value={line.description}
               placeholder="Describe the work item..."
+              disabled={costsBusy}
               onChange={(e) => updateCostLine(line.id, { description: e.target.value })}
             />
             <div className="cost-line-foot">
@@ -379,10 +614,15 @@ export default function DetailsScreen({
                   inputMode="decimal"
                   value={line.amount}
                   placeholder="0"
+                  disabled={costsBusy}
                   onChange={(e) => updateCostLine(line.id, { amount: e.target.value })}
                 />
               </label>
-              <button className="btn tiny danger" onClick={() => removeCostLine(line.id)}>
+              <button
+                className="btn tiny danger"
+                disabled={costsBusy}
+                onClick={() => removeCostLine(line.id)}
+              >
                 Remove
               </button>
             </div>
@@ -395,6 +635,7 @@ export default function DetailsScreen({
             <AutoGrowTextarea
               value={extras.otherCostDescription}
               placeholder="Describe the other work item..."
+              disabled={costsBusy}
               onChange={(e) =>
                 onExtras({ ...extras, otherCostDescription: e.target.value })
               }
@@ -407,6 +648,7 @@ export default function DetailsScreen({
                   inputMode="decimal"
                   value={extras.otherCostAmount}
                   placeholder="0"
+                  disabled={costsBusy}
                   onChange={(e) =>
                     onExtras({ ...extras, otherCostAmount: e.target.value })
                   }
@@ -429,6 +671,7 @@ export default function DetailsScreen({
               type="text"
               inputMode="decimal"
               value={extras.surveyDiscount}
+              disabled={costsBusy}
               onChange={(e) => onExtras({ ...extras, surveyDiscount: e.target.value })}
             />
           </label>
@@ -438,6 +681,7 @@ export default function DetailsScreen({
               type="text"
               value={extras.timeEstimate}
               placeholder="5-7 days"
+              disabled={costsBusy}
               onChange={(e) => onExtras({ ...extras, timeEstimate: e.target.value })}
             />
           </label>
@@ -445,7 +689,11 @@ export default function DetailsScreen({
       </section>
 
       <div className="bottom-bar">
-        <button className="btn primary big" onClick={onContinue}>
+        <button
+          className="btn primary big"
+          disabled={anyBusy}
+          onClick={onContinue}
+        >
           Continue to generate
         </button>
       </div>
