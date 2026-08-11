@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DEFAULT_DETAILS_SUGGEST_MODEL,
   DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL,
@@ -21,8 +21,25 @@ import ThemePicker from "./ThemeToggle";
 
 interface Props {
   settings: AppSettings;
+  /** Persist settings (called automatically when the sheet closes). */
   onSave: (next: AppSettings) => void;
   onClose: () => void;
+}
+
+function normalizeSettings(draft: AppSettings): AppSettings {
+  return {
+    ...draft,
+    apiKey: draft.apiKey.trim(),
+    geminiApiKey: draft.geminiApiKey.trim(),
+    surveyorName: draft.surveyorName.trim(),
+    model: draft.model.trim() || DEFAULT_MODEL,
+    detailsSuggestModel:
+      draft.detailsSuggestModel.trim() || DEFAULT_DETAILS_SUGGEST_MODEL,
+    geminiModel: draft.geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+    geminiDetailsSuggestModel:
+      draft.geminiDetailsSuggestModel.trim() ||
+      DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL
+  };
 }
 
 function ApiKeyField({
@@ -77,6 +94,10 @@ function pipJumpLabel(hover: boolean, pointer: "fine" | "coarse"): string {
 
 export default function SettingsSheet({ settings, onSave, onClose }: Props) {
   const [draft, setDraft] = useState<AppSettings>(settings);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
   const pointerMode = usePointerInputModeValue();
   const folderCapable = canLinkReportFolder();
   const [folderName, setFolderName] = useState<string | null>(null);
@@ -86,6 +107,14 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
   const [modelsLive, setModelsLive] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [modelsBusy, setModelsBusy] = useState(false);
+
+  // Persist whatever is on screen whenever Settings closes for any reason
+  // (Done, backdrop tap, Back, history pop, etc.).
+  useEffect(() => {
+    return () => {
+      onSaveRef.current(normalizeSettings(draftRef.current));
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,21 +157,6 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
 
   const set = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
-
-  const save = () => {
-    onSave({
-      ...draft,
-      apiKey: draft.apiKey.trim(),
-      geminiApiKey: draft.geminiApiKey.trim(),
-      model: draft.model.trim() || DEFAULT_MODEL,
-      detailsSuggestModel:
-        draft.detailsSuggestModel.trim() || DEFAULT_DETAILS_SUGGEST_MODEL,
-      geminiModel: draft.geminiModel.trim() || DEFAULT_GEMINI_MODEL,
-      geminiDetailsSuggestModel:
-        draft.geminiDetailsSuggestModel.trim() ||
-        DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL
-    });
-  };
 
   const onLinkFolder = async () => {
     setFolderError(null);
@@ -387,6 +401,21 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
         )}
 
         <label className="field">
+          <span>Your name (report Contact)</span>
+          <input
+            type="text"
+            value={draft.surveyorName}
+            placeholder="e.g. Alex Morgan"
+            autoComplete="name"
+            onChange={(e) => set("surveyorName", e.target.value)}
+          />
+          <small>
+            Shown as Contact in the page header. Required before generating a
+            report.
+          </small>
+        </label>
+
+        <label className="field">
           <span>Company name</span>
           <input
             type="text"
@@ -405,11 +434,8 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
         </label>
 
         <div className="sheet-actions">
-          <button className="btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn primary" onClick={save}>
-            Save
+          <button type="button" className="btn primary" onClick={onClose}>
+            Done
           </button>
         </div>
       </div>

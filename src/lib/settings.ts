@@ -34,15 +34,24 @@ export interface AppSettings {
    * opening Report details (once per visit).
    */
   autoSuggestDetailsExtras: boolean;
+  /**
+   * Surveyor name shown as "Contact:" in the report page header.
+   * Blank by default — required before generating a document.
+   */
+  surveyorName: string;
 }
 
 export const DEFAULT_MODEL = "claude-sonnet-5";
-export const DEFAULT_DETAILS_SUGGEST_MODEL = "claude-opus-4-6";
+export const DEFAULT_DETAILS_SUGGEST_MODEL = "claude-sonnet-5";
 export const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
-export const DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL = "gemini-2.5-pro";
+export const DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL = "gemini-3.6-flash";
 
 /** Older defaults that Google has since retired for new API users. */
 const RETIRED_GEMINI_MODELS = new Set(["gemini-2.5-flash", "gemini-3-flash-preview"]);
+
+/** Previous app defaults — migrate saved settings that still use these. */
+const PREVIOUS_DEFAULT_DETAILS_SUGGEST_MODEL = "claude-opus-4-6";
+const PREVIOUS_DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL = "gemini-2.5-pro";
 
 /** The API key/model pair for the currently selected provider (section AI). */
 export function activeAi(settings: AppSettings): {
@@ -89,7 +98,8 @@ export function loadSettings(): AppSettings {
     website: "www.dampmaster.com",
     pipJumpOnHover: true,
     studioPhotoPassThrough: false,
-    autoSuggestDetailsExtras: false
+    autoSuggestDetailsExtras: false,
+    surveyorName: ""
   };
   try {
     const raw = localStorage.getItem(KEY);
@@ -102,11 +112,21 @@ export function loadSettings(): AppSettings {
     if (RETIRED_GEMINI_MODELS.has(merged.geminiDetailsSuggestModel)) {
       merged.geminiDetailsSuggestModel = DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL;
     }
-    if (!merged.detailsSuggestModel) {
+    // Migrate previous details-suggest defaults to the new shared section defaults.
+    if (
+      !merged.detailsSuggestModel ||
+      merged.detailsSuggestModel === PREVIOUS_DEFAULT_DETAILS_SUGGEST_MODEL
+    ) {
       merged.detailsSuggestModel = DEFAULT_DETAILS_SUGGEST_MODEL;
     }
-    if (!merged.geminiDetailsSuggestModel) {
+    if (
+      !merged.geminiDetailsSuggestModel ||
+      merged.geminiDetailsSuggestModel === PREVIOUS_DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL
+    ) {
       merged.geminiDetailsSuggestModel = DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL;
+    }
+    if (typeof merged.surveyorName !== "string") {
+      merged.surveyorName = "";
     }
     return merged;
   } catch {

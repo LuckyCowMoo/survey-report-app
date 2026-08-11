@@ -82,7 +82,7 @@ function defaultMetadata(settings: AppSettings): ReportMetadata {
     weatherDesc: "dry conditions",
     temperature: "",
     skyDesc: "intermittent cloud cover",
-    contactName: "",
+    contactName: settings.surveyorName.trim(),
     phone: "",
     email: "",
     docId: ""
@@ -158,6 +158,7 @@ export default function App() {
   const detailsSuggestRanRef = useRef(false);
   const detailsSuggestAbortRef = useRef<AbortController | null>(null);
   const [saveAndLeaveBusy, setSaveAndLeaveBusy] = useState(false);
+  const [showSurveyorNamePrompt, setShowSurveyorNamePrompt] = useState(false);
 
   const flaggedCount = useMemo(
     () => sections.filter((s) => s.needsAttention).length,
@@ -207,6 +208,19 @@ export default function App() {
     return false;
   }, [showSettings, showGuide, step]);
 
+  const goToGenerate = useCallback(() => {
+    if (!settings.surveyorName.trim()) {
+      setShowSurveyorNamePrompt(true);
+      return false;
+    }
+    setMetadata((m) => ({
+      ...m,
+      contactName: settings.surveyorName.trim()
+    }));
+    navigateTo("generate");
+    return true;
+  }, [settings.surveyorName, navigateTo]);
+
   /** Same destinations as Continue, or Import on the home page. */
   const continueForward = useCallback(() => {
     if (step === "home") {
@@ -219,11 +233,10 @@ export default function App() {
       return true;
     }
     if (step === "details") {
-      navigateTo("generate");
-      return true;
+      return goToGenerate();
     }
     return false;
-  }, [step, sections.length, navigateTo, busy]);
+  }, [step, sections.length, navigateTo, busy, goToGenerate]);
 
   /**
    * Browser/mouse forward when the history stack allows it; otherwise advance
@@ -353,19 +366,19 @@ export default function App() {
     });
   }, []);
 
-  const handleSettingsSave = useCallback(
-    (next: AppSettings) => {
-      setSettings(next);
-      saveSettings(next);
-      setMetadata((m) => ({
-        ...m,
-        companyName: next.companyName,
-        website: next.website
-      }));
-      dismissOverlay();
-    },
-    [dismissOverlay]
-  );
+  const handleSettingsSave = useCallback((next: AppSettings) => {
+    setSettings(next);
+    saveSettings(next);
+    setMetadata((m) => ({
+      ...m,
+      companyName: next.companyName,
+      website: next.website,
+      contactName: next.surveyorName.trim()
+    }));
+    if (next.surveyorName.trim()) {
+      setShowSurveyorNamePrompt(false);
+    }
+  }, []);
 
   const beginFreshImport = useCallback(
     (nextSections: SectionState[], nextWarnings: string[]) => {
@@ -663,6 +676,7 @@ export default function App() {
     setDetailsSuggestBusy(null);
     setDetailsSuggestError(null);
     setSaveAndLeaveBusy(false);
+    setShowSurveyorNamePrompt(false);
     setStep("home");
     replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
@@ -811,7 +825,7 @@ export default function App() {
             extras={extras}
             onMetadata={setMetadata}
             onExtras={setExtras}
-            onContinue={() => navigateTo("generate")}
+            onContinue={goToGenerate}
             onSaveAndLeave={() => void saveAndLeave()}
             saveAndLeaveBusy={saveAndLeaveBusy}
             aiConfigured={activeDetailsSuggestAi(settings).apiKey.length > 0}
@@ -842,6 +856,46 @@ export default function App() {
       )}
 
       {showGuide && <KeywordGuide onClose={dismissOverlay} />}
+
+      {showSurveyorNamePrompt && (
+        <div
+          className="sheet-backdrop"
+          onClick={() => setShowSurveyorNamePrompt(false)}
+        >
+          <div
+            className="sheet past-delete-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="surveyor-name-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="surveyor-name-title">Add your contact name</h2>
+            <p>
+              The report header needs your name in the Contact field. Add it in
+              Settings, then continue to generate.
+            </p>
+            <div className="sheet-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowSurveyorNamePrompt(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  setShowSurveyorNamePrompt(false);
+                  openSettings();
+                }}
+              >
+                Open Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingSourceMatch && (
         <div

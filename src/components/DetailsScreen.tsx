@@ -343,15 +343,6 @@ export default function DetailsScreen({
             onChange={(e) => setMeta("clientName", e.target.value)}
           />
         </label>
-        <label className="field">
-          <span>Contact (page header)</span>
-          <input
-            type="text"
-            value={metadata.contactName}
-            placeholder="Property / client contact"
-            onChange={(e) => setMeta("contactName", e.target.value)}
-          />
-        </label>
         <div className="field-row">
           <label className="field">
             <span>Phone (page header)</span>
@@ -432,15 +423,25 @@ export default function DetailsScreen({
       </section>
 
       <div className="details-ai-toolbar">
-        <AskAiButton
-          label="Ask AI about all"
-          busy={allBusy}
-          disabled={!aiConfigured || (anyBusy && !allBusy)}
-          onClick={() => onAskAi("all")}
-        />
         <button
           type="button"
-          className="btn small"
+          className={`btn primary details-ask-ai-all${allBusy ? " ai-busy" : ""}`}
+          disabled={!aiConfigured || (anyBusy && !allBusy) || allBusy}
+          title={aiConfigured ? "" : "Add your API key in Settings"}
+          onClick={() => onAskAi("all")}
+        >
+          {allBusy ? (
+            <>
+              <span className="ai-spinner" aria-hidden />
+              Writing…
+            </>
+          ) : (
+            "Ask AI about all"
+          )}
+        </button>
+        <button
+          type="button"
+          className="btn small details-deselect-all"
           disabled={anyBusy}
           onClick={deselectAllAiPanels}
         >

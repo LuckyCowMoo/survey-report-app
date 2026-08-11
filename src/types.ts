@@ -56,7 +56,7 @@ export interface ReportMetadata {
   weatherDesc: string;
   temperature: string;
   skyDesc: string;
-  /** Property / client contact shown as "Contact:" in the page header. */
+  /** Surveyor name shown as "Contact:" in the page header (from Settings). */
   contactName: string;
   /** Property / client phone shown in the page header. */
   phone: string;
