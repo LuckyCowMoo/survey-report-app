@@ -102,6 +102,27 @@ export interface ReportExtras {
   otherCostAmount: string;
   surveyDiscount: string;
   timeEstimate: string;
+  /**
+   * Which ticks were last set by details AI (shown purple in the UI),
+   * plus short reasons shown under each AI pick.
+   * Manual toggles clear the matching marks/reasons.
+   */
+  aiSuggested: {
+    issues: {
+      risingDamp: boolean;
+      penetratingDamp: boolean;
+      condensation: boolean;
+    };
+    issueReasons: {
+      risingDamp?: string;
+      penetratingDamp?: string;
+      condensation?: string;
+    };
+    recommendationIds: string[];
+    recommendationReasons: Record<string, string>;
+    costItemIds: string[];
+    costReasons: Record<string, string>;
+  };
 }
 
 export interface LibraryPlaceholder {

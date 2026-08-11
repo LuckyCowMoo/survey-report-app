@@ -14,21 +14,26 @@ import type { CostLine, ReportExtras, SectionState } from "../types";
 
 export type DetailsSuggestScope = "all" | "issues" | "recommendations" | "costs";
 
+export type IssueSuggestKey = "risingDamp" | "penetratingDamp" | "condensation";
+
 export interface DetailsSuggestResult {
-  dampIssues?: {
-    risingDamp?: boolean;
-    penetratingDamp?: boolean;
-    condensation?: boolean;
-  };
+  dampIssues?: Partial<Record<IssueSuggestKey, boolean>>;
+  issueReasons?: Partial<Record<IssueSuggestKey, string>>;
   recommendationIds?: string[];
+  recommendationReasons?: Record<string, string>;
   costs?: Array<{
     itemId: string;
     /** Areas/rooms where this work applies, when relevant. */
     location?: string;
+    reason?: string;
   }>;
 }
 
-const ISSUE_KEYS = ["risingDamp", "penetratingDamp", "condensation"] as const;
+const ISSUE_KEYS: IssueSuggestKey[] = [
+  "risingDamp",
+  "penetratingDamp",
+  "condensation"
+];
 const REC_IDS = new Set(library.recommendations.map((r) => r.id));
 const COST_IDS = new Set(library.costItems.map((c) => c.id));
 
@@ -43,6 +48,7 @@ Rules:
 - For Rising Damp plaster work you MAY suggest both replaster and plasterboard when appropriate; the surveyor will choose.
 - For Penetrating Damp exterior envelope failures, suggest recommendations only — do not invent billed costs for external repairs.
 - For cost items that need a place of work, include a short "location" string (rooms/areas), e.g. "rear reception and hallway exterior walls to 1.2m".
+- For every tick you select, include a short "reason" (one sentence) citing the survey evidence that justified it.
 - Do not write project-plan prose paragraphs — only tick cost items (with optional locations).
 - Respond with ONLY a JSON object, no markdown fences, no commentary.`;
 
@@ -89,21 +95,21 @@ function buildUserPrompt(sections: SectionState[], scope: DetailsSuggestScope): 
 
   const scopeHint =
     scope === "all"
-      ? "Fill dampIssues, recommendationIds, and costs."
+      ? "Fill dampIssues, recommendations, and costs — each selected item needs a reason."
       : scope === "issues"
-        ? 'Return ONLY {"dampIssues":{...}} — omit recommendationIds and costs.'
+        ? "Return ONLY dampIssues (omit recommendations and costs)."
         : scope === "recommendations"
-          ? 'Return ONLY {"recommendationIds":["rec-…"]} — omit dampIssues and costs.'
-          : 'Return ONLY {"costs":[{"itemId":"cost-…","location":"…"}]} — omit dampIssues and recommendationIds.';
+          ? "Return ONLY recommendations (omit dampIssues and costs)."
+          : "Return ONLY costs (omit dampIssues and recommendations).";
 
   const example =
     scope === "issues"
-      ? '{"dampIssues":{"risingDamp":false,"penetratingDamp":false,"condensation":true}}'
+      ? '{"dampIssues":{"condensation":{"selected":true,"reason":"Black mould and high RH noted on external bedroom walls"}}}'
       : scope === "recommendations"
-        ? '{"recommendationIds":["rec-piv","rec-mould-removal"]}'
+        ? '{"recommendations":[{"id":"rec-piv","reason":"Widespread condensation; whole-house ventilation indicated"},{"id":"rec-mould-removal","reason":"Visible mould growth on external walls"}]}'
         : scope === "costs"
-          ? '{"costs":[{"itemId":"cost-piv-unit","location":"whole dwelling"},{"itemId":"cost-mould-treatment","location":"front bedroom external wall"}]}'
-          : '{"dampIssues":{"risingDamp":false,"penetratingDamp":false,"condensation":true},"recommendationIds":["rec-piv"],"costs":[{"itemId":"cost-piv-unit","location":"whole dwelling"},{"itemId":"cost-mould-treatment","location":"front bedroom external wall"}]}';
+          ? '{"costs":[{"itemId":"cost-piv-unit","location":"whole dwelling","reason":"PIV recommended for atmospheric moisture control"},{"itemId":"cost-mould-treatment","location":"front bedroom external wall","reason":"Local mould treatment where staining was recorded"}]}'
+          : '{"dampIssues":{"condensation":{"selected":true,"reason":"Elevated RH and mould in living areas"}},"recommendations":[{"id":"rec-piv","reason":"Condensation throughout; PIV indicated"}],"costs":[{"itemId":"cost-piv-unit","location":"whole dwelling","reason":"Matches PIV recommendation"}]}';
 
   const parts = [
     `SCOPE: ${scopeHint}`,
@@ -127,22 +133,65 @@ function buildUserPrompt(sections: SectionState[], scope: DetailsSuggestScope): 
     "",
     "Return JSON shaped like:",
     example,
-    "Omit keys outside the requested scope. Only include true issue flags you want ticked."
+    "Only include items you want ticked. Every selected item must include a short reason."
   );
   return parts.join("\n");
+}
+
+function asReason(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function parseIssueEntry(raw: unknown): { selected: boolean; reason: string } {
+  if (raw === true) return { selected: true, reason: "" };
+  if (raw === false || raw == null) return { selected: false, reason: "" };
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (!t || /^false$/i.test(t)) return { selected: false, reason: "" };
+    if (/^true$/i.test(t)) return { selected: true, reason: "" };
+    // Model sometimes returns the reason string directly.
+    return { selected: true, reason: asReason(t) };
+  }
+  if (typeof raw !== "object") return { selected: false, reason: "" };
+  const o = raw as Record<string, unknown>;
+  const selected =
+    o.selected === true ||
+    o.tick === true ||
+    o.value === true ||
+    o.checked === true ||
+    // `{ "reason": "..." }` with no selected flag still means pick it.
+    (typeof o.reason === "string" && o.selected !== false && o.tick !== false);
+  const reason = asReason(o.reason ?? o.why ?? o.rationale ?? o.explanation);
+  return { selected: Boolean(selected), reason };
+}
+
+function parseRecEntry(raw: unknown): { id: string; reason: string } | null {
+  if (typeof raw === "string" && REC_IDS.has(raw)) {
+    return { id: raw, reason: "" };
+  }
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const id =
+    typeof o.id === "string"
+      ? o.id
+      : typeof o.recommendationId === "string"
+        ? o.recommendationId
+        : "";
+  if (!REC_IDS.has(id)) return null;
+  return { id, reason: asReason(o.reason ?? o.why ?? o.rationale ?? o.explanation) };
 }
 
 /** Normalise common model shapes into the expected object keys. */
 function coerceSuggestionsPayload(raw: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = { ...raw };
 
-  if (!Array.isArray(out.recommendationIds)) {
+  if (!Array.isArray(out.recommendations) && !Array.isArray(out.recommendationIds)) {
     const alt =
-      out.recommendations ??
       out.recommendation_ids ??
       out.recommendationID ??
       out.recs;
-    if (Array.isArray(alt)) out.recommendationIds = alt;
+    if (Array.isArray(alt)) out.recommendations = alt;
   }
 
   if (!out.dampIssues || typeof out.dampIssues !== "object") {
@@ -165,7 +214,7 @@ function parseSuggestionsResponse(rawText: string): Record<string, unknown> | nu
   // Some models return a bare id array for recommendations-only.
   const arr = extractJsonArray(rawText);
   if (arr && arr.length > 0 && arr.every((x) => typeof x === "string")) {
-    return { recommendationIds: arr };
+    return { recommendations: arr };
   }
   return null;
 }
@@ -178,32 +227,40 @@ function sanitizeResult(
 
   if (scope === "all" || scope === "issues") {
     const issuesRaw = (raw.dampIssues ?? {}) as Record<string, unknown>;
-    const dampIssues: DetailsSuggestResult["dampIssues"] = {};
+    const dampIssues: NonNullable<DetailsSuggestResult["dampIssues"]> = {};
+    const issueReasons: NonNullable<DetailsSuggestResult["issueReasons"]> = {};
     for (const key of ISSUE_KEYS) {
-      if (issuesRaw[key] === true) dampIssues[key] = true;
+      const parsed = parseIssueEntry(issuesRaw[key]);
+      if (!parsed.selected) continue;
+      dampIssues[key] = true;
+      if (parsed.reason) issueReasons[key] = parsed.reason;
     }
-    if (Object.keys(dampIssues).length) out.dampIssues = dampIssues;
+    if (Object.keys(dampIssues).length) {
+      out.dampIssues = dampIssues;
+      if (Object.keys(issueReasons).length) out.issueReasons = issueReasons;
+    }
   }
 
   if (scope === "all" || scope === "recommendations") {
-    const ids = Array.isArray(raw.recommendationIds)
-      ? raw.recommendationIds
-      : [];
+    const list = Array.isArray(raw.recommendations)
+      ? raw.recommendations
+      : Array.isArray(raw.recommendationIds)
+        ? raw.recommendationIds
+        : [];
     const recommendationIds: string[] = [];
-    for (const id of ids) {
-      if (typeof id === "string" && REC_IDS.has(id)) {
-        recommendationIds.push(id);
-        continue;
-      }
-      if (id && typeof id === "object") {
-        const nested = (id as { id?: unknown }).id;
-        if (typeof nested === "string" && REC_IDS.has(nested)) {
-          recommendationIds.push(nested);
-        }
+    const recommendationReasons: Record<string, string> = {};
+    for (const entry of list) {
+      const parsed = parseRecEntry(entry);
+      if (!parsed) continue;
+      if (!recommendationIds.includes(parsed.id)) recommendationIds.push(parsed.id);
+      if (parsed.reason) recommendationReasons[parsed.id] = parsed.reason;
+    }
+    if (recommendationIds.length) {
+      out.recommendationIds = recommendationIds;
+      if (Object.keys(recommendationReasons).length) {
+        out.recommendationReasons = recommendationReasons;
       }
     }
-    const unique = [...new Set(recommendationIds)];
-    if (unique.length) out.recommendationIds = unique;
   }
 
   if (scope === "all" || scope === "costs") {
@@ -211,20 +268,106 @@ function sanitizeResult(
     const costs: NonNullable<DetailsSuggestResult["costs"]> = [];
     for (const row of costsRaw) {
       if (!row || typeof row !== "object") continue;
-      const itemId = (row as { itemId?: unknown }).itemId;
-      if (typeof itemId !== "string" || !COST_IDS.has(itemId)) continue;
+      const itemIdRaw = (row as { itemId?: unknown; id?: unknown }).itemId
+        ?? (row as { id?: unknown }).id;
+      if (typeof itemIdRaw !== "string" || !COST_IDS.has(itemIdRaw)) continue;
       const locationRaw = (row as { location?: unknown }).location;
       const location =
         typeof locationRaw === "string" ? locationRaw.trim() : "";
-      costs.push(location ? { itemId, location } : { itemId });
+      const reason = asReason(
+        (row as { reason?: unknown; why?: unknown }).reason
+          ?? (row as { why?: unknown }).why
+      );
+      costs.push({
+        itemId: itemIdRaw,
+        ...(location ? { location } : {}),
+        ...(reason ? { reason } : {})
+      });
     }
-    // Dedupe by itemId, last wins for location.
-    const byId = new Map<string, { itemId: string; location?: string }>();
+    // Dedupe by itemId, last wins for location/reason.
+    const byId = new Map<string, NonNullable<DetailsSuggestResult["costs"]>[number]>();
     for (const c of costs) byId.set(c.itemId, c);
     if (byId.size) out.costs = [...byId.values()];
   }
 
   return out;
+}
+
+function cloneSuggestResult(result: DetailsSuggestResult): DetailsSuggestResult {
+  return JSON.parse(JSON.stringify(result)) as DetailsSuggestResult;
+}
+
+function mergeSuggestResults(
+  issues: DetailsSuggestResult,
+  recommendations: DetailsSuggestResult,
+  costs: DetailsSuggestResult
+): DetailsSuggestResult {
+  return {
+    ...(issues.dampIssues ? { dampIssues: issues.dampIssues } : {}),
+    ...(issues.issueReasons ? { issueReasons: issues.issueReasons } : {}),
+    ...(recommendations.recommendationIds
+      ? { recommendationIds: recommendations.recommendationIds }
+      : {}),
+    ...(recommendations.recommendationReasons
+      ? { recommendationReasons: recommendations.recommendationReasons }
+      : {}),
+    ...(costs.costs ? { costs: costs.costs } : {})
+  };
+}
+
+function fingerprintSections(sections: SectionState[]): string {
+  // Stable hash of the survey wording that drives suggestions.
+  const corpus = sectionCorpus(sections);
+  let hash = 2166136261;
+  for (let i = 0; i < corpus.length; i++) {
+    hash ^= corpus.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function suggestCacheKey(
+  sections: SectionState[],
+  ai: AiConfig,
+  scope: Exclude<DetailsSuggestScope, "all"> | "all"
+): string {
+  return `${ai.provider}|${ai.model}|${scope}|${fingerprintSections(sections)}`;
+}
+
+/** In-memory cache: same survey wording + model + scope → reuse prior answer. */
+const suggestCache = new Map<string, DetailsSuggestResult>();
+
+async function fetchScopedSuggestion(
+  sections: SectionState[],
+  ai: AiConfig,
+  scope: Exclude<DetailsSuggestScope, "all">,
+  signal?: AbortSignal
+): Promise<DetailsSuggestResult> {
+  const key = suggestCacheKey(sections, ai, scope);
+  const cached = suggestCache.get(key);
+  if (cached) return cloneSuggestResult(cached);
+
+  signal?.throwIfAborted?.();
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
+  const rawText = await callAiText(
+    ai,
+    buildUserPrompt(sections, scope),
+    SYSTEM_PROMPT,
+    signal
+  );
+  if (!rawText.trim()) {
+    throw new Error("The AI returned an empty suggestions response.");
+  }
+  const parsed = parseSuggestionsResponse(rawText);
+  if (!parsed) {
+    throw new Error("The AI returned an unreadable suggestions response.");
+  }
+  const result = sanitizeResult(parsed, scope);
+  suggestCache.set(key, cloneSuggestResult(result));
+  // Combined "all" answer is stale once any part is refreshed.
+  suggestCache.delete(suggestCacheKey(sections, ai, "all"));
+  return cloneSuggestResult(result);
 }
 
 export async function suggestDetailsExtras(
@@ -240,23 +383,138 @@ export async function suggestDetailsExtras(
     throw new Error("No sections available to analyse.");
   }
 
-  const rawText = await callAiText(
-    ai,
-    buildUserPrompt(sections, scope),
-    SYSTEM_PROMPT,
-    signal
+  if (scope !== "all") {
+    return fetchScopedSuggestion(sections, ai, scope, signal);
+  }
+
+  const allKey = suggestCacheKey(sections, ai, "all");
+  const cachedAll = suggestCache.get(allKey);
+  if (cachedAll) return cloneSuggestResult(cachedAll);
+
+  // Run as three smaller calls (more reliable than one huge JSON payload).
+  // Reuse any scope already answered for this same survey wording.
+  const scopes: Array<Exclude<DetailsSuggestScope, "all">> = [
+    "issues",
+    "recommendations",
+    "costs"
+  ];
+  const parts: Partial<
+    Record<Exclude<DetailsSuggestScope, "all">, DetailsSuggestResult>
+  > = {};
+  const errors: string[] = [];
+
+  for (const part of scopes) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    try {
+      parts[part] = await fetchScopedSuggestion(sections, ai, part, signal);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
+      errors.push(
+        `${part}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
+  if (!parts.issues && !parts.recommendations && !parts.costs) {
+    throw new Error(
+      errors[0] || "The AI returned an unreadable suggestions response."
+    );
+  }
+
+  const merged = mergeSuggestResults(
+    parts.issues ?? {},
+    parts.recommendations ?? {},
+    parts.costs ?? {}
   );
-  if (!rawText.trim()) {
-    throw new Error("The AI returned an empty suggestions response.");
+
+  if (parts.issues && parts.recommendations && parts.costs) {
+    suggestCache.set(allKey, cloneSuggestResult(merged));
   }
-  const parsed = parseSuggestionsResponse(rawText);
-  if (!parsed) {
-    throw new Error("The AI returned an unreadable suggestions response.");
+
+  if (errors.length) {
+    throw new PartialDetailsSuggestError(
+      `Some suggestions failed (${errors.join("; ")}). Successful parts were kept — try again for the rest.`,
+      merged
+    );
   }
-  return sanitizeResult(parsed, scope);
+
+  return merged;
+}
+
+/** Thrown when Ask-all got some scopes back but not all. */
+export class PartialDetailsSuggestError extends Error {
+  readonly result: DetailsSuggestResult;
+
+  constructor(message: string, result: DetailsSuggestResult) {
+    super(message);
+    this.name = "PartialDetailsSuggestError";
+    this.result = result;
+  }
 }
 
 let costIdCounter = 1;
+
+export function emptyAiSuggested(): ReportExtras["aiSuggested"] {
+  return {
+    issues: {
+      risingDamp: false,
+      penetratingDamp: false,
+      condensation: false
+    },
+    issueReasons: {},
+    recommendationIds: [],
+    recommendationReasons: {},
+    costItemIds: [],
+    costReasons: {}
+  };
+}
+
+function cleanReasonMap(
+  value: unknown
+): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const [key, reason] of Object.entries(value as Record<string, unknown>)) {
+    const text = asReason(reason);
+    if (key && text) out[key] = text;
+  }
+  return out;
+}
+
+/** Ensure older saved extras still have aiSuggested tracking fields. */
+export function normalizeReportExtras(extras: ReportExtras): ReportExtras {
+  const ai = extras.aiSuggested;
+  const issueReasons = cleanReasonMap(ai?.issueReasons);
+  return {
+    ...extras,
+    aiSuggested: {
+      issues: {
+        risingDamp: Boolean(ai?.issues?.risingDamp),
+        penetratingDamp: Boolean(ai?.issues?.penetratingDamp),
+        condensation: Boolean(ai?.issues?.condensation)
+      },
+      issueReasons: {
+        ...(issueReasons.risingDamp
+          ? { risingDamp: issueReasons.risingDamp }
+          : {}),
+        ...(issueReasons.penetratingDamp
+          ? { penetratingDamp: issueReasons.penetratingDamp }
+          : {}),
+        ...(issueReasons.condensation
+          ? { condensation: issueReasons.condensation }
+          : {})
+      },
+      recommendationIds: Array.isArray(ai?.recommendationIds)
+        ? ai.recommendationIds.filter((id): id is string => typeof id === "string")
+        : [],
+      recommendationReasons: cleanReasonMap(ai?.recommendationReasons),
+      costItemIds: Array.isArray(ai?.costItemIds)
+        ? ai.costItemIds.filter((id): id is string => typeof id === "string")
+        : [],
+      costReasons: cleanReasonMap(ai?.costReasons)
+    }
+  };
+}
 
 /** Apply a suggestions result onto ReportExtras (does not touch Other fields). */
 export function applyDetailsSuggestions(
@@ -264,31 +522,57 @@ export function applyDetailsSuggestions(
   suggestion: DetailsSuggestResult,
   scope: DetailsSuggestScope
 ): ReportExtras {
-  let next: ReportExtras = { ...extras };
+  let next: ReportExtras = normalizeReportExtras(extras);
+  const aiSuggested: ReportExtras["aiSuggested"] = {
+    ...next.aiSuggested,
+    issues: { ...next.aiSuggested.issues },
+    issueReasons: { ...next.aiSuggested.issueReasons },
+    recommendationReasons: { ...next.aiSuggested.recommendationReasons },
+    costReasons: { ...next.aiSuggested.costReasons }
+  };
 
   if ((scope === "all" || scope === "issues") && suggestion.dampIssues) {
-    next = {
-      ...next,
-      dampIssues: {
-        ...next.dampIssues,
-        risingDamp: Boolean(suggestion.dampIssues.risingDamp),
-        penetratingDamp: Boolean(suggestion.dampIssues.penetratingDamp),
-        condensation: Boolean(suggestion.dampIssues.condensation)
-        // never touch other
-      }
+    const dampIssues = {
+      ...next.dampIssues,
+      risingDamp: Boolean(suggestion.dampIssues.risingDamp),
+      penetratingDamp: Boolean(suggestion.dampIssues.penetratingDamp),
+      condensation: Boolean(suggestion.dampIssues.condensation)
+      // never touch other
     };
+    aiSuggested.issues = {
+      risingDamp: dampIssues.risingDamp,
+      penetratingDamp: dampIssues.penetratingDamp,
+      condensation: dampIssues.condensation
+    };
+    const issueReasons: ReportExtras["aiSuggested"]["issueReasons"] = {};
+    for (const key of ISSUE_KEYS) {
+      if (!dampIssues[key]) continue;
+      const reason = suggestion.issueReasons?.[key]?.trim();
+      if (reason) issueReasons[key] = reason;
+    }
+    aiSuggested.issueReasons = issueReasons;
+    next = { ...next, dampIssues };
   }
 
   if ((scope === "all" || scope === "recommendations") && suggestion.recommendationIds) {
+    const recommendationIds = [...suggestion.recommendationIds];
+    aiSuggested.recommendationIds = [...recommendationIds];
+    const recommendationReasons: Record<string, string> = {};
+    for (const id of recommendationIds) {
+      const reason = suggestion.recommendationReasons?.[id]?.trim();
+      if (reason) recommendationReasons[id] = reason;
+    }
+    aiSuggested.recommendationReasons = recommendationReasons;
     next = {
       ...next,
-      recommendationIds: [...suggestion.recommendationIds]
+      recommendationIds
       // never touch otherRecommendation*
     };
   }
 
   if ((scope === "all" || scope === "costs") && suggestion.costs) {
     const lines: CostLine[] = [];
+    const costReasons: Record<string, string> = {};
     for (const c of suggestion.costs) {
       const item = library.costItems.find((x) => x.id === c.itemId);
       if (!item) continue;
@@ -300,7 +584,10 @@ export function applyDetailsSuggestions(
         amount: "",
         ...(c.location ? { location: c.location } : {})
       });
+      if (c.reason?.trim()) costReasons[item.id] = c.reason.trim();
     }
+    aiSuggested.costItemIds = lines.map((l) => l.itemId);
+    aiSuggested.costReasons = costReasons;
     next = {
       ...next,
       costLines: lines
@@ -308,5 +595,39 @@ export function applyDetailsSuggestions(
     };
   }
 
-  return next;
+  return { ...next, aiSuggested };
+}
+
+/** True when every selected cost item has a price and work location. */
+export function detailsCostsComplete(extras: ReportExtras): boolean {
+  for (const line of extras.costLines) {
+    const amount = line.amount.replace(/[£,\s]/g, "").trim();
+    if (!amount) return false;
+    if (!line.location?.trim()) return false;
+  }
+  if (extras.otherCost) {
+    const amount = extras.otherCostAmount.replace(/[£,\s]/g, "").trim();
+    if (!amount) return false;
+    // Other work uses the shared areas-of-work field as its location.
+    if (!extras.projectPlanLines.trim()) return false;
+  }
+  return true;
+}
+
+export function detailsCostsBlockingReason(extras: ReportExtras): string | null {
+  if (detailsCostsComplete(extras)) return null;
+  const missingPrice = extras.costLines.some(
+    (line) => !line.amount.replace(/[£,\s]/g, "").trim()
+  );
+  const missingLocation = extras.costLines.some((line) => !line.location?.trim());
+  const otherMissingPrice =
+    extras.otherCost && !extras.otherCostAmount.replace(/[£,\s]/g, "").trim();
+  const otherMissingLocation =
+    extras.otherCost && !extras.projectPlanLines.trim();
+
+  const parts: string[] = [];
+  if (missingPrice || otherMissingPrice) parts.push("prices");
+  if (missingLocation || otherMissingLocation) parts.push("work locations");
+  if (!parts.length) return "Fill in all prices and work locations before generating.";
+  return `Fill in all ${parts.join(" and ")} before generating.`;
 }

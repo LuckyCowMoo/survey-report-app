@@ -15,6 +15,8 @@ import { matchEntries } from "./lib/matcher";
 import { resolveSectionWithAi } from "./lib/claude";
 import {
   applyDetailsSuggestions,
+  normalizeReportExtras,
+  PartialDetailsSuggestError,
   suggestDetailsExtras,
   type DetailsSuggestScope
 } from "./lib/detailsSuggest";
@@ -98,7 +100,19 @@ const defaultExtras: ReportExtras = {
   otherCostDescription: "",
   otherCostAmount: "",
   surveyDiscount: "",
-  timeEstimate: "5-7 days"
+  timeEstimate: "5-7 days",
+  aiSuggested: {
+    issues: {
+      risingDamp: false,
+      penetratingDamp: false,
+      condensation: false
+    },
+    issueReasons: {},
+    recommendationIds: [],
+    recommendationReasons: {},
+    costItemIds: [],
+    costReasons: {}
+  }
 };
 
 export default function App() {
@@ -403,7 +417,7 @@ export default function App() {
       setSections(project.sections);
       setWarnings(project.warnings);
       setMetadata(project.metadata);
-      setExtras(project.extras);
+      setExtras(normalizeReportExtras(project.extras));
       setFocusedSectionIndex(null);
       setReviewDwellIndex(null);
       detailsSuggestRanRef.current = false;
@@ -585,6 +599,10 @@ export default function App() {
       } catch (err) {
         if (ac.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
           return;
+        }
+        if (err instanceof PartialDetailsSuggestError) {
+          setExtras((prev) => applyDetailsSuggestions(prev, err.result, scope));
+          detailsSuggestRanRef.current = true;
         }
         setDetailsSuggestError({
           scope,

@@ -69,8 +69,16 @@ const metadata: ReportMetadata = {
 };
 
 const extras: ReportExtras = {
-  dampIssues: { risingDamp: false, penetratingDamp: true, condensation: true },
+  dampIssues: {
+    risingDamp: false,
+    penetratingDamp: true,
+    condensation: true,
+    other: false
+  },
+  otherIssueText: "",
   recommendationIds: ["rec-external-render", "rec-external-pointing", "rec-piv"],
+  otherRecommendation: false,
+  otherRecommendationText: "",
   projectPlanLines: "Conference room: all exterior walls from floor to 1.2 meters",
   costLines: [
     {
@@ -89,8 +97,19 @@ const extras: ReportExtras = {
       amount: "1350"
     }
   ],
+  otherCost: false,
+  otherCostDescription: "",
+  otherCostAmount: "",
   surveyDiscount: "238.80",
-  timeEstimate: "5-6 days"
+  timeEstimate: "5-6 days",
+  aiSuggested: {
+    issues: { risingDamp: false, penetratingDamp: false, condensation: false },
+    issueReasons: {},
+    recommendationIds: [],
+    recommendationReasons: {},
+    costItemIds: [],
+    costReasons: {}
+  }
 };
 
 const bytes = await generateReportBuffer({ sections, metadata, extras, images });

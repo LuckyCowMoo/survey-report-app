@@ -5,6 +5,7 @@ import type {
   ShorthandEntry,
   TextSource
 } from "../types";
+import { normalizeReportExtras } from "./detailsSuggest";
 
 /** Proprietary DampMaster survey project (pre-generation design state). */
 export const PROJECT_KIND = "dampmaster.survey.project";
@@ -265,7 +266,7 @@ export async function decodeReportProject(blob: Blob): Promise<ReportProject> {
       : {}),
     sections: parsed.sections.map(deserializeSection),
     metadata: parsed.metadata,
-    extras: parsed.extras,
+    extras: normalizeReportExtras(parsed.extras as ReportExtras),
     warnings: Array.isArray(parsed.warnings)
       ? parsed.warnings.map(String)
       : []

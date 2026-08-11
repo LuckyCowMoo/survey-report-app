@@ -1287,6 +1287,45 @@ html[data-theme="dark"] .direction-compass {
   flex-shrink: 0;
 }
 
+.toggle input.ai-suggested {
+  accent-color: #8b5cf6;
+}
+
+.details-tick-block {
+  margin: 0 0 4px;
+}
+
+.details-tick-block .toggle {
+  padding-bottom: 4px;
+}
+
+.ai-pick-reason {
+  margin: -2px 0 8px 30px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #6d28d9;
+  flex-basis: 100%;
+}
+
+.rec-row .ai-pick-reason {
+  margin-left: 30px;
+}
+
+.details-continue-hint {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--danger, #b32118);
+}
+
+.details-ai-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
 .pip-jump-row {
   display: flex;
   align-items: center;
