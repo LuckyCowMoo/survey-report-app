@@ -165,8 +165,8 @@ export default function KeywordGuide({ onClose }: Props) {
       <div className="sheet tall guide" onClick={(e) => e.stopPropagation()}>
         <h2>Guide</h2>
         <p className="muted">
-          What to write under a photo in the shorthand document so the right
-          standard wording is picked automatically.
+          How this app turns field notes into a finished damp survey report, and
+          what to write so the right standard wording is picked automatically.
         </p>
 
         <input
@@ -180,12 +180,119 @@ export default function KeywordGuide({ onClose }: Props) {
 
         {q === "" && (
           <>
+            <h3 className="guide-heading">What this tool is for</h3>
+            <p className="muted">
+              This app helps a damp and timber surveyor turn a shorthand site
+              document — numbered photos with short field notes — into a
+              polished, client-ready report. You import the{" "}
+              <code>.docx</code> from the Files app (on your computer or mobile
+              device); the app reads it entirely on this device.
+            </p>
+            <p className="muted">
+              For each photo it tries to match the note to the firm&apos;s
+              approved standard wording, filling in values from the note (such
+              as humidity or pin readings). You then review every section, edit
+              or swap wording, add property and client details, choose which
+              damp issues and recommendations apply, and generate the finished
+              report — cover, contents, photo sections, explainers, costs, and
+              limitations — again entirely on the device.
+            </p>
+
             <h3 className="guide-heading">How matching works</h3>
             <ul className="guide-tips">
               {TIPS.map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>
+
+            <h3 className="guide-heading">AI API keys (Claude or Gemini)</h3>
+            <p className="muted">
+              Ask AI needs an external Claude (Anthropic) or Gemini (Google) API
+              key to link those LLM providers to this app. Keys stay on this
+              device only and are never uploaded elsewhere by the app, nor are
+              they necessary for all its functionality.
+            </p>
+
+            <h4 className="guide-subheading">Link a key in this app</h4>
+            <ol className="guide-steps">
+              <li>On the home screen, open Settings.</li>
+              <li>
+                Under <strong>AI service</strong>, pick Claude or Gemini.
+              </li>
+              <li>Paste the matching API key into the key field.</li>
+              <li>
+                Leave the model name as the default unless you know you need a
+                different one, then tap Save.
+              </li>
+            </ol>
+
+            <h4 className="guide-subheading">Get a Claude (Anthropic) key</h4>
+            <ol className="guide-steps">
+              <li>
+                Sign in (or create an account) at{" "}
+                <a
+                  href="https://platform.claude.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  platform.claude.com
+                </a>
+                .
+              </li>
+              <li>
+                Open{" "}
+                <a
+                  href="https://platform.claude.com/settings/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Settings → API keys
+                </a>
+                .
+              </li>
+              <li>
+                Click <strong>Create key</strong>, give it a name, and copy the
+                key immediately (it starts with <code>sk-ant-</code> and is only
+                shown once).
+              </li>
+              <li>
+                In Anthropic&apos;s console, add billing / credits under Plans
+                &amp; Billing — new keys usually will not work until payment is
+                set up.
+              </li>
+              <li>
+                Paste the key into Settings here with AI service set to Claude.
+              </li>
+            </ol>
+
+            <h4 className="guide-subheading">Get a Gemini (Google) key</h4>
+            <ol className="guide-steps">
+              <li>
+                Sign in with a Google account at{" "}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  aistudio.google.com/app/apikey
+                </a>
+                .
+              </li>
+              <li>
+                Click <strong>Create API key</strong> and choose (or create) a
+                Google Cloud project when asked.
+              </li>
+              <li>
+                Copy the key (often starts with <code>AIza</code>) and store it
+                somewhere safe.
+              </li>
+              <li>
+                Paste it into Settings here with AI service set to Gemini. Gemini
+                has an extremely limited free tier suitable for some testing;
+                check Google AI Studio for current limits and billing if you need
+                more.
+              </li>
+            </ol>
 
             <h3 className="guide-heading">Review status pips</h3>
             <p className="muted">

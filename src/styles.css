@@ -3030,6 +3030,36 @@ html[data-theme="dark"] .card.ai-working {
   font-size: 15px;
 }
 
+.guide-subheading {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.guide-steps {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.guide-steps li {
+  margin: 4px 0;
+}
+
+.guide-steps code {
+  font-size: 12px;
+}
+
+.sheet.guide a {
+  color: var(--brand, #1a6b4a);
+  text-underline-offset: 2px;
+}
+
+html[data-theme="dark"] .sheet.guide a {
+  color: #71d2a5;
+}
+
 .guide-pip-legend {
   list-style: none;
   margin: 8px 0 0;
