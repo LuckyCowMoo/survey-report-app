@@ -2,9 +2,10 @@
  * Direct-from-browser AI client (Claude or Gemini, chosen in Settings).
  *
  * Only sections the rule-based matcher could not confidently resolve are sent
- * here. Each call includes the photo (downscaled), the surveyor's note, the
- * relevant approved library paragraphs, and brief summaries of earlier
- * sections (so the model can answer "As illustrated in section N" cases).
+ * here. Each call includes the photo (downscaled), the surveyor's field note,
+ * any current section-body text, optional batch guidance, the relevant approved
+ * library paragraphs, and brief summaries of earlier sections (so the model can
+ * answer "As illustrated in section N" cases).
  *
  * When a library paragraph is waiting on a meter reading, the model is first
  * asked whether it can confidently read that value from the photo. If not, it
@@ -49,20 +50,23 @@ House style: formal British English surveying prose, third person, precise but r
 
 You will be given:
 - The photo for this section.
-- The surveyor's shorthand note (possibly empty or very terse).
+- The surveyor's shorthand field note (possibly empty or very terse).
+- Any text already drafted in the section body (possibly empty, or fuller prose the surveyor typed).
+- Optional overall guidance for the batch (may not apply to this section — use it only when relevant).
 - A list of APPROVED LIBRARY PARAGRAPHS (id + text) that the firm prefers to reuse. Some contain {{placeholder}} slots.
 - Summaries of EARLIER SECTIONS in the same report.
 
 Decide ONE of:
-1. "library" - an approved paragraph fits this photo. Give its id. For {{placeholder}} slots that are meter readings or measurements (RH%, moisture %, temperatures, heights), leave them OUT of placeholderValues unless that exact figure already appears in the surveyor's shorthand note. Never invent readings and never copy example numbers from the library text. The surveyor will type readings manually.
-2. "bespoke" - no approved paragraph fits. Write a new paragraph in house style describing the observation, its significance, and recommended further action. Do not invent specific meter readings; if a reading is needed and is not in the note, write a clear blank such as "[reading required]" instead of a number.
+1. "library" - an approved paragraph fits this photo. Give its id. For {{placeholder}} slots that are meter readings or measurements (RH%, moisture %, temperatures, heights), leave them OUT of placeholderValues unless that exact figure already appears in the surveyor's shorthand note or current section text. Never invent readings and never copy example numbers from the library text. The surveyor will type readings manually.
+2. "bespoke" - no approved paragraph fits. Write a new paragraph in house style describing the observation, its significance, and recommended further action. Do not invent specific meter readings; if a reading is needed and is not in the note or section text, write a clear blank such as "[reading required]" instead of a number.
 3. "crossref" - the photo shows the same subject as an earlier section and needs no new text. Give that section's number.
 
+If the surveyor already wrote useful section-body text, prefer polishing that into house style (bespoke) rather than discarding it for an unrelated library paragraph.
 If the note contains a "Reading N" style label or the photo is clearly one of a numbered sequence of meter readings, set headingLine accordingly (e.g. "Reading 2").
 
 Respond with ONLY a JSON object, no markdown fences:
 {"action":"library"|"bespoke"|"crossref","libraryId":"...","placeholderValues":{"key":"value"},"text":"...","crossrefSection":N,"headingLine":"..."}
-Include "text" only for bespoke. Include "libraryId" only for library. Include "placeholderValues" only for non-reading slots or readings that appear in the note. Include "crossrefSection" only for crossref. "headingLine" is optional.`;
+Include "text" only for bespoke. Include "libraryId" only for library. Include "placeholderValues" only for non-reading slots or readings that appear in the note or section text. Include "crossrefSection" only for crossref. "headingLine" is optional.`;
 
 const READING_PROBE_PROMPT = `You help a UK damp and timber surveyor by reading meter values from survey photographs.
 
@@ -452,18 +456,62 @@ function providerLabel(ai: AiConfig) {
   return ai.provider === "gemini" ? "Gemini" : "Claude";
 }
 
+export interface ResolveSectionOptions {
+  /** Optional batch-wide guidance; may not apply to every section. */
+  guidance?: string;
+}
+
+/** Field note + current body text (+ optional batch guidance) for the model. */
+function sectionInputBlock(
+  section: SectionState,
+  options?: ResolveSectionOptions
+): string[] {
+  const note = section.entry.note?.trim() || "";
+  const body = section.text?.trim() || "";
+  const lines = [
+    `SURVEYOR'S FIELD NOTE: ${note ? JSON.stringify(note) : "(none)"}`,
+    `CURRENT SECTION TEXT: ${body ? JSON.stringify(body) : "(none)"}`
+  ];
+
+  if (body && body !== note) {
+    lines.push(
+      "Use both the field note and the current section text. Prefer refining useful surveyor-written section text rather than discarding it."
+    );
+  } else if (body && section.source === "manual") {
+    lines.push(
+      "The section text is surveyor-written prose. If it reads well, polish it into house style as a bespoke paragraph rather than replacing it with a library paragraph."
+    );
+  }
+
+  if (section.headingLine?.trim()) {
+    lines.push(`CURRENT HEADING LINE: ${section.headingLine.trim()}`);
+  }
+
+  const guidance = options?.guidance?.trim();
+  if (guidance) {
+    lines.push(
+      "",
+      "OVERALL GUIDANCE FOR THIS BATCH (may not apply to this section — use only where relevant):",
+      guidance
+    );
+  }
+
+  return lines;
+}
+
 async function probeMeterReadings(
   section: SectionState,
   missing: LibraryPlaceholder[],
   imageB64: string,
   ai: AiConfig,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options?: ResolveSectionOptions
 ): Promise<ReadingProbeResult> {
   const libraryId = candidateLibraryId(section);
   const paragraph = libraryId ? libraryParagraph(libraryId) : undefined;
   const lines = [
     `SECTION NUMBER: ${section.entry.number}`,
-    `SURVEYOR'S NOTE: ${section.entry.note ? JSON.stringify(section.entry.note) : "(none)"}`,
+    ...sectionInputBlock(section, options),
     paragraph ? `CANDIDATE LIBRARY TOPIC: ${paragraph.topic}` : "",
     "",
     "REQUIRED READING(S) TO LOOK FOR IN THE PHOTO:"
@@ -493,15 +541,15 @@ async function resolveBespokeWithoutReading(
   missing: LibraryPlaceholder[],
   imageB64: string | null,
   ai: AiConfig,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options?: ResolveSectionOptions
 ): Promise<SectionState> {
   const section = sections[index];
   const entry = section.entry;
   const wanted = missing.map((ph) => ph.label).join("; ");
   const parts = [
     `SECTION NUMBER: ${entry.number}`,
-    `SURVEYOR'S NOTE: ${entry.note ? JSON.stringify(entry.note) : "(none - work from the photo)"}`,
-    section.headingLine ? `CURRENT HEADING LINE: ${section.headingLine}` : "",
+    ...sectionInputBlock(section, options),
     "",
     `REQUIRED READING THAT COULD NOT BE READ FROM THE PHOTO: ${wanted}`,
     "Write a generic house-style paragraph about this photo without inventing that reading.",
@@ -527,7 +575,8 @@ export async function resolveSectionWithAi(
   sections: SectionState[],
   index: number,
   ai: AiConfig,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options?: ResolveSectionOptions
 ): Promise<SectionState> {
   const section = sections[index];
   const entry = section.entry;
@@ -552,7 +601,8 @@ export async function resolveSectionWithAi(
       missingReadings,
       imageB64,
       ai,
-      signal
+      signal,
+      options
     );
     if (probe.canRead) {
       return applyResolution(section, {
@@ -569,17 +619,14 @@ export async function resolveSectionWithAi(
       missingReadings,
       imageB64,
       ai,
-      signal
+      signal,
+      options
     );
   }
 
   const parts = [
     `SECTION NUMBER: ${entry.number}`,
-    `SURVEYOR'S NOTE: ${entry.note ? JSON.stringify(entry.note) : "(none - work from the photo)"}`,
-    section.headingLine ? `CURRENT HEADING LINE: ${section.headingLine}` : "",
-    section.source === "manual" && section.text
-      ? `The note above is full prose the surveyor wrote. If it reads well, polish it into house style as a bespoke paragraph rather than replacing it with a library paragraph.`
-      : "",
+    ...sectionInputBlock(section, options),
     "",
     candidateBlock(section),
     "",

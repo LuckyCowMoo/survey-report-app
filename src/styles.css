@@ -3628,6 +3628,16 @@ html:not([data-theme="original"]) .past-tile-placeholder {
   line-height: 1.45;
 }
 
+.batch-guidance-sheet .field {
+  margin-top: 12px;
+}
+
+.batch-guidance-sheet textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 6.5rem;
+}
+
 /* Import strip is squeezed below 560px: centre the narrower buttons under it.
    Specificity must beat the left-align rules above or this never wins. */
 @container home-actions (max-width: 559px) {

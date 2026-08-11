@@ -159,6 +159,8 @@ export default function App() {
   const detailsSuggestAbortRef = useRef<AbortController | null>(null);
   const [saveAndLeaveBusy, setSaveAndLeaveBusy] = useState(false);
   const [showSurveyorNamePrompt, setShowSurveyorNamePrompt] = useState(false);
+  const [showBatchGuidancePrompt, setShowBatchGuidancePrompt] = useState(false);
+  const [batchGuidanceDraft, setBatchGuidanceDraft] = useState("");
 
   const flaggedCount = useMemo(
     () => sections.filter((s) => s.needsAttention).length,
@@ -526,7 +528,7 @@ export default function App() {
     [sections, settings, updateSection, openSettings]
   );
 
-  const runAiForAllFlagged = useCallback(async () => {
+  const requestAiForAllFlagged = useCallback(() => {
     const ai = activeAi(settings);
     if (!ai.apiKey) {
       setError(
@@ -535,49 +537,77 @@ export default function App() {
       openSettings();
       return;
     }
+    setBatchGuidanceDraft("");
+    setShowBatchGuidancePrompt(true);
+  }, [settings, openSettings]);
 
-    aiBatchAbortRef.current?.abort();
-    const ac = new AbortController();
-    aiBatchAbortRef.current = ac;
-    setAiBatchRunning(true);
-    setAiErrors({});
-
-    // Work on a local copy so each resolution sees the previous results
-    // (needed for cross-references), publishing progress as we go.
-    let current = sections;
-    const flagged = current
-      .map((s, i) => (s.needsAttention ? i : -1))
-      .filter((i) => i >= 0);
-    let done = 0;
-    try {
-      for (const index of flagged) {
-        if (ac.signal.aborted) break;
-        done += 1;
-        setBusy(
-          `AI reviewing section ${current[index].entry.number} (${done}/${flagged.length})...`
+  const runAiForAllFlagged = useCallback(
+    async (guidance: string) => {
+      const ai = activeAi(settings);
+      if (!ai.apiKey) {
+        setError(
+          `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
         );
-        setBusySectionIndex(index);
-        try {
-          const resolved = await resolveSectionWithAi(current, index, ai, ac.signal);
-          current = current.map((s, i) => (i === index ? resolved : s));
-          setSections(current);
-        } catch (err) {
-          if (ac.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+        openSettings();
+        return;
+      }
+
+      setShowBatchGuidancePrompt(false);
+      const guidanceTrimmed = guidance.trim();
+
+      aiBatchAbortRef.current?.abort();
+      const ac = new AbortController();
+      aiBatchAbortRef.current = ac;
+      setAiBatchRunning(true);
+      setAiErrors({});
+
+      // Work on a local copy so each resolution sees the previous results
+      // (needed for cross-references), publishing progress as we go.
+      let current = sections;
+      const flagged = current
+        .map((s, i) => (s.needsAttention ? i : -1))
+        .filter((i) => i >= 0);
+      let done = 0;
+      try {
+        for (const index of flagged) {
+          if (ac.signal.aborted) break;
+          done += 1;
+          setBusy(
+            `AI reviewing section ${current[index].entry.number} (${done}/${flagged.length})...`
+          );
+          setBusySectionIndex(index);
+          try {
+            const resolved = await resolveSectionWithAi(
+              current,
+              index,
+              ai,
+              ac.signal,
+              guidanceTrimmed ? { guidance: guidanceTrimmed } : undefined
+            );
+            current = current.map((s, i) => (i === index ? resolved : s));
+            setSections(current);
+          } catch (err) {
+            if (
+              ac.signal.aborted ||
+              (err instanceof DOMException && err.name === "AbortError")
+            ) {
+              break;
+            }
+            setAiErrors({
+              [index]: `${err instanceof Error ? err.message : String(err)} — stopped; earlier sections were kept.`
+            });
             break;
           }
-          setAiErrors({
-            [index]: `${err instanceof Error ? err.message : String(err)} — stopped; earlier sections were kept.`
-          });
-          break;
         }
+      } finally {
+        if (aiBatchAbortRef.current === ac) aiBatchAbortRef.current = null;
+        setAiBatchRunning(false);
+        setBusy(null);
+        setBusySectionIndex(null);
       }
-    } finally {
-      if (aiBatchAbortRef.current === ac) aiBatchAbortRef.current = null;
-      setAiBatchRunning(false);
-      setBusy(null);
-      setBusySectionIndex(null);
-    }
-  }, [sections, settings, openSettings]);
+    },
+    [sections, settings, openSettings]
+  );
 
   const stopAiBatch = useCallback(() => {
     aiBatchAbortRef.current?.abort();
@@ -677,6 +707,8 @@ export default function App() {
     setDetailsSuggestError(null);
     setSaveAndLeaveBusy(false);
     setShowSurveyorNamePrompt(false);
+    setShowBatchGuidancePrompt(false);
+    setBatchGuidanceDraft("");
     setStep("home");
     replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
@@ -806,7 +838,7 @@ export default function App() {
             busySectionIndex={busySectionIndex}
             onChange={updateSection}
             onAskAi={runAiForSection}
-            onAskAiAll={runAiForAllFlagged}
+            onAskAiAll={requestAiForAllFlagged}
             onStopAiBatch={stopAiBatch}
             aiBatchRunning={aiBatchRunning}
             aiErrors={aiErrors}
@@ -891,6 +923,54 @@ export default function App() {
                 }}
               >
                 Open Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBatchGuidancePrompt && (
+        <div
+          className="sheet-backdrop"
+          onClick={() => setShowBatchGuidancePrompt(false)}
+        >
+          <div
+            className="sheet past-delete-sheet batch-guidance-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="batch-guidance-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="batch-guidance-title">Guidance for AI</h2>
+            <p>
+              Optional notes for the AI while it writes the flagged sections.
+              This may not apply to every section — it will use it only where
+              relevant.
+            </p>
+            <label className="field">
+              <span>Overall guidance</span>
+              <textarea
+                rows={5}
+                value={batchGuidanceDraft}
+                placeholder="e.g. Emphasise condensation risk in occupied rooms; avoid recommending external works the client cannot access…"
+                onChange={(e) => setBatchGuidanceDraft(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <div className="sheet-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowBatchGuidancePrompt(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => void runAiForAllFlagged(batchGuidanceDraft)}
+              >
+                Start AI
               </button>
             </div>
           </div>
