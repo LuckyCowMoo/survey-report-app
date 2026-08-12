@@ -4,15 +4,21 @@
     "diagnosis": "Rising Damp",
     "issueKey": "risingDamp",
     "signs": "Elevated REL/WME readings at base tapering off at ~1-1.2m; Visual tide marks; White salt efflorescence; Intact continuous horizontal mortar joints.",
-    "recommendationIds": ["rec-chemical-dpc", "rec-replaster-lime"],
+    "recommendationIds": [
+      "rec-chemical-dpc",
+      "rec-electro-osmosis",
+      "rec-replaster-lime",
+      "rec-annual-monitoring"
+    ],
     "costItemIds": [
       "cost-chemical-dpc",
+      "cost-electro-osmosis",
       "cost-strip-walls",
       "cost-replaster",
       "cost-plasterboard",
       "cost-waste-removal"
     ],
-    "notes": "Both replaster and plasterboard may be suggested; surveyor chooses. Prefer locations for strip/replaster/plasterboard."
+    "notes": "Prefer chemical DPC where there is a continuous horizontal mortar course. Prefer Electro Osmosis (not chemical DPC) for random rubble, stonework, poured mass concrete, walls lacking a continuous mortar course, or masonry above timber joists. Both replaster and plasterboard may be suggested; surveyor chooses. Suggest annual monitoring after major rising-damp works."
   },
   {
     "id": "condensation",
@@ -22,34 +28,44 @@
     "recommendationIds": [
       "rec-indoor-temperature",
       "rec-piv",
+      "rec-hrv",
+      "rec-single-room-vent",
       "rec-bathroom-extraction",
       "rec-mould-removal",
+      "rec-ozonation",
       "rec-isotherm",
-      "rec-insulation-investigation"
+      "rec-insulation-investigation",
+      "rec-annual-monitoring"
     ],
     "costItemIds": [
       "cost-piv-unit",
+      "cost-single-room-vent",
       "cost-bathroom-fan",
       "cost-core-drill",
-      "cost-mould-treatment"
+      "cost-mould-treatment",
+      "cost-ozonation"
     ],
-    "notes": "Isotherm vs wall insulation investigation — pick what the notes support. Locations useful for mould treatment and bathroom fans."
+    "notes": "Prefer PIV for whole-house atmospheric moisture; prefer HRV when energy-efficient pre-warming of winter intake air is needed; prefer 100mm single-room ventilation when mould/condensation is isolated to one room (kitchen/utility) and whole-house PIV is not warranted. Suggest ozonation as the final mould-remediation phase where contamination or odours are severe. Isotherm vs wall insulation investigation — pick what the notes support. Locations useful for mould treatment and bathroom fans."
   },
   {
     "id": "penetrating-damp",
     "diagnosis": "Penetrating Damp (Exterior Envelope Failure)",
     "issueKey": "penetratingDamp",
-    "signs": "Elevated moisture readings at random, localized heights; Blown/cracked exterior render; Defective mortar pointing; Blocked gutters/downpipes; Ivy growth.",
+    "signs": "Elevated moisture readings at random, localized heights; Blown/cracked exterior render; Defective mortar pointing; Blocked gutters/downpipes; Ivy growth; Porous brickwork; Damp beside windows/doors; Cavity bridging.",
     "recommendationIds": [
       "rec-external-render",
       "rec-external-brickwork",
       "rec-external-pointing",
+      "rec-water-repellent",
+      "rec-seal-openings",
+      "rec-clear-cavity",
       "rec-roof-review",
       "rec-guttering",
-      "rec-chimney"
+      "rec-chimney",
+      "rec-annual-monitoring"
     ],
     "costItemIds": [],
-    "notes": "Consultation / third-party only — do not invent DampMaster billed costs for external repairs."
+    "notes": "Consultation / third-party only — do not invent DampMaster billed costs for external repairs. Prefer water-repellent coatings for porous facade / wind-driven rain; seal openings when damp is adjacent to fenestrations; clear cavity when cavity-wall bridging/debris is indicated."
   },
   {
     "id": "plumbing-leak",
@@ -77,14 +93,16 @@
     "recommendationIds": [
       "rec-cavity-membrane",
       "rec-cement-tanking",
-      "rec-liquid-dpm"
+      "rec-liquid-dpm",
+      "rec-leak-sealing",
+      "rec-annual-monitoring"
     ],
     "costItemIds": [
       "cost-cavity-membrane",
       "cost-cement-tanking",
       "cost-liquid-dpm"
     ],
-    "notes": "Locations for basement/cellar walls and floors."
+    "notes": "Locations for basement/cellar walls and floors. Prefer leak sealing resin injection for active leaks in waterproof concrete structures such as lift pits, car parks, and plant rooms (Type B/C) where drainage systems are impractical."
   },
   {
     "id": "surface-runoff",
@@ -100,18 +118,23 @@
     "diagnosis": "Dry Rot (Serpula lacrymans)",
     "issueKey": null,
     "signs": "Deep cuboidal cracking across timber grain; White/grey mycelium; Rust-red spore dust; Fleshy fruiting bodies; Timber moisture >28%.",
-    "recommendationIds": ["rec-ulv-subfloor"],
+    "recommendationIds": [
+      "rec-ulv-subfloor",
+      "rec-boron-rods",
+      "rec-environmental-dry-rot",
+      "rec-annual-monitoring"
+    ],
     "costItemIds": ["cost-ulv-fogging", "cost-waste-removal"],
-    "notes": "Location = subfloor / affected voids."
+    "notes": "Location = subfloor / affected voids. Prefer environmental treatment where chemical irrigation is unsuitable (e.g. historic buildings) and the moisture source is already repaired. Prefer boron rods/preservatives for at-risk timber that is not yet heavily decayed."
   },
   {
     "id": "woodworm",
     "diagnosis": "Woodworm / Wood-boring Beetle Infestation",
     "issueKey": null,
     "signs": "Flight holes visible in timber surface; Frass (bore dust) present in attic or subfloor joists.",
-    "recommendationIds": ["rec-ulv-roof"],
+    "recommendationIds": ["rec-ulv-roof", "rec-boron-rods"],
     "costItemIds": ["cost-ulv-fogging"],
-    "notes": "Location = roof void / attic / joists."
+    "notes": "Location = roof void / attic / joists. Boron as protective follow-on for at-risk timber."
   },
   {
     "id": "loft-condensation",
@@ -121,5 +144,14 @@
     "recommendationIds": ["rec-loft-insulation", "rec-loft-ventilation"],
     "costItemIds": ["cost-loft-insulation"],
     "notes": "Usually whole loft — location optional."
+  },
+  {
+    "id": "flood-water-damage",
+    "diagnosis": "Flood & Water Damage (Class 1–4)",
+    "issueKey": null,
+    "signs": "Flooding, burst pipes, or sewage backflow; Standing or saturated water; Urgent need for forced drying; Risk of rapid mould growth after water ingress.",
+    "recommendationIds": ["rec-flood-drying", "rec-mould-removal", "rec-ozonation", "rec-annual-monitoring"],
+    "costItemIds": ["cost-flood-drying", "cost-mould-treatment", "cost-ozonation"],
+    "notes": "Prefer commercial flood drying equipment for Class 1–4 water damage. Ozonation/mould treatment when contamination or odours develop after wetting."
   }
 ]

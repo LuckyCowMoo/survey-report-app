@@ -545,6 +545,139 @@
       "label": "Black mould and fungus removal",
       "keywords": ["black mould", "mould removal", "fungus"],
       "text": "Black mould & Fungus Removal: Engaging a damp specialist for professional mould removal is critical, as this service is conducted using full personal protective equipment (PPE) and breathing apparatus to ensure safety throughout the process. It is essential for the property to be vacated during treatment, and all pets, including caged animals and fish tanks, must be removed to prevent exposure to potentially harmful chemicals. The property should remain unoccupied for a minimum of two hours post-application to mitigate health risks. The mould remediation procedure involves a systematic approach where the treatment chemical is applied to the affected areas in multiple applications, specifically formulated to effectively eliminate black mould fungus and its spores. While redecoration may be required to address any staining left on the finishes, it is important to understand that although some black remnants might still be visible, the risk of contamination and associated health hazards will be completely resolved, as the mould will be thoroughly exterminated, thereby ensuring a safe living environment for the occupants."
+    },
+    {
+      "id": "rec-electro-osmosis",
+      "label": "Electro Osmosis Damp Proofing",
+      "keywords": [
+        "electro osmosis",
+        "electro-osmosis",
+        "osmosis",
+        "rubble",
+        "stonework",
+        "mass concrete"
+      ],
+      "text": "Electro Osmosis Damp Proofing: Install an Electro Osmosis damp proofing system using platinum-coated anodes to counteract capillary forces and safely drive moisture downwards out of the masonry. This method is particularly suited to walls that lack a continuous horizontal mortar course — such as random rubble, stonework, or poured mass concrete — where a conventional chemical damp-proof course cannot be formed, and may also be appropriate for masonry walls situated above timber floor joists."
+    },
+    {
+      "id": "rec-leak-sealing",
+      "label": "Leak Sealing Repair System",
+      "keywords": [
+        "leak sealing",
+        "resin injection",
+        "lift pit",
+        "car park",
+        "retaining wall"
+      ],
+      "text": "Leak Sealing Repair System: Inject a high-strength resin into the retaining wall through pre-drilled holes to create a robust, watertight barrier that permanently seals active leaks. This approach is intended for specific subterranean waterproofing scenarios — such as lift pits, car parks, and plant rooms — where Type B/C concrete structures exhibit active seepage and conventional drainage-led solutions are impractical."
+    },
+    {
+      "id": "rec-ozonation",
+      "label": "Ozonation Treatment",
+      "keywords": ["ozonation", "ozone", "odour", "air purify", "mould spores"],
+      "text": "Ozonation Treatment: Utilise professional ozonation treatment to purify the indoor air, destroy airborne bacteria, eliminate residual mould spores, and remove persistent musty odours. Ozonation forms the final phase of a structured mould remediation process and is particularly valuable where fungal contamination has been severe or where odours remain after surface treatment."
+    },
+    {
+      "id": "rec-hrv",
+      "label": "Heat Recovery Ventilation (HRV)",
+      "keywords": ["hrv", "heat recovery", "mvhr", "whole-house ventilation"],
+      "text": "Heat Recovery Ventilation (HRV): Install a low-energy Heat Recovery Ventilation (HRV) system equipped with an integral heater to temper incoming fresh air and provide whole-house ventilation during cold weather. An HRV unit may be recommended as an energy-efficient alternative or upgrade where continuous whole-house ventilation is required and pre-warming of winter intake air is desirable."
+    },
+    {
+      "id": "rec-single-room-vent",
+      "label": "100mm Single Room Ventilation",
+      "keywords": [
+        "single room ventilation",
+        "100mm",
+        "room vent",
+        "local extraction"
+      ],
+      "text": "100mm Single Room Ventilation: Supply and install 100mm single room ventilation units to provide targeted, continuous mechanical extraction and improve local air circulation. These units are appropriate where condensation or mould is confined to an individual room — such as a kitchen or utility — and a whole-house Positive Input Ventilation system is not warranted."
+    },
+    {
+      "id": "rec-boron-rods",
+      "label": "Boron Rods and Preservatives",
+      "keywords": [
+        "boron",
+        "boron rods",
+        "glycol",
+        "timber preservative",
+        "wood preservation"
+      ],
+      "text": "Boron Rods and Preservatives: Insert Boron Rods into pre-drilled holes or apply Boron/Glycol Preservatives to diffuse deeply into the damp timber, hardening the cellular structure and inhibiting fungal attack. This protective treatment is recommended for timber that is at risk of fungal decay or situated in persistently wet conditions, but not yet heavily degraded."
+    },
+    {
+      "id": "rec-environmental-dry-rot",
+      "label": "Environmental Treatment (Dry Rot)",
+      "keywords": [
+        "environmental treatment",
+        "dry rot",
+        "forced drying",
+        "joist hanger",
+        "isolate timber"
+      ],
+      "text": "Environmental Treatment (Dry Rot): Implement an environmental control program focusing on rapid forced drying, increasing ventilation, and physically isolating timber from damp masonry — for example by using joist hangers or damp-proof course materials — together with structural engineering review where required. This approach is suited to dry rot outbreaks where aggressive chemical irrigation is unsuitable (such as in historic fabric) and the underlying moisture source has already been repaired, relying on controlled drying rather than orthodox chemical destruction alone."
+    },
+    {
+      "id": "rec-flood-drying",
+      "label": "Commercial Flood Drying",
+      "keywords": [
+        "flood",
+        "dehumidifier",
+        "air mover",
+        "air scrubber",
+        "water damage",
+        "class 1",
+        "class 4"
+      ],
+      "text": "Commercial Flood Drying: Deploy commercial-grade dehumidifiers, air movers, and air scrubbers to rapidly extract moisture, accelerate surface evaporation, and purify the air of airborne particulates. This equipment-led drying strategy is appropriate for Class 1 through Class 4 water damage — including floods, burst pipes, and sewage backflows — where rapid forced drying is required to limit secondary damage and severe mould growth."
+    },
+    {
+      "id": "rec-water-repellent",
+      "label": "Water-Repellent Coatings",
+      "keywords": [
+        "water-repellent",
+        "waterproof coating",
+        "breathable coating",
+        "facade"
+      ],
+      "text": "Water-Repellent Coatings: Apply breathable, water-repellent coatings to the exterior brickwork or masonry to halt lateral rainwater ingress while preserving the wall's natural breathability. This treatment is recommended where penetrating damp is caused by porous exterior masonry exposed to wind-driven rain."
+    },
+    {
+      "id": "rec-seal-openings",
+      "label": "Seal Exterior Openings",
+      "keywords": [
+        "window seal",
+        "door frame",
+        "fenestration",
+        "reseal",
+        "weatherproof"
+      ],
+      "text": "Seal Exterior Openings: Reseal and weatherproof exterior window surrounds and door frames to eliminate structural pathways for lateral rainwater penetration. This work is recommended where penetrating damp patches are located immediately adjacent to fenestrations, window reveals, or external door frames."
+    },
+    {
+      "id": "rec-clear-cavity",
+      "label": "Clear Cavity Wall Obstructions",
+      "keywords": [
+        "cavity",
+        "cavity wall",
+        "cavity bridge",
+        "debris",
+        "cavity insulation"
+      ],
+      "text": "Clear Cavity Wall Obstructions: Clear blockages, debris, or compromised insulation from the cavity wall to prevent moisture from bridging the gap and transferring to the internal leaf. This recommendation applies to modern cavity wall constructions where external moisture is bypassing the structural cavity due to obstructions."
+    },
+    {
+      "id": "rec-annual-monitoring",
+      "label": "Annual Monitoring Contract",
+      "keywords": [
+        "monitoring",
+        "annual inspection",
+        "warranty",
+        "follow-up",
+        "repeat survey"
+      ],
+      "text": "Annual Monitoring Contract: Establish an annual monitoring contract to conduct regular building inspections, track moisture levels, and ensure the long-term stability of the completed remedial works. Ongoing monitoring is particularly valuable after major damp, mould, or basement waterproofing treatments to uphold warranties, detect early recurrence, and support long-term building performance."
     }
   ],
   "costItems": [
@@ -622,6 +755,26 @@
       "id": "cost-ulv-fogging",
       "label": "ULV fogging treatment",
       "text": "Beetle infestation/woodworm and rot treatment: Specialised technicians will undertake Ultra Low Volume (ULV) fogging — a targeted chemical treatment designed to eradicate dry rot, wet rot, beetle infestation and woodworm in the affected areas. Affected softwood timbers and skirtings will be identified for removal and responsible disposal where necessary, with remaining fabric receiving comprehensive fungicidal and insecticidal application to treat active and latent infestations. All operatives will wear full personal protective equipment (PPE) and, where required, respiratory protection for safe chemical application. The scope includes surface and sub-surface treatment, moisture-reduction measures, drying verification and follow-up monitoring to confirm eradication prior to any reinstatement works, thereby arresting decay and preserving the long-term integrity of retained timbers."
+    },
+    {
+      "id": "cost-electro-osmosis",
+      "label": "Electro Osmosis damp proofing system",
+      "text": "The supply and installation of an Electro Osmosis damp proofing system using platinum-coated anodes to counteract capillary forces and safely drive moisture downwards out of the masonry. This system is particularly suited to walls without a continuous horizontal mortar course — including random rubble, stonework, and poured mass concrete — and to masonry walls situated above timber floor joists where a chemical damp-proof course cannot be formed."
+    },
+    {
+      "id": "cost-ozonation",
+      "label": "Ozonation treatment",
+      "text": "Professional ozonation treatment to purify the indoor air, destroy airborne bacteria, eliminate residual mould spores, and remove persistent musty odours. Ozonation is carried out as the final phase of mould remediation after surface contamination has been addressed, helping to leave the property with cleaned air and reduced odour."
+    },
+    {
+      "id": "cost-single-room-vent",
+      "label": "100mm single room ventilation unit",
+      "text": "The supply and installation of 100mm single room ventilation units to provide targeted, continuous mechanical extraction and improve local air circulation in rooms where condensation or mould is isolated and whole-house ventilation is not required."
+    },
+    {
+      "id": "cost-flood-drying",
+      "label": "Commercial flood drying equipment",
+      "text": "Deployment of commercial-grade dehumidifiers, air movers, and air scrubbers to rapidly extract moisture, accelerate surface evaporation, and purify the air of airborne particulates following Class 1 through Class 4 water damage, including floods, burst pipes, and sewage backflows."
     }
   ],
   "limitations": [
