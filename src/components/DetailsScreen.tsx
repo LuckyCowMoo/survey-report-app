@@ -253,7 +253,7 @@ export default function DetailsScreen({
     });
   };
 
-  const deselectAllAiPanels = () => {
+  const deselectIssues = () => {
     onExtras({
       ...extras,
       dampIssues: {
@@ -262,11 +262,41 @@ export default function DetailsScreen({
         condensation: false,
         other: false
       },
+      aiSuggested: {
+        ...aiSuggested,
+        issues: {
+          risingDamp: false,
+          penetratingDamp: false,
+          condensation: false
+        },
+        issueReasons: {}
+      }
+    });
+  };
+
+  const deselectRecommendations = () => {
+    onExtras({
+      ...extras,
       recommendationIds: [],
       otherRecommendation: false,
+      aiSuggested: {
+        ...aiSuggested,
+        recommendationIds: [],
+        recommendationReasons: {}
+      }
+    });
+  };
+
+  const deselectCosts = () => {
+    onExtras({
+      ...extras,
       costLines: [],
       otherCost: false,
-      aiSuggested: emptyAiSuggested()
+      aiSuggested: {
+        ...aiSuggested,
+        costItemIds: [],
+        costReasons: {}
+      }
     });
   };
 
@@ -435,14 +465,6 @@ export default function DetailsScreen({
             "Ask AI about all"
           )}
         </button>
-        <button
-          type="button"
-          className="btn small details-deselect-all"
-          disabled={anyBusy}
-          onClick={deselectAllAiPanels}
-        >
-          Deselect all
-        </button>
       </div>
 
       <section
@@ -460,11 +482,21 @@ export default function DetailsScreen({
         )}
         <div className="details-panel-head">
           <h2>Issues found at this property</h2>
-          <AskAiButton
-            busy={issuesBusy}
-            disabled={!aiConfigured || (anyBusy && !issuesBusy)}
-            onClick={() => onAskAi("issues")}
-          />
+          <div className="details-panel-actions">
+            <button
+              type="button"
+              className="btn small details-deselect"
+              disabled={issuesBusy}
+              onClick={deselectIssues}
+            >
+              Deselect
+            </button>
+            <AskAiButton
+              busy={issuesBusy}
+              disabled={!aiConfigured || (anyBusy && !issuesBusy)}
+              onClick={() => onAskAi("issues")}
+            />
+          </div>
         </div>
         {issuesBusy && (
           <div className="ai-writing-overlay details-ai-overlay" aria-hidden>
@@ -562,11 +594,21 @@ export default function DetailsScreen({
         )}
         <div className="details-panel-head">
           <h2>Recommendations</h2>
-          <AskAiButton
-            busy={recsBusy}
-            disabled={!aiConfigured || (anyBusy && !recsBusy)}
-            onClick={() => onAskAi("recommendations")}
-          />
+          <div className="details-panel-actions">
+            <button
+              type="button"
+              className="btn small details-deselect"
+              disabled={recsBusy}
+              onClick={deselectRecommendations}
+            >
+              Deselect
+            </button>
+            <AskAiButton
+              busy={recsBusy}
+              disabled={!aiConfigured || (anyBusy && !recsBusy)}
+              onClick={() => onAskAi("recommendations")}
+            />
+          </div>
         </div>
         {recsBusy && (
           <div className="ai-writing-overlay details-ai-overlay" aria-hidden>
@@ -648,11 +690,21 @@ export default function DetailsScreen({
         )}
         <div className="details-panel-head">
           <h2>Project plan & costs</h2>
-          <AskAiButton
-            busy={costsBusy}
-            disabled={!aiConfigured || (anyBusy && !costsBusy)}
-            onClick={() => onAskAi("costs")}
-          />
+          <div className="details-panel-actions">
+            <button
+              type="button"
+              className="btn small details-deselect"
+              disabled={costsBusy}
+              onClick={deselectCosts}
+            >
+              Deselect
+            </button>
+            <AskAiButton
+              busy={costsBusy}
+              disabled={!aiConfigured || (anyBusy && !costsBusy)}
+              onClick={() => onAskAi("costs")}
+            />
+          </div>
         </div>
         {costsBusy && (
           <div className="ai-writing-overlay details-ai-overlay" aria-hidden>
