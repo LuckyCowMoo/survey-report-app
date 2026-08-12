@@ -28,9 +28,17 @@ import deepseekLogoUrl from "../assets/provider-logos/deepseek.svg";
 import mistralLogoUrl from "../assets/provider-logos/mistral.svg";
 import togetherLogoUrl from "../assets/provider-logos/together.svg";
 import fireworksLogoUrl from "../assets/provider-logos/fireworks.svg";
+import sparklesLogoUrl from "../assets/provider-logos/sparkles.svg";
 
 /** Space from track edge to first/last pip centre — past an expanded pip. */
 const TRACK_PIP_INSET_PX = 24;
+
+const OVERVIEW_BRAND = {
+  accent: "#ff8a65",
+  panel: "#2a211c",
+  ink: "#f6efe9",
+  muted: "rgba(246, 239, 233, 0.72)"
+} as const;
 
 type LogoKind =
   | { type: "mono"; svg: string }
@@ -280,13 +288,15 @@ export default function ProviderKeyGuide({
         ["--pk-ink"]: entry.brand.ink,
         ["--pk-muted"]: entry.brand.muted
       } as CSSProperties)
-    : undefined;
+    : ({
+        ["--pk-accent"]: OVERVIEW_BRAND.accent,
+        ["--pk-panel"]: OVERVIEW_BRAND.panel,
+        ["--pk-ink"]: OVERVIEW_BRAND.ink,
+        ["--pk-muted"]: OVERVIEW_BRAND.muted
+      } as CSSProperties);
 
   return (
-    <div
-      className={`provider-key-guide${provider ? " is-branded" : ""}`}
-      style={brandStyle}
-    >
+    <div className="provider-key-guide is-branded" style={brandStyle}>
       <p id={labelId} className="provider-key-slider-label">
         Slide to a provider for key setup
       </p>
@@ -358,7 +368,15 @@ export default function ProviderKeyGuide({
                   {pipProvider ? (
                     <PipMark provider={pipProvider} active={active} />
                   ) : (
-                    <span className="provider-key-pip-home" aria-hidden />
+                    <img
+                      className={`provider-key-pip-mark provider-key-pip-sparkles${active ? " is-active" : ""}`}
+                      src={sparklesLogoUrl}
+                      alt=""
+                      width={14}
+                      height={14}
+                      draggable={false}
+                      aria-hidden
+                    />
                   )}
                 </button>
               );
@@ -368,33 +386,54 @@ export default function ProviderKeyGuide({
       </div>
 
       {!provider && (
-        <div className="provider-key-panel provider-key-panel-home">
-          <h4 className="guide-subheading">How keys work here</h4>
-          <p className="muted">
-            Ask AI needs an external LLM API key. Keys stay on this device only
-            and are never uploaded elsewhere by the app.
-          </p>
-          <ol className="guide-steps">
-            <li>On the home screen, open Settings.</li>
-            <li>
-              Paste your API key into the <strong>AI API key</strong> field —
-              the app detects the provider from the key prefix and loads
-              matching models.
-            </li>
-            <li>
-              If the key has no fixed prefix (or looks like OpenAI but is
-              DeepSeek), tap the correct type under{" "}
-              <strong>Supported API key types</strong>.
-            </li>
-            <li>
-              Leave the model as the default unless you need another, then tap
-              Done.
-            </li>
-          </ol>
-          <p className="muted provider-key-hint">
-            Drag the slider onto a provider notch for step-by-step key
-            instructions.
-          </p>
+        <div
+          key="overview"
+          className="provider-key-panel provider-key-panel-brand"
+        >
+          <div className="provider-key-hero">
+            <div className="provider-key-logo-wrap">
+              <img
+                className="provider-key-logo-img provider-key-logo-sparkles"
+                src={sparklesLogoUrl}
+                alt=""
+                aria-hidden
+                width={40}
+                height={40}
+                draggable={false}
+              />
+            </div>
+            <div className="provider-key-name-wrap">
+              <p className="provider-key-company">Ask AI</p>
+              <h4 className="provider-key-name">How keys work here</h4>
+            </div>
+          </div>
+          <div className="provider-key-setup">
+            <p className="provider-key-note" style={{ marginTop: 0 }}>
+              Ask AI needs an external LLM API key. Keys stay on this device only
+              and are never uploaded elsewhere by the app.
+            </p>
+            <ol className="guide-steps">
+              <li>On the home screen, open Settings.</li>
+              <li>
+                Paste your API key into the <strong>AI API key</strong> field —
+                the app detects the provider from the key prefix and loads
+                matching models.
+              </li>
+              <li>
+                If the key has no fixed prefix (or looks like OpenAI but is
+                DeepSeek), tap the correct type under{" "}
+                <strong>Supported API key types</strong>.
+              </li>
+              <li>
+                Leave the model as the default unless you need another, then tap
+                Done.
+              </li>
+            </ol>
+            <p className="provider-key-note">
+              Drag the slider onto a provider notch for step-by-step key
+              instructions.
+            </p>
+          </div>
         </div>
       )}
 

@@ -77,8 +77,8 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
     keyPrefix: "xai-",
     auth: "bearer",
     openaiBaseUrl: "https://api.x.ai/v1",
-    defaultModel: "grok-3-mini",
-    defaultDetailsModel: "grok-3-mini",
+    defaultModel: "grok-2-vision-1212",
+    defaultDetailsModel: "grok-2-vision-1212",
     docsUrl: "https://console.x.ai/"
   },
   groq: {
@@ -143,8 +143,9 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
     keyPrefix: "fw_",
     auth: "bearer",
     openaiBaseUrl: "https://api.fireworks.ai/inference/v1",
-    defaultModel: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-    defaultDetailsModel: "accounts/fireworks/models/llama-v3p3-70b-instruct",
+    defaultModel: "accounts/fireworks/models/llama4-scout-instruct-basic",
+    defaultDetailsModel:
+      "accounts/fireworks/models/llama4-scout-instruct-basic",
     docsUrl: "https://fireworks.ai/account/api-keys"
   }
 };

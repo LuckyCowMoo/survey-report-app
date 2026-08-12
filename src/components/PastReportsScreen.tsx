@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PIP_FLASH_MS } from "../lib/pipTiming";
 import {
   deleteLibraryReport,
   getLibraryExportFiles,
@@ -6,7 +7,15 @@ import {
   loadLibraryProject,
   type LibraryReportMeta
 } from "../lib/reportLibrary";
+import { openReportPrintDialog } from "../lib/reportPrint";
 import type { ReportProject } from "../lib/reportProject";
+import {
+  downloadFile,
+  shareOrDownload,
+  type ExportFormat,
+  type ExportFormatOption
+} from "../lib/webShare";
+import ExportFormatSheet from "./ExportFormatSheet";
 
 interface Props {
   onOpenProject: (project: ReportProject) => void;
@@ -35,23 +44,11 @@ function reportMatchesQuery(report: LibraryReportMeta, query: string): boolean {
   return q.split(/\s+/).every((token) => haystack.includes(token));
 }
 
-function canShareFile(file: File): boolean {
-  try {
-    return !!navigator.canShare?.({ files: [file] });
-  } catch {
-    return false;
-  }
-}
-
-function downloadFile(file: File) {
-  const url = URL.createObjectURL(file);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = file.name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+function formatDiskSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "Size unknown";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function ReportTile({
@@ -112,6 +109,9 @@ function ReportTile({
           <p className="past-tile-meta">
             {report.houseName || report.propertyAddress || "Property unknown"}
           </p>
+          <p className="past-tile-meta past-tile-size">
+            {formatDiskSize(report.size)} on disk
+          </p>
           {!report.hasProject && (
             <p className="past-tile-meta past-tile-note">
               Word copy only — reopen needs a newer save
@@ -157,12 +157,42 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
     null
   );
   const [deleting, setDeleting] = useState(false);
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const [deleteFlash, setDeleteFlash] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [downloadTarget, setDownloadTarget] =
+    useState<LibraryReportMeta | null>(null);
 
   const filtered = useMemo(
     () => (reports ? reports.filter((r) => reportMatchesQuery(r, query)) : []),
     [reports, query]
   );
+
+  const downloadOptions: ExportFormatOption[] = useMemo(() => {
+    if (!downloadTarget) return [];
+    return [
+      {
+        id: "docx",
+        label: "Word (.docx)",
+        hint: "Finished client report for Word / email",
+        available: true
+      },
+      {
+        id: "pdf",
+        label: "PDF",
+        hint: downloadTarget.hasProject
+          ? "Opens print dialog — choose Save as PDF"
+          : "Needs a reopenable project save",
+        available: downloadTarget.hasProject
+      },
+      {
+        id: "project",
+        label: "Survey project (.dmsr)",
+        hint: "Reopenable design file for this app",
+        available: downloadTarget.hasProject
+      }
+    ];
+  }, [downloadTarget]);
 
   useEffect(() => {
     let cancelled = false;
@@ -181,8 +211,24 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!pendingDelete) {
+      setDeleteArmed(false);
+      setDeleteFlash(false);
+      return;
+    }
+    setDeleteArmed(false);
+    setDeleteFlash(false);
+    const arm = window.setTimeout(() => {
+      setDeleteArmed(true);
+      setDeleteFlash(true);
+      window.setTimeout(() => setDeleteFlash(false), PIP_FLASH_MS);
+    }, 5000);
+    return () => window.clearTimeout(arm);
+  }, [pendingDelete]);
+
   const confirmDelete = async () => {
-    if (!pendingDelete || deleting) return;
+    if (!pendingDelete || deleting || !deleteArmed) return;
     setDeleting(true);
     setError(null);
     try {
@@ -222,15 +268,7 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
       if (!file) {
         throw new Error("Nothing available to share for this report.");
       }
-      if (canShareFile(file) && navigator.share) {
-        try {
-          await navigator.share({ files: [file], title: file.name });
-          return;
-        } catch (err) {
-          if (err instanceof DOMException && err.name === "AbortError") return;
-        }
-      }
-      downloadFile(file);
+      await shareOrDownload(file, file.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -238,17 +276,43 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
     }
   };
 
-  const downloadReport = async (report: LibraryReportMeta) => {
+  const requestDownload = (report: LibraryReportMeta) => {
     if (busyId) return;
+    setDownloadTarget(report);
+  };
+
+  const runDownload = async (format: ExportFormat) => {
+    if (!downloadTarget || busyId) return;
+    const report = downloadTarget;
     setBusyId(report.id);
     setError(null);
     try {
+      if (format === "pdf") {
+        if (!report.hasProject) {
+          throw new Error("PDF needs a reopenable project save for this report.");
+        }
+        const project = await loadLibraryProject(report.id);
+        openReportPrintDialog({
+          sections: project.sections,
+          metadata: project.metadata,
+          extras: project.extras
+        });
+        setDownloadTarget(null);
+        return;
+      }
+
       const { docx, project } = await getLibraryExportFiles(report.id);
-      const file = docx ?? project;
+      const file =
+        format === "project" ? project : format === "docx" ? docx : null;
       if (!file) {
-        throw new Error("Nothing available to download for this report.");
+        throw new Error(
+          format === "project"
+            ? "No project file available for this report."
+            : "No Word copy available for this report."
+        );
       }
       downloadFile(file);
+      setDownloadTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -262,7 +326,8 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
         <h2>Past reports</h2>
         <p className="muted">
           Tap a tile to reopen the survey design (sections, status, and options).
-          Share or download the Word copy when available.
+          Share opens your device share sheet when available; Download asks for a
+          format.
         </p>
       </header>
 
@@ -302,13 +367,22 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
                   busy={busyId === r.id || deleting}
                   onOpen={openReport}
                   onShare={shareReport}
-                  onDownload={downloadReport}
+                  onDownload={requestDownload}
                   onRequestDelete={setPendingDelete}
                 />
               ))}
             </div>
           )}
         </>
+      )}
+
+      {downloadTarget && (
+        <ExportFormatSheet
+          options={downloadOptions}
+          busy={busyId === downloadTarget.id}
+          onPick={(format) => void runDownload(format)}
+          onClose={() => setDownloadTarget(null)}
+        />
       )}
 
       {pendingDelete && (
@@ -345,11 +419,11 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
               </button>
               <button
                 type="button"
-                className="btn danger"
-                disabled={deleting}
+                className={`btn danger delete-confirm-btn${!deleteArmed && !deleting ? " is-arming" : ""}${deleteArmed ? " is-ready" : ""}${deleteFlash ? " is-flash" : ""}`}
+                disabled={deleting || !deleteArmed}
                 onClick={() => void confirmDelete()}
               >
-                {deleting ? "Deleting…" : "Delete"}
+                <span>{deleting ? "Deleting…" : "Delete"}</span>
               </button>
             </div>
           </div>

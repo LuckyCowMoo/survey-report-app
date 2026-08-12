@@ -279,8 +279,29 @@ label {
 }
 
 .btn.danger {
-  color: var(--danger);
-  border-color: #f3c1c1;
+  color: #fff;
+  background: #e10600;
+  border-color: #c00500;
+}
+
+.btn.danger:not(:disabled):hover {
+  background: #c00500;
+  border-color: #a00400;
+}
+
+.btn.danger:disabled {
+  opacity: 0.55;
+}
+
+html[data-theme="dark"] .btn.danger {
+  color: #fff;
+  background: #e10600;
+  border-color: #ff4d45;
+}
+
+html[data-theme="dark"] .btn.danger:not(:disabled):hover {
+  background: #ff1a12;
+  border-color: #ff6b63;
 }
 
 /* ---------- home ---------- */
@@ -975,6 +996,7 @@ label {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: sheet-backdrop-in 240ms ease-out both;
 }
 
 .sheet {
@@ -985,6 +1007,36 @@ label {
   max-width: 720px;
   max-height: 88dvh;
   overflow-y: auto;
+  animation: sheet-rise 460ms cubic-bezier(0.25, 1.05, 0.35, 1) both;
+  transform-origin: bottom center;
+}
+
+@keyframes sheet-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-rise {
+  0% {
+    transform: translateY(100%);
+  }
+  78% {
+    transform: translateY(-0.6%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop,
+  .sheet {
+    animation: none;
+  }
 }
 
 .sheet h2 {
@@ -1047,6 +1099,38 @@ label {
   padding: 10px 12px;
   margin-bottom: 8px;
   cursor: pointer;
+}
+
+.picker-best {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+}
+
+.picker-item.is-best {
+  border-color: color-mix(in srgb, var(--brand, #12405e) 55%, var(--line));
+  background: color-mix(in srgb, var(--brand, #12405e) 12%, var(--card, #fff));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand, #12405e) 18%, transparent);
+}
+
+.picker-best-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--brand, #12405e);
+}
+
+html[data-theme="dark"] .picker-item.is-best {
+  border-color: color-mix(in srgb, var(--brand, #71d2a5) 50%, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--brand, #71d2a5) 16%, rgba(18, 28, 30, 0.9));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand, #71d2a5) 22%, transparent);
+}
+
+html[data-theme="dark"] .picker-best-hint {
+  color: color-mix(in srgb, var(--brand, #71d2a5) 85%, #fff);
 }
 
 .picker-choice-row {
@@ -1245,6 +1329,30 @@ html[data-theme="dark"] .direction-compass {
   font-size: 12px;
 }
 
+.model-cost-hint {
+  color: var(--ink) !important;
+  opacity: 0.85;
+}
+
+.ai-cost-estimate {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--accent, #2a6f6a) 8%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.ai-cost-estimate strong {
+  font-weight: 650;
+}
+
+.ai-cost-estimate span {
+  color: var(--muted);
+}
+
 .field input,
 .field select,
 .field textarea {
@@ -1388,6 +1496,26 @@ html[data-theme="dark"] .openai-compat-warning {
 
 .field.narrow {
   max-width: 110px;
+}
+
+.field.is-required-empty > span::after {
+  content: " · required";
+  font-weight: 500;
+  color: var(--danger, #b91c1c);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.field.is-required-empty input {
+  border-color: #c62828;
+  background: color-mix(in srgb, #c62828 10%, #fff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #c62828 25%, transparent);
+}
+
+html[data-theme="dark"] .field.is-required-empty input {
+  border-color: #ff8a80;
+  background: color-mix(in srgb, #c62828 28%, #1a1212);
+  color: #ffe8e6;
 }
 
 .field-row {
@@ -3402,11 +3530,22 @@ html[data-theme="dark"] .card {
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.22);
 }
 
-html[data-theme="dark"] .btn:not(.primary),
+html[data-theme="dark"] .btn:not(.primary):not(.danger),
 html[data-theme="dark"] .picker-item {
   border-color: rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.07);
   color: var(--text);
+}
+
+html[data-theme="dark"] .btn.danger {
+  color: #fff;
+  background: #e10600;
+  border-color: #ff4d45;
+}
+
+html[data-theme="dark"] .btn.danger:not(:disabled):hover {
+  background: #ff1a12;
+  border-color: #ff6b63;
 }
 
 html[data-theme="dark"] .field input,
@@ -3627,8 +3766,15 @@ html[data-theme="dark"] .card.ai-working {
 
 .past-reports-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (min-width: 720px) {
+  .past-reports-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
 }
 
 .past-tile {
@@ -3754,6 +3900,94 @@ html:not([data-theme="original"]) .past-tile-placeholder {
 .past-delete-sheet p {
   margin: 0;
   line-height: 1.45;
+}
+
+.delete-confirm-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-width: 7.5rem;
+}
+
+.delete-confirm-btn > span {
+  position: relative;
+  z-index: 1;
+}
+
+.delete-confirm-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, #ffffff 28%, transparent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.delete-confirm-btn.is-arming:not(:disabled)::before,
+.delete-confirm-btn.is-arming:disabled::before {
+  animation: delete-confirm-fill 5s linear forwards;
+}
+
+.delete-confirm-btn.is-ready::before {
+  transform: scaleX(1);
+}
+
+.delete-confirm-btn.is-flash {
+  animation: delete-confirm-flash 0.48s ease-out;
+}
+
+@keyframes delete-confirm-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes delete-confirm-flash {
+  0% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  30% {
+    filter: brightness(1.55);
+    box-shadow: 0 0 12px 2px rgba(225, 6, 0, 0.75);
+  }
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delete-confirm-btn.is-arming::before {
+    animation: none;
+    transform: scaleX(1);
+  }
+  .delete-confirm-btn.is-flash {
+    animation: none;
+  }
+}
+
+/* When landscape is blocked on a short phone, ask the user to rotate back. */
+.orientation-block-landscape::after {
+  content: "Rotate your phone upright to keep using the app";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.4;
+  color: #fff;
+  background: rgba(8, 16, 22, 0.92);
+  pointer-events: all;
 }
 
 .batch-guidance-sheet .field {
@@ -4354,11 +4588,20 @@ html[data-theme="dark"] .provider-key-warning {
 
 .guide-topic {
   display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border, #eef2f5);
+}
+
+.guide-topic-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border, #eef2f5);
 }
 
 .guide-topic-name {
@@ -4367,10 +4610,134 @@ html[data-theme="dark"] .provider-key-warning {
   margin-right: 4px;
 }
 
+.guide-topic-view {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.guide-wording-backdrop {
+  z-index: 40;
+}
+
+.guide-wording-sheet {
+  max-height: min(78vh, 640px);
+  overflow: auto;
+}
+
+.guide-wording-keywords {
+  margin: 8px 0 14px;
+}
+
+.guide-wording-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .guide-keywords {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 5px;
+}
+
+/* ---- Export format chooser ---- */
+.export-format-sheet .export-format-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 4px;
+}
+
+.export-format-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  width: 100%;
+}
+
+.export-format-label {
+  font-weight: 650;
+}
+
+.export-format-hint {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.export-format-option:disabled .export-format-hint {
+  opacity: 0.85;
+}
+
+/* ---- Home screen install guide ---- */
+.home-screen-guide {
+  margin-top: 2px;
+}
+
+.home-screen-notch.is-detected:not(.is-active) {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand, #ff5a36) 45%, transparent);
+}
+
+.home-screen-pip-mark {
+  /* Inherit grayscale from .provider-key-pip-mark until selected */
+  filter: grayscale(1) contrast(0.9) brightness(0.95);
+  opacity: 0.7;
+}
+
+.home-screen-notch:not(.is-active) .home-screen-pip-mark {
+  filter: grayscale(1) contrast(0.9) brightness(0.95);
+  opacity: 0.65;
+}
+
+.home-screen-notch.is-active .home-screen-pip-mark {
+  filter: none;
+  opacity: 1;
+}
+
+.home-screen-detected {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--pk-ink);
+  background: color-mix(in srgb, var(--pk-accent) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pk-accent) 40%, transparent);
+}
+
+.provider-key-logo-sparkles {
+  /* currentColor mark — force light on branded dark panels */
+  filter: brightness(0) invert(1);
+}
+
+.provider-key-pip-sparkles {
+  filter: none;
+  opacity: 0.75;
+  color: #8a8f98;
+}
+
+.provider-key-pip-sparkles.is-active {
+  opacity: 1;
+  filter: none;
+}
+
+.home-screen-hero {
+  margin-bottom: 4px;
+}
+
+.home-screen-notch .home-screen-pip-mark[src*="home"] {
+  /* Home mark is already monochrome — keep it muted when idle */
+  filter: grayscale(1) opacity(0.75);
+  opacity: 0.75;
+}
+
+.home-screen-notch.is-active .home-screen-pip-mark[src*="home"] {
+  filter: none;
+  opacity: 1;
 }
 
 .chip.kw {

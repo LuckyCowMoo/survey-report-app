@@ -1,18 +1,21 @@
-/** Live + fallback model lists for Settings dropdowns. */
+/** Live + fallback model lists for Settings dropdowns (vision + text only). */
 
 import type { AiProvider } from "./aiProviders";
 import { AI_PROVIDERS, modelFitsProvider, providerInfo } from "./aiProviders";
+import type { TokenRates } from "./aiCostEstimate";
 
 export interface AiModelOption {
   id: string;
   label: string;
+  /** USD/MTok rates when known (live catalog or heuristic). */
+  rates?: TokenRates;
 }
 
 const CLAUDE_MODELS_URL = "https://api.anthropic.com/v1/models?limit=100";
 const GEMINI_MODELS_URL =
   "https://generativelanguage.googleapis.com/v1beta/models?pageSize=100";
 
-/** Used when the live list cannot be fetched. */
+/** Used when the live list cannot be fetched — vision-capable chat models only. */
 export const FALLBACK_MODELS: Record<AiProvider, AiModelOption[]> = {
   claude: [
     { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
@@ -34,9 +37,9 @@ export const FALLBACK_MODELS: Record<AiProvider, AiModelOption[]> = {
     { id: "o4-mini", label: "o4-mini" }
   ],
   xai: [
+    { id: "grok-2-vision-1212", label: "Grok 2 Vision" },
     { id: "grok-3-mini", label: "Grok 3 Mini" },
-    { id: "grok-3", label: "Grok 3" },
-    { id: "grok-2-vision-1212", label: "Grok 2 Vision" }
+    { id: "grok-3", label: "Grok 3" }
   ],
   groq: [
     {
@@ -46,9 +49,7 @@ export const FALLBACK_MODELS: Record<AiProvider, AiModelOption[]> = {
     {
       id: "meta-llama/llama-4-maverick-17b-128e-instruct",
       label: "Llama 4 Maverick (Groq)"
-    },
-    { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B" },
-    { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B Instant" }
+    }
   ],
   openrouter: [
     { id: "openai/gpt-4.1-mini", label: "OpenAI GPT-4.1 mini" },
@@ -57,30 +58,20 @@ export const FALLBACK_MODELS: Record<AiProvider, AiModelOption[]> = {
     { id: "meta-llama/llama-4-scout", label: "Llama 4 Scout" }
   ],
   deepseek: [
-    { id: "deepseek-chat", label: "DeepSeek Chat" },
-    { id: "deepseek-reasoner", label: "DeepSeek Reasoner" }
+    // Public DeepSeek chat endpoints are text-only; keep empty fallback.
   ],
   mistral: [
-    { id: "mistral-small-latest", label: "Mistral Small" },
-    { id: "mistral-medium-latest", label: "Mistral Medium" },
     { id: "pixtral-large-latest", label: "Pixtral Large" },
-    { id: "mistral-large-latest", label: "Mistral Large" }
+    { id: "mistral-small-latest", label: "Mistral Small" },
+    { id: "mistral-medium-latest", label: "Mistral Medium" }
   ],
   together: [
     {
       id: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
       label: "Llama 4 Scout"
-    },
-    {
-      id: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      label: "Llama 3.3 70B Turbo"
     }
   ],
   fireworks: [
-    {
-      id: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-      label: "Llama 3.3 70B"
-    },
     {
       id: "accounts/fireworks/models/llama4-scout-instruct-basic",
       label: "Llama 4 Scout"
@@ -99,14 +90,28 @@ function mergeOptions(
   const byId = new Map<string, AiModelOption>();
   for (const m of [...live, ...fallback]) {
     if (!byId.has(m.id)) byId.set(m.id, m);
+    else {
+      const prev = byId.get(m.id)!;
+      byId.set(m.id, {
+        ...prev,
+        ...m,
+        rates: m.rates ?? prev.rates,
+        label: m.label || prev.label
+      });
+    }
   }
   if (selected?.trim() && !byId.has(selected.trim())) {
-    byId.set(selected.trim(), { id: selected.trim(), label: selected.trim() });
+    const id = selected.trim();
+    byId.set(id, {
+      id,
+      label: id,
+      rates: resolveHeuristicRates(id) ?? undefined
+    });
   }
   return [...byId.values()];
 }
 
-/** Drop embeddings, image/video/audio specialists, etc. — keep text LLMs. */
+/** Drop embeddings, image generators, audio, etc. */
 function isTextOutputLlm(id: string, provider: AiProvider): boolean {
   const n = id.toLowerCase().replace(/^models\//, "");
   const blocked = [
@@ -129,7 +134,8 @@ function isTextOutputLlm(id: string, provider: AiProvider): boolean {
     "tts-",
     "moderation",
     "transcribe",
-    "realtime"
+    "realtime",
+    "computer-use"
   ];
   if (blocked.some((b) => n.includes(b))) return false;
 
@@ -151,11 +157,250 @@ function isTextOutputLlm(id: string, provider: AiProvider): boolean {
       n.includes("mistral") ||
       n.includes("mixtral") ||
       n.includes("pixtral") ||
-      n.includes("codestral")
+      n.includes("codestral") ||
+      n.includes("ministral")
     );
   }
-  // Groq / OpenRouter / Together / Fireworks: keep most chat models.
   return true;
+}
+
+/**
+ * Heuristic: model accepts image+text input and returns text.
+ * Prefer live modality metadata when callers have it.
+ */
+export function supportsVisionTextChat(
+  id: string,
+  provider: AiProvider,
+  meta?: { inputModalities?: string[]; outputModalities?: string[] }
+): boolean {
+  if (!isTextOutputLlm(id, provider)) return false;
+
+  const inputs = (meta?.inputModalities ?? []).map((m) => m.toLowerCase());
+  const outputs = (meta?.outputModalities ?? []).map((m) => m.toLowerCase());
+  if (inputs.length > 0 || outputs.length > 0) {
+    const inOk =
+      inputs.includes("image") ||
+      inputs.includes("file") ||
+      inputs.includes("vision");
+    const outOk =
+      outputs.length === 0 ||
+      outputs.includes("text") ||
+      outputs.includes("output_text");
+    // Reject image-generation-only models.
+    if (outputs.includes("image") && !outputs.includes("text")) return false;
+    return inOk && outOk;
+  }
+
+  const n = id.toLowerCase().replace(/^models\//, "");
+
+  // Explicit vision markers.
+  if (
+    /vision|pixtral|llava|vl-|\/vl|gpt-4o|chatgpt-4o|llama-4|llama4|scout|maverick/.test(
+      n
+    )
+  ) {
+    return true;
+  }
+
+  switch (provider) {
+    case "claude":
+      // Claude 3+ chat models are multimodal.
+      return /claude-(3|4|sonnet|opus|haiku)/.test(n) || n.startsWith("claude");
+    case "gemini":
+      return (
+        n.startsWith("gemini") &&
+        !n.includes("embedding") &&
+        !n.includes("imagen") &&
+        !n.includes("tts")
+      );
+    case "openai":
+      return (
+        /^gpt-4[o.\-]/.test(n) ||
+        n.startsWith("gpt-4.1") ||
+        n.startsWith("gpt-4-turbo") ||
+        n.startsWith("chatgpt-4o") ||
+        /^o[34]/.test(n)
+      );
+    case "xai":
+      // Current Grok chat models accept images on xAI’s API.
+      return n.includes("grok") && !n.includes("imagine");
+    case "groq":
+      return /llama-4|llama4|scout|maverick|llava|vision|pixtral/.test(n);
+    case "openrouter":
+      // Without architecture metadata, keep known multimodal families.
+      return (
+        /gpt-4o|gpt-4\.1|claude|gemini|llama-4|llama4|scout|maverick|pixtral|vision|llava|grok/.test(
+          n
+        ) && !/embedding|tts|whisper|dall-e|imagen/.test(n)
+      );
+    case "deepseek":
+      return /vl|vision|janus/.test(n);
+    case "mistral":
+      return /pixtral|mistral-small|mistral-medium|mistral-large|ministral/.test(
+        n
+      );
+    case "together":
+    case "fireworks":
+      return /llama-4|llama4|scout|maverick|llava|vision|pixtral|qwen.*vl/.test(
+        n
+      );
+    default:
+      return false;
+  }
+}
+
+type PriceTier = "budget" | "standard" | "premium";
+
+/** Provider list prices by rough capability tier (USD / MTok). */
+const PROVIDER_TIER_RATES: Record<
+  AiProvider,
+  Record<PriceTier, { input: number; output: number }>
+> = {
+  claude: {
+    budget: { input: 1, output: 5 },
+    standard: { input: 2, output: 10 },
+    premium: { input: 5, output: 25 }
+  },
+  gemini: {
+    budget: { input: 0.15, output: 0.6 },
+    standard: { input: 0.3, output: 2.5 },
+    premium: { input: 1.25, output: 10 }
+  },
+  openai: {
+    budget: { input: 0.4, output: 1.6 },
+    standard: { input: 2, output: 8 },
+    premium: { input: 5, output: 20 }
+  },
+  xai: {
+    budget: { input: 0.3, output: 0.5 },
+    standard: { input: 2, output: 10 },
+    premium: { input: 5, output: 25 }
+  },
+  groq: {
+    budget: { input: 0.11, output: 0.34 },
+    standard: { input: 0.2, output: 0.6 },
+    premium: { input: 0.5, output: 1.5 }
+  },
+  openrouter: {
+    budget: { input: 0.15, output: 0.6 },
+    standard: { input: 2, output: 10 },
+    premium: { input: 5, output: 25 }
+  },
+  deepseek: {
+    budget: { input: 0.28, output: 0.42 },
+    standard: { input: 0.55, output: 2.19 },
+    premium: { input: 1, output: 4 }
+  },
+  mistral: {
+    budget: { input: 0.1, output: 0.3 },
+    standard: { input: 0.4, output: 2 },
+    premium: { input: 2, output: 6 }
+  },
+  together: {
+    budget: { input: 0.18, output: 0.59 },
+    standard: { input: 0.88, output: 0.88 },
+    premium: { input: 1.2, output: 1.2 }
+  },
+  fireworks: {
+    budget: { input: 0.15, output: 0.6 },
+    standard: { input: 0.9, output: 0.9 },
+    premium: { input: 1.2, output: 1.2 }
+  }
+};
+
+function inferPriceTier(modelId: string): PriceTier {
+  const n = modelId.toLowerCase();
+  if (
+    /haiku|flash-lite|flash|mini|small|8b|instant|scout|nano|lite/.test(n) &&
+    !/pro|opus|large|maverick/.test(n)
+  ) {
+    return "budget";
+  }
+  if (/opus|pro(?!-)|o3|o1|fable|gpt-4\.1(?!-mini)|large|maverick/.test(n)) {
+    return "premium";
+  }
+  return "standard";
+}
+
+/** Infer $/MTok from provider + model-id family (no per-model storytelling). */
+export function resolveHeuristicRates(modelId: string): TokenRates | null {
+  const id = modelId.trim();
+  if (!id) return null;
+
+  // Prefer matching a known provider family from the id itself.
+  let provider: AiProvider | null = null;
+  const lower = id.toLowerCase();
+  if (lower.startsWith("claude") || lower.includes("anthropic/")) {
+    provider = "claude";
+  } else if (lower.startsWith("gemini") || lower.includes("google/")) {
+    provider = "gemini";
+  } else if (
+    lower.startsWith("gpt-") ||
+    lower.startsWith("o1") ||
+    lower.startsWith("o3") ||
+    lower.startsWith("o4") ||
+    lower.startsWith("openai/")
+  ) {
+    provider = "openai";
+  } else if (lower.includes("grok") || lower.startsWith("xai/")) {
+    provider = "xai";
+  } else if (lower.includes("deepseek")) {
+    provider = "deepseek";
+  } else if (
+    lower.includes("mistral") ||
+    lower.includes("pixtral") ||
+    lower.includes("mixtral")
+  ) {
+    provider = "mistral";
+  } else if (lower.includes("accounts/fireworks") || lower.includes("fireworks/")) {
+    provider = "fireworks";
+  } else if (lower.includes("llama") || lower.includes("meta-llama")) {
+    provider = "together";
+  }
+
+  if (!provider) return null;
+  const tier = inferPriceTier(id);
+  const rates = PROVIDER_TIER_RATES[provider][tier];
+  return {
+    inputPerMTokUsd: rates.input,
+    outputPerMTokUsd: rates.output,
+    source: "heuristic"
+  };
+}
+
+export function resolveRatesForProviderModel(
+  provider: AiProvider,
+  modelId: string,
+  option?: AiModelOption | null
+): TokenRates | null {
+  if (option?.rates) return option.rates;
+  const tier = inferPriceTier(modelId);
+  const rates = PROVIDER_TIER_RATES[provider][tier];
+  return {
+    inputPerMTokUsd: rates.input,
+    outputPerMTokUsd: rates.output,
+    source: "heuristic"
+  };
+}
+
+function withHeuristicRates(
+  provider: AiProvider,
+  models: AiModelOption[]
+): AiModelOption[] {
+  return models.map((m) => ({
+    ...m,
+    rates: m.rates ?? resolveRatesForProviderModel(provider, m.id) ?? undefined
+  }));
+}
+
+function filterVisionModels(
+  provider: AiProvider,
+  models: AiModelOption[],
+  metaById?: Map<string, { inputModalities?: string[]; outputModalities?: string[] }>
+): AiModelOption[] {
+  return models.filter((m) =>
+    supportsVisionTextChat(m.id, provider, metaById?.get(m.id))
+  );
 }
 
 async function listClaudeModels(apiKey: string): Promise<AiModelOption[]> {
@@ -222,10 +467,22 @@ async function listGeminiModels(apiKey: string): Promise<AiModelOption[]> {
     .filter((m) => m.id);
 }
 
+function perTokenToPerMTok(raw: string | number | undefined): number | null {
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n) || n < 0) return null;
+  // OpenRouter quotes USD per token; others may already be per-million.
+  if (n > 0 && n < 0.01) return n * 1_000_000;
+  return n;
+}
+
 async function listOpenAiCompatibleModels(
   provider: AiProvider,
   apiKey: string
-): Promise<AiModelOption[]> {
+): Promise<{
+  models: AiModelOption[];
+  metaById: Map<string, { inputModalities?: string[]; outputModalities?: string[] }>;
+}> {
   const base = providerInfo(provider).openaiBaseUrl;
   if (!base) throw new Error(`No models URL for ${provider}`);
   const res = await fetch(`${base.replace(/\/$/, "")}/models`, {
@@ -239,15 +496,71 @@ async function listOpenAiCompatibleModels(
     );
   }
   const data = (await res.json()) as {
-    data?: Array<{ id?: string; object?: string }>;
+    data?: Array<{
+      id?: string;
+      object?: string;
+      name?: string;
+      architecture?: {
+        input_modalities?: string[];
+        output_modalities?: string[];
+        modality?: string;
+      };
+      pricing?: {
+        prompt?: string;
+        completion?: string;
+      };
+    }>;
   };
-  return (data.data ?? [])
-    .filter((m) => typeof m.id === "string" && m.id)
-    .filter((m) => isTextOutputLlm(m.id as string, provider))
-    .map((m) => ({
-      id: m.id as string,
-      label: m.id as string
-    }));
+
+  const metaById = new Map<
+    string,
+    { inputModalities?: string[]; outputModalities?: string[] }
+  >();
+  const models: AiModelOption[] = [];
+
+  for (const m of data.data ?? []) {
+    if (typeof m.id !== "string" || !m.id) continue;
+    if (!isTextOutputLlm(m.id, provider)) continue;
+
+    const arch = m.architecture;
+    let inputModalities = arch?.input_modalities;
+    let outputModalities = arch?.output_modalities;
+    if (
+      (!inputModalities || !outputModalities) &&
+      typeof arch?.modality === "string"
+    ) {
+      // e.g. "text+image->text"
+      const [inn, out] = arch.modality.split("->");
+      if (inn) {
+        inputModalities = inn.split("+").map((s) => s.trim());
+      }
+      if (out) {
+        outputModalities = out.split("+").map((s) => s.trim());
+      }
+    }
+    if (inputModalities || outputModalities) {
+      metaById.set(m.id, { inputModalities, outputModalities });
+    }
+
+    let rates: TokenRates | undefined;
+    const inR = perTokenToPerMTok(m.pricing?.prompt);
+    const outR = perTokenToPerMTok(m.pricing?.completion);
+    if (inR != null && outR != null) {
+      rates = {
+        inputPerMTokUsd: inR,
+        outputPerMTokUsd: outR,
+        source: "live"
+      };
+    }
+
+    models.push({
+      id: m.id,
+      label: (m.name ?? m.id).trim() || m.id,
+      rates
+    });
+  }
+
+  return { models, metaById };
 }
 
 export async function listProviderModels(
@@ -255,15 +568,46 @@ export async function listProviderModels(
   apiKey: string,
   selected?: string | string[]
 ): Promise<{ models: AiModelOption[]; live: boolean; error?: string }> {
-  const fallback = FALLBACK_MODELS[provider] ?? [];
+  const fallback = withHeuristicRates(
+    provider,
+    FALLBACK_MODELS[provider] ?? []
+  );
   const selectedList = (Array.isArray(selected) ? selected : [selected])
     .map((s) => s?.trim())
     .filter((s): s is string => Boolean(s));
 
+  const finalize = (models: AiModelOption[], metaById?: Map<string, { inputModalities?: string[]; outputModalities?: string[] }>) => {
+    let vision = withHeuristicRates(
+      provider,
+      filterVisionModels(provider, models, metaById)
+    );
+    // Always keep currently selected ids so Settings doesn't blank out.
+    for (const id of selectedList) {
+      if (!modelFitsProvider(provider, id)) continue;
+      if (vision.some((m) => m.id === id)) continue;
+      const fromAll = models.find((m) => m.id === id);
+      vision = mergeOptions(
+        vision,
+        [
+          {
+            id,
+            label: fromAll?.label ?? id,
+            rates:
+              fromAll?.rates ??
+              resolveRatesForProviderModel(provider, id) ??
+              undefined
+          }
+        ],
+        id
+      );
+    }
+    // Prefer putting selected models first when they would otherwise be buried.
+    return vision;
+  };
+
   const withSelected = (models: AiModelOption[]) => {
     let next = models;
     for (const id of selectedList) {
-      // Never inject a Claude id into Gemini’s list (etc.).
       if (!modelFitsProvider(provider, id)) continue;
       next = mergeOptions(next, [], id);
     }
@@ -272,26 +616,38 @@ export async function listProviderModels(
 
   if (!apiKey.trim()) {
     return {
-      models: withSelected(mergeOptions([], fallback)),
+      models: withSelected(finalize(fallback)),
       live: false,
       error: "Add an API key to load the live model list."
     };
   }
   try {
     const info = providerInfo(provider);
-    const live =
-      info.auth === "gemini"
-        ? await listGeminiModels(apiKey.trim())
-        : info.auth === "anthropic"
-          ? await listClaudeModels(apiKey.trim())
-          : await listOpenAiCompatibleModels(provider, apiKey.trim());
+    if (info.auth === "gemini") {
+      const live = await listGeminiModels(apiKey.trim());
+      return {
+        models: withSelected(finalize(mergeOptions(live, fallback))),
+        live: true
+      };
+    }
+    if (info.auth === "anthropic") {
+      const live = await listClaudeModels(apiKey.trim());
+      return {
+        models: withSelected(finalize(mergeOptions(live, fallback))),
+        live: true
+      };
+    }
+    const { models: live, metaById } = await listOpenAiCompatibleModels(
+      provider,
+      apiKey.trim()
+    );
     return {
-      models: withSelected(mergeOptions(live, fallback)),
+      models: withSelected(finalize(mergeOptions(live, fallback), metaById)),
       live: true
     };
   } catch (err) {
     return {
-      models: withSelected(mergeOptions([], fallback)),
+      models: withSelected(finalize(fallback)),
       live: false,
       error: err instanceof Error ? err.message : String(err)
     };

@@ -60,6 +60,7 @@ import {
   scrollElementIntoViewCentered,
   writeScrollTop
 } from "./lib/scrollRoot";
+import { startOrientationGuard } from "./lib/orientationGuard";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
 type Step = AppStep;
@@ -133,6 +134,8 @@ const defaultExtras: ReportExtras = {
 
 export default function App() {
   usePointerInputMode();
+
+  useEffect(() => startOrientationGuard(), []);
   const { showIntro, dismissIntro } = useIntroSplash();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
@@ -184,7 +187,8 @@ export default function App() {
   const detailsSuggestRanRef = useRef(false);
   const detailsSuggestAbortRef = useRef<AbortController | null>(null);
   const [saveAndLeaveBusy, setSaveAndLeaveBusy] = useState(false);
-  const [showSurveyorNamePrompt, setShowSurveyorNamePrompt] = useState(false);
+  const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
+  const [settingsFocusIdentity, setSettingsFocusIdentity] = useState(false);
   const [showBatchGuidancePrompt, setShowBatchGuidancePrompt] = useState(false);
   const [batchGuidanceDraft, setBatchGuidanceDraft] = useState("");
 
@@ -222,7 +226,8 @@ export default function App() {
     return () => window.cancelAnimationFrame(id);
   }, [step]);
 
-  const openSettings = useCallback(() => {
+  const openSettings = useCallback((opts?: { focusIdentity?: boolean }) => {
+    setSettingsFocusIdentity(Boolean(opts?.focusIdentity));
     setShowSettings(true);
     pushAppHist({ app: 1, step: stepRef.current, overlay: "settings" });
   }, []);
@@ -237,6 +242,7 @@ export default function App() {
     else {
       setShowSettings(false);
       setShowGuide(false);
+      setSettingsFocusIdentity(false);
     }
   }, []);
 
@@ -249,17 +255,27 @@ export default function App() {
   }, [showSettings, showGuide, step]);
 
   const goToGenerate = useCallback(() => {
-    if (!settings.surveyorName.trim()) {
-      setShowSurveyorNamePrompt(true);
+    const missingName = !settings.surveyorName.trim();
+    const missingCompany = !settings.companyName.trim();
+    const missingWebsite = !settings.website.trim();
+    if (missingName || missingCompany || missingWebsite) {
+      setShowIdentityPrompt(true);
       return false;
     }
     setMetadata((m) => ({
       ...m,
-      contactName: settings.surveyorName.trim()
+      contactName: settings.surveyorName.trim(),
+      companyName: settings.companyName.trim(),
+      website: settings.website.trim()
     }));
     navigateTo("generate");
     return true;
-  }, [settings.surveyorName, navigateTo]);
+  }, [
+    settings.surveyorName,
+    settings.companyName,
+    settings.website,
+    navigateTo
+  ]);
 
   /** Same destinations as Continue, or Import on the home page. */
   const continueForward = useCallback(() => {
@@ -317,6 +333,7 @@ export default function App() {
       const s = readAppHist(e.state);
       setShowSettings(s.overlay === "settings");
       setShowGuide(s.overlay === "guide");
+      if (s.overlay !== "settings") setSettingsFocusIdentity(false);
       setStep(s.step);
     };
     window.addEventListener("popstate", onPop);
@@ -481,8 +498,12 @@ export default function App() {
       website: next.website,
       contactName: next.surveyorName.trim()
     }));
-    if (next.surveyorName.trim()) {
-      setShowSurveyorNamePrompt(false);
+    if (
+      next.surveyorName.trim() &&
+      next.companyName.trim() &&
+      next.website.trim()
+    ) {
+      setShowIdentityPrompt(false);
     }
   }, []);
 
@@ -813,7 +834,8 @@ export default function App() {
     setDetailsSuggestBusy(null);
     setDetailsSuggestError(null);
     setSaveAndLeaveBusy(false);
-    setShowSurveyorNamePrompt(false);
+    setShowIdentityPrompt(false);
+    setSettingsFocusIdentity(false);
     setShowBatchGuidancePrompt(false);
     setBatchGuidanceDraft("");
     setStep("home");
@@ -917,7 +939,7 @@ export default function App() {
             type="button"
             className="topbar-btn topbar-btn-icon"
             aria-label="Settings"
-            onClick={openSettings}
+            onClick={() => openSettings()}
           >
             <span className="topbar-btn-glyph" aria-hidden>
               <IconSettings />
@@ -1005,6 +1027,7 @@ export default function App() {
           settings={settings}
           onSave={handleSettingsSave}
           onClose={dismissOverlay}
+          focusIdentity={settingsFocusIdentity}
         />
       )}
 
@@ -1016,28 +1039,28 @@ export default function App() {
         />
       )}
 
-      {showSurveyorNamePrompt && (
+      {showIdentityPrompt && (
         <div
           className="sheet-backdrop"
-          onClick={() => setShowSurveyorNamePrompt(false)}
+          onClick={() => setShowIdentityPrompt(false)}
         >
           <div
             className="sheet past-delete-sheet"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="surveyor-name-title"
+            aria-labelledby="identity-prompt-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="surveyor-name-title">Add your contact name</h2>
+            <h2 id="identity-prompt-title">Complete report details</h2>
             <p>
-              The report header needs your name in the Contact field. Add it in
-              Settings, then continue to generate.
+              Your name, company name, and website are required in the report
+              header and cover. Add them in Settings, then continue to generate.
             </p>
             <div className="sheet-actions">
               <button
                 type="button"
                 className="btn"
-                onClick={() => setShowSurveyorNamePrompt(false)}
+                onClick={() => setShowIdentityPrompt(false)}
               >
                 Cancel
               </button>
@@ -1045,8 +1068,8 @@ export default function App() {
                 type="button"
                 className="btn primary"
                 onClick={() => {
-                  setShowSurveyorNamePrompt(false);
-                  openSettings();
+                  setShowIdentityPrompt(false);
+                  openSettings({ focusIdentity: true });
                 }}
               >
                 Open Settings

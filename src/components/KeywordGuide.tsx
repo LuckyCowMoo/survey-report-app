@@ -2,8 +2,38 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { library } from "../lib/matcher";
 import { AI_PROVIDER_ORDER, AI_PROVIDERS, type AiProvider } from "../lib/aiProviders";
 import { PROVIDER_GUIDE } from "../lib/aiProviderGuide";
+import { HOME_SCREEN_GUIDE } from "../lib/homeScreenGuide";
+import { usePointerInputModeValue } from "../lib/pointerInput";
+import HomeScreenGuide from "./HomeScreenGuide";
 import ProviderKeyGuide from "./ProviderKeyGuide";
 import type { LibraryParagraph } from "../types";
+
+/**
+ * Compass abbreviations accepted by specialRules() but omitted from library
+ * keywords (a bare "w" would false-match notes containing the letter w).
+ * Shown in the guide only.
+ */
+const WEATHER_ABBREV: Record<string, string[]> = {
+  "weather-north": ["N"],
+  "weather-northeast": ["NE"],
+  "weather-east": ["E"],
+  "weather-southeast": ["SE"],
+  "weather-south": ["S"],
+  "weather-southwest": ["SW"],
+  "weather-west": ["W"],
+  "weather-northwest": ["NW"]
+};
+
+function guideKeywordsFor(p: LibraryParagraph): string[] {
+  const extra = WEATHER_ABBREV[p.id];
+  if (!extra) return p.keywords;
+  const seen = new Set(p.keywords.map((k) => k.toLowerCase()));
+  const merged = [...p.keywords];
+  for (const k of extra) {
+    if (!seen.has(k.toLowerCase())) merged.push(k);
+  }
+  return merged;
+}
 
 interface Props {
   onClose: () => void;
@@ -57,9 +87,9 @@ const SMART_PHRASES: Array<{ phrase: string; effect: string }> = [
     effect: "Three-readings-at-heights wording with the height filled in"
   },
   {
-    phrase: "N / SW / facing north / facing NE / ...",
+    phrase: "N / E / S / W / NE / NW / SE / SW / facing north / ...",
     effect:
-      "Weather-exposure wording for that orientation (single- or double-letter abbreviations work)"
+      "Weather-exposure wording for that orientation — bare letters (e.g. W) or “facing …” both work"
   },
   { phrase: "front / front elevation", effect: "Front elevation photo wording" },
   { phrase: "rear / back / rear elevation", effect: "Rear elevation photo wording" },
@@ -155,6 +185,20 @@ const API_COPY = [
   })
 ];
 
+const HOME_SCREEN_COPY = [
+  "Add to Home Screen",
+  "Install",
+  "homescreen",
+  "home screen",
+  ...HOME_SCREEN_GUIDE.flatMap((e) => [
+    e.shortName,
+    e.title,
+    e.subtitle,
+    ...(e.note ? [e.note] : []),
+    ...e.steps.map((s) => s.text)
+  ])
+];
+
 const TOPICS_INTRO =
   "All topics & keywords outlined keywords are used by more than one topic - add a context word (e.g. pin skirting rather than just pin) so the right wording is chosen; otherwise the section is flagged for review with all candidates suggested.";
 
@@ -172,11 +216,14 @@ export default function KeywordGuide({
   onApiKeyChange
 }: Props) {
   const [query, setQuery] = useState("");
+  const [viewingId, setViewingId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const pointerMode = usePointerInputModeValue();
 
   useLayoutEffect(() => {
+    if (pointerMode !== "fine") return;
     searchRef.current?.focus({ preventScroll: true });
-  }, []);
+  }, [pointerMode]);
 
   const groups = useMemo(() => {
     const map = new Map<string, LibraryParagraph[]>();
@@ -210,6 +257,7 @@ export default function KeywordGuide({
   const showMatching = q === "" || matchingSectionHit || tipHits.length > 0;
 
   const showApi = matchesQuery(q, ...API_COPY);
+  const showHomeScreen = matchesQuery(q, ...HOME_SCREEN_COPY);
 
   const pipsSectionHit = matchesQuery(
     q,
@@ -228,16 +276,18 @@ export default function KeywordGuide({
   );
   const showSmart = q === "" || smartSectionHit || smartHits.length > 0;
 
-  const topicMatch = (p: LibraryParagraph) =>
-    q === "" ||
-    p.topic.toLowerCase().includes(q) ||
-    p.keywords.some((k) => k.toLowerCase().includes(q));
+  const topicMatch = (p: LibraryParagraph) => {
+    if (q === "") return true;
+    if (p.topic.toLowerCase().includes(q)) return true;
+    if (p.text.toLowerCase().includes(q)) return true;
+    return guideKeywordsFor(p).some((k) => k.toLowerCase().includes(q));
+  };
 
   const visibleGroups = groups
     .map(([group, paragraphs]) => [group, paragraphs.filter(topicMatch)] as const)
     .filter(([, paragraphs]) => paragraphs.length > 0);
 
-  const topicsSectionHit = matchesQuery(q, TOPICS_INTRO);
+  const topicsSectionHit = matchesQuery(q, TOPICS_INTRO, "standard wording", "view");
   const showTopics =
     q === "" || topicsSectionHit || visibleGroups.length > 0;
 
@@ -245,10 +295,15 @@ export default function KeywordGuide({
   const pipsToShow = q === "" || pipsSectionHit ? PIP_LEGEND : pipHits;
   const smartToShow = q === "" || smartSectionHit ? SMART_PHRASES : smartHits;
 
+  const viewingParagraph = viewingId
+    ? library.photoParagraphs.find((p) => p.id === viewingId) ?? null
+    : null;
+
   const anyHit =
     showPurpose ||
     showMatching ||
     showApi ||
+    showHomeScreen ||
     showPips ||
     showSmart ||
     showTopics;
@@ -311,6 +366,13 @@ export default function KeywordGuide({
           </>
         )}
 
+        {showHomeScreen && (
+          <>
+            <h3 className="guide-heading">Add to Home Screen</h3>
+            <HomeScreenGuide />
+          </>
+        )}
+
         {showPips && (
           <>
             <h3 className="guide-heading">Review status pips</h3>
@@ -366,25 +428,37 @@ export default function KeywordGuide({
             {visibleGroups.map(([group, paragraphs]) => (
               <section key={group} className="guide-group">
                 <h4>{group}</h4>
-                {paragraphs.map((p) => (
-                  <div key={p.id} className="guide-topic">
-                    <span className="guide-topic-name">{p.topic}</span>
-                    <span className="guide-keywords">
-                      {p.keywords.map((k) => (
-                        <span
-                          key={k}
-                          className={
-                            sharedKeywords.has(k.toLowerCase())
-                              ? "chip kw shared"
-                              : "chip kw"
-                          }
-                        >
-                          {k}
+                {paragraphs.map((p) => {
+                  const keywords = guideKeywordsFor(p);
+                  return (
+                    <div key={p.id} className="guide-topic">
+                      <div className="guide-topic-main">
+                        <span className="guide-topic-name">{p.topic}</span>
+                        <span className="guide-keywords">
+                          {keywords.map((k) => (
+                            <span
+                              key={k}
+                              className={
+                                sharedKeywords.has(k.toLowerCase())
+                                  ? "chip kw shared"
+                                  : "chip kw"
+                              }
+                            >
+                              {k}
+                            </span>
+                          ))}
                         </span>
-                      ))}
-                    </span>
-                  </div>
-                ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn tiny guide-topic-view"
+                        onClick={() => setViewingId(p.id)}
+                      >
+                        View text
+                      </button>
+                    </div>
+                  );
+                })}
               </section>
             ))}
           </>
@@ -400,6 +474,57 @@ export default function KeywordGuide({
           </button>
         </div>
       </div>
+
+      {viewingParagraph && (
+        <div
+          className="sheet-backdrop guide-wording-backdrop"
+          onClick={(e) => {
+            e.stopPropagation();
+            setViewingId(null);
+          }}
+        >
+          <div
+            className="sheet guide-wording-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guide-wording-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="guide-wording-title">{viewingParagraph.topic}</h2>
+            <p className="muted">Standard wording produced by these shorthand notes</p>
+            <div className="guide-keywords guide-wording-keywords">
+              {guideKeywordsFor(viewingParagraph).map((k) => (
+                <span
+                  key={k}
+                  className={
+                    sharedKeywords.has(k.toLowerCase())
+                      ? "chip kw shared"
+                      : "chip kw"
+                  }
+                >
+                  {k}
+                </span>
+              ))}
+            </div>
+            <p className="guide-wording-body">{viewingParagraph.text}</p>
+            {viewingParagraph.placeholders.length > 0 && (
+              <p className="muted">
+                Placeholders filled from the note:{" "}
+                {viewingParagraph.placeholders.map((ph) => ph.key).join(", ")}
+              </p>
+            )}
+            <div className="sheet-actions">
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => setViewingId(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

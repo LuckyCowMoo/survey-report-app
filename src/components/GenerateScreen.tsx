@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { generateReportBlob, reportFileName } from "../lib/docxGenerator";
 import { imageForDocument, type DocImage } from "../lib/imageUtils";
 import {
@@ -10,12 +10,22 @@ import {
   type SaveReportResult
 } from "../lib/reportLibrary";
 import { coverThumbnailBlob, houseNameFromAddress } from "../lib/reportCover";
+import { openReportPrintDialog } from "../lib/reportPrint";
 import {
   buildReportProject,
   encodeReportProject,
-  fingerprintSourceSections
+  fingerprintSourceSections,
+  projectFileNameFromDocx,
+  PROJECT_MIME
 } from "../lib/reportProject";
+import {
+  downloadFile,
+  shareOrDownload,
+  type ExportFormat,
+  type ExportFormatOption
+} from "../lib/webShare";
 import type { ReportExtras, ReportMetadata, SectionState } from "../types";
+import ExportFormatSheet from "./ExportFormatSheet";
 
 interface Props {
   sections: SectionState[];
@@ -59,6 +69,8 @@ export default function GenerateScreen({
   const [librarySave, setLibrarySave] = useState<SaveReportResult | null>(null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [libraryBusy, setLibraryBusy] = useState(false);
+  const [showDownloadFormats, setShowDownloadFormats] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
 
   const issueCount = Object.values(extras.dampIssues).filter(Boolean).length;
   const recommendationCount =
@@ -237,33 +249,81 @@ export default function GenerateScreen({
     }
   };
 
+  const downloadOptions: ExportFormatOption[] = useMemo(
+    () => [
+      {
+        id: "docx",
+        label: "Word (.docx)",
+        hint: "Finished client report for Word / email",
+        available: !!result
+      },
+      {
+        id: "pdf",
+        label: "PDF",
+        hint: "Opens print dialog — choose Save as PDF",
+        available: !!result
+      },
+      {
+        id: "project",
+        label: "Survey project (.dmsr)",
+        hint: "Reopenable design file for this app",
+        available: !!result
+      }
+    ],
+    [result]
+  );
+
+  const buildProjectFile = (name: string): File => {
+    const projectBlob = encodeReportProject(
+      buildReportProject({
+        sections,
+        metadata,
+        extras,
+        warnings,
+        fileName: name,
+        step: "details"
+      })
+    );
+    return new File([projectBlob], projectFileNameFromDocx(name), {
+      type: PROJECT_MIME
+    });
+  };
+
   const share = async () => {
     if (!result) return;
     const name = resolveFileName(fileName, recommendedName);
     const file = new File([result.blob], name, { type: DOCX_MIME });
-    if (navigator.canShare?.({ files: [file] }) && navigator.share) {
-      try {
-        await navigator.share({ files: [file], title: name });
-        return;
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-      }
+    setExportBusy(true);
+    try {
+      await shareOrDownload(file, name);
+    } finally {
+      setExportBusy(false);
     }
-    // Desktop / unsupported Web Share: still offer an export path.
-    downloadCopy();
   };
 
-  const downloadCopy = () => {
+  const runDownload = async (format: ExportFormat) => {
     if (!result) return;
     const name = resolveFileName(fileName, recommendedName);
-    const url = URL.createObjectURL(result.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    setExportBusy(true);
+    setError(null);
+    try {
+      if (format === "pdf") {
+        openReportPrintDialog({ sections, metadata, extras });
+        setShowDownloadFormats(false);
+        return;
+      }
+      if (format === "project") {
+        downloadFile(buildProjectFile(name));
+        setShowDownloadFormats(false);
+        return;
+      }
+      downloadFile(new File([result.blob], name, { type: DOCX_MIME }));
+      setShowDownloadFormats(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExportBusy(false);
+    }
   };
 
   const libraryStatus = (backend: LibraryBackend | null) => {
@@ -370,6 +430,7 @@ export default function GenerateScreen({
             <button
               type="button"
               className="btn primary big"
+              disabled={exportBusy}
               onClick={() => void share()}
             >
               Share
@@ -378,7 +439,8 @@ export default function GenerateScreen({
             <button
               type="button"
               className="btn tiny download-copy"
-              onClick={downloadCopy}
+              disabled={exportBusy}
+              onClick={() => setShowDownloadFormats(true)}
             >
               Download a copy
             </button>
@@ -392,6 +454,15 @@ export default function GenerateScreen({
             Start a new report
           </button>
         </section>
+      )}
+
+      {showDownloadFormats && result && (
+        <ExportFormatSheet
+          options={downloadOptions}
+          busy={exportBusy}
+          onPick={(format) => void runDownload(format)}
+          onClose={() => setShowDownloadFormats(false)}
+        />
       )}
     </div>
   );

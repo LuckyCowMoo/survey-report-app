@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   applyApiKey,
   ensureProviderModels,
@@ -14,8 +14,17 @@ import {
 } from "../lib/aiProviders";
 import {
   listProviderModels,
+  resolveRatesForProviderModel,
   type AiModelOption
 } from "../lib/aiModels";
+import {
+  COST_SCENARIO_SECTION_COUNT,
+  estimateDetailsUsd,
+  estimateReportScenarioUsd,
+  estimateSectionsUsd,
+  formatGbpFromUsd,
+  formatUsdRates
+} from "../lib/aiCostEstimate";
 import { usePointerInputModeValue } from "../lib/pointerInput";
 import {
   canLinkReportFolder,
@@ -31,6 +40,8 @@ interface Props {
   /** Persist settings (called automatically when the sheet closes). */
   onSave: (next: AppSettings) => void;
   onClose: () => void;
+  /** Scroll to / highlight name, company, and website when opened from generate. */
+  focusIdentity?: boolean;
 }
 
 function normalizeSettings(draft: AppSettings): AppSettings {
@@ -104,12 +115,19 @@ function pipJumpLabel(hover: boolean, pointer: "fine" | "coarse"): string {
   return pointer === "fine" ? "click pip to move" : "tap pip to move";
 }
 
-export default function SettingsSheet({ settings, onSave, onClose }: Props) {
+export default function SettingsSheet({
+  settings,
+  onSave,
+  onClose,
+  focusIdentity = false
+}: Props) {
   const [draft, setDraft] = useState<AppSettings>(settings);
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
+  const identityRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const pointerMode = usePointerInputModeValue();
   const folderCapable = canLinkReportFolder();
   const [folderName, setFolderName] = useState<string | null>(null);
@@ -129,6 +147,14 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
       onSaveRef.current(normalizeSettings(draftRef.current));
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (!focusIdentity) return;
+    identityRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (pointerMode === "fine") {
+      nameInputRef.current?.focus({ preventScroll: true });
+    }
+  }, [focusIdentity, pointerMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,6 +244,27 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
   };
 
   const jumpLabel = pipJumpLabel(draft.pipJumpOnHover, pointerMode);
+
+  const sectionOption =
+    modelOptions.find((m) => m.id === draft.model) ?? null;
+  const detailsOption =
+    modelOptions.find((m) => m.id === draft.detailsSuggestModel) ?? null;
+  const sectionRates = resolveRatesForProviderModel(
+    draft.provider,
+    draft.model,
+    sectionOption
+  );
+  const detailsRates = resolveRatesForProviderModel(
+    draft.provider,
+    draft.detailsSuggestModel,
+    detailsOption
+  );
+  const costEstimate =
+    sectionRates && detailsRates
+      ? estimateReportScenarioUsd(sectionRates, detailsRates)
+      : null;
+  const ratesLive =
+    sectionRates?.source === "live" || detailsRates?.source === "live";
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -380,18 +427,32 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
             onChange={(e) => set("model", e.target.value)}
             disabled={modelsBusy && modelOptions.length === 0}
           >
-            {modelOptions.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
+            {modelOptions.length === 0 ? (
+              <option value={draft.model || ""}>
+                {modelsBusy ? "Loading…" : "No vision models found"}
               </option>
-            ))}
+            ) : (
+              modelOptions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))
+            )}
           </select>
+          {sectionRates && (
+            <small className="model-cost-hint">
+              Est. {formatGbpFromUsd(estimateSectionsUsd(sectionRates))} for{" "}
+              {COST_SCENARIO_SECTION_COUNT} photo sections
+              {sectionRates.source === "live" ? " (live rates)" : ""} ·{" "}
+              {formatUsdRates(sectionRates)}
+            </small>
+          )}
           <small>
             {modelsBusy
               ? "Loading models…"
               : modelsLive
-                ? `Live list from ${providerMeta.label}.`
-                : modelsError || "Using built-in model list."}
+                ? `Vision + text models from ${providerMeta.label}.`
+                : modelsError || "Using built-in vision model list."}
           </small>
         </label>
 
@@ -402,50 +463,90 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
             onChange={(e) => set("detailsSuggestModel", e.target.value)}
             disabled={modelsBusy && modelOptions.length === 0}
           >
-            {modelOptions.map((m) => (
-              <option key={`details-${m.id}`} value={m.id}>
-                {m.label}
+            {modelOptions.length === 0 ? (
+              <option value={draft.detailsSuggestModel || ""}>
+                {modelsBusy ? "Loading…" : "No vision models found"}
               </option>
-            ))}
+            ) : (
+              modelOptions.map((m) => (
+                <option key={`details-${m.id}`} value={m.id}>
+                  {m.label}
+                </option>
+              ))
+            )}
           </select>
+          {detailsRates && (
+            <small className="model-cost-hint">
+              Est. {formatGbpFromUsd(estimateDetailsUsd(detailsRates))} for
+              report details suggestions
+              {detailsRates.source === "live" ? " (live rates)" : ""} ·{" "}
+              {formatUsdRates(detailsRates)}
+            </small>
+          )}
           <small>
             Used for issues, recommendations, and cost suggestions. Pick a
             higher-tier model here if you want.
           </small>
         </label>
 
-        <label className="field">
-          <span>Your name (report Contact)</span>
-          <input
-            type="text"
-            value={draft.surveyorName}
-            placeholder="e.g. Alex Morgan"
-            autoComplete="name"
-            onChange={(e) => set("surveyorName", e.target.value)}
-          />
-          <small>
-            Shown as Contact in the page header. Required before generating a
-            report.
-          </small>
-        </label>
+        {costEstimate && (
+          <p className="ai-cost-estimate" role="status">
+            <strong>
+              Combined estimate: {formatGbpFromUsd(costEstimate.totalUsd)}
+            </strong>
+            <span>
+              {" "}
+              for {COST_SCENARIO_SECTION_COUNT} image sections + details
+              suggestions (typical token use ×{" "}
+              {ratesLive ? "live catalog" : "estimated"} rates). Actual spend varies with
+              photo size and answers.
+            </span>
+          </p>
+        )}
 
-        <label className="field">
-          <span>Company name</span>
-          <input
-            type="text"
-            value={draft.companyName}
-            onChange={(e) => set("companyName", e.target.value)}
-          />
-        </label>
+        <div ref={identityRef} className="settings-identity">
+          <label
+            className={`field${!draft.surveyorName.trim() ? " is-required-empty" : ""}`}
+          >
+            <span>Your name (report Contact)</span>
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={draft.surveyorName}
+              placeholder="e.g. Alex Morgan"
+              autoComplete="name"
+              onChange={(e) => set("surveyorName", e.target.value)}
+            />
+            <small>
+              Shown as Contact in the page header. Required before generating a
+              report.
+            </small>
+          </label>
 
-        <label className="field">
-          <span>Website (shown on the cover page)</span>
-          <input
-            type="text"
-            value={draft.website}
-            onChange={(e) => set("website", e.target.value)}
-          />
-        </label>
+          <label
+            className={`field${!draft.companyName.trim() ? " is-required-empty" : ""}`}
+          >
+            <span>Company name</span>
+            <input
+              type="text"
+              value={draft.companyName}
+              onChange={(e) => set("companyName", e.target.value)}
+            />
+            <small>Required before generating a report.</small>
+          </label>
+
+          <label
+            className={`field${!draft.website.trim() ? " is-required-empty" : ""}`}
+          >
+            <span>Website (shown on the cover page)</span>
+            <input
+              type="text"
+              value={draft.website}
+              onChange={(e) => set("website", e.target.value)}
+            />
+            <small>Required before generating a report.</small>
+          </label>
+        </div>
 
         <div className="sheet-actions">
           <button type="button" className="btn primary" onClick={onClose}>

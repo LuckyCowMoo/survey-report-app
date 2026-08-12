@@ -346,8 +346,13 @@ function toMeta(record: LibraryRecord): LibraryReportMeta {
     projectBlob: _projectBlob,
     ...rest
   } = record;
+  const storedBytes =
+    (record.blob?.size ?? 0) +
+    (record.projectBlob?.size ?? 0) +
+    (record.coverThumb?.size ?? 0);
   return {
     ...rest,
+    size: storedBytes > 0 ? storedBytes : rest.size || 0,
     houseName: rest.houseName || "",
     clientName: rest.clientName || "",
     surveyDate: rest.surveyDate || "",
