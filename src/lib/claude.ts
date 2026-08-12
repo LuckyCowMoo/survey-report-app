@@ -1,5 +1,5 @@
 /**
- * Direct-from-browser AI client (Claude or Gemini, chosen in Settings).
+ * Direct-from-browser AI client (provider chosen automatically from the API key).
  *
  * Only sections the rule-based matcher could not confidently resolve are sent
  * here. Each call includes the photo (downscaled), the surveyor's field note,
@@ -22,7 +22,7 @@ import {
   resolveLibraryIdForValues
 } from "./matcher";
 import { imageToAiBase64 } from "./imageUtils";
-import type { AiProvider } from "./settings";
+import { providerInfo, providerLabel, type AiProvider } from "./aiProviders";
 import type { LibraryPlaceholder, SectionState } from "../types";
 
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
@@ -257,6 +257,86 @@ async function callGemini(
   return text;
 }
 
+/** OpenAI-compatible chat completions (OpenAI, xAI, Groq, OpenRouter, …). */
+async function callOpenAiCompatible(
+  provider: AiProvider,
+  apiKey: string,
+  model: string,
+  imageB64: string | null,
+  userText: string,
+  system: string,
+  signal?: AbortSignal,
+  maxTokens = 1200
+): Promise<string> {
+  const base = providerInfo(provider).openaiBaseUrl;
+  if (!base) {
+    throw new Error(`${providerLabel(provider)} is not configured for chat.`);
+  }
+
+  const userContent: unknown[] = [];
+  if (imageB64) {
+    userContent.push({
+      type: "image_url",
+      image_url: { url: `data:image/jpeg;base64,${imageB64}` }
+    });
+  }
+  userContent.push({ type: "text", text: userText });
+
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    Authorization: `Bearer ${apiKey}`
+  };
+  // OpenRouter asks for these optional headers when called from browsers/apps.
+  if (provider === "openrouter") {
+    headers["HTTP-Referer"] =
+      typeof window !== "undefined" ? window.location.origin : "https://localhost";
+    headers["X-Title"] = "DampMaster Report Studio";
+  }
+
+  const res = await fetch(`${base.replace(/\/$/, "")}/chat/completions`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userContent }
+      ]
+    }),
+    signal
+  });
+
+  if (!res.ok) {
+    let detail = `${res.status}`;
+    try {
+      const err = (await res.json()) as {
+        error?: { message?: string };
+        message?: string;
+      };
+      if (err.error?.message) detail = `${res.status}: ${err.error.message}`;
+      else if (err.message) detail = `${res.status}: ${err.message}`;
+    } catch {
+      /* keep status only */
+    }
+    throw new Error(`${providerLabel(provider)} API error ${detail}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{
+      message?: { content?: string | Array<{ type?: string; text?: string }> };
+    }>;
+  };
+  const content = data.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part.text === "string" ? part.text : ""))
+      .join("");
+  }
+  throw new Error(`${providerLabel(provider)} returned no usable text.`);
+}
+
 async function callModel(
   ai: AiConfig,
   imageB64: string | null,
@@ -265,9 +345,39 @@ async function callModel(
   signal?: AbortSignal,
   maxTokens = 1200
 ): Promise<string> {
-  return ai.provider === "gemini"
-    ? callGemini(ai.apiKey, ai.model, imageB64, userText, system, signal, maxTokens)
-    : callClaude(ai.apiKey, ai.model, imageB64, userText, system, signal, maxTokens);
+  const info = providerInfo(ai.provider);
+  if (info.auth === "gemini") {
+    return callGemini(
+      ai.apiKey,
+      ai.model,
+      imageB64,
+      userText,
+      system,
+      signal,
+      maxTokens
+    );
+  }
+  if (info.auth === "anthropic") {
+    return callClaude(
+      ai.apiKey,
+      ai.model,
+      imageB64,
+      userText,
+      system,
+      signal,
+      maxTokens
+    );
+  }
+  return callOpenAiCompatible(
+    ai.provider,
+    ai.apiKey,
+    ai.model,
+    imageB64,
+    userText,
+    system,
+    signal,
+    maxTokens
+  );
 }
 
 /** Text-only model call (no photo) — used for details extras suggestions. */
@@ -452,10 +562,6 @@ export interface AiConfig {
   model: string;
 }
 
-function providerLabel(ai: AiConfig) {
-  return ai.provider === "gemini" ? "Gemini" : "Claude";
-}
-
 export interface ResolveSectionOptions {
   /** Optional batch-wide guidance; may not apply to every section. */
   guidance?: string;
@@ -561,7 +667,7 @@ async function resolveBespokeWithoutReading(
   const resolution = parseResolution(raw);
   if (!resolution || resolution.action !== "bespoke" || !resolution.text) {
     throw new Error(
-      `${providerLabel(ai)} returned an unexpected response for section ${entry.number}.`
+      `${providerLabel(ai.provider)} returned an unexpected response for section ${entry.number}.`
     );
   }
   return applyResolution(section, resolution);
@@ -638,7 +744,7 @@ export async function resolveSectionWithAi(
   const resolution = parseResolution(raw);
   if (!resolution) {
     throw new Error(
-      `${providerLabel(ai)} returned an unexpected response for section ${entry.number}.`
+      `${providerLabel(ai.provider)} returned an unexpected response for section ${entry.number}.`
     );
   }
   return applyResolution(section, resolution);

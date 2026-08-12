@@ -20,8 +20,6 @@ interface Props {
   onMetadata: (m: ReportMetadata) => void;
   onExtras: (e: ReportExtras) => void;
   onContinue: () => void;
-  onSaveAndLeave: () => void;
-  saveAndLeaveBusy?: boolean;
   aiConfigured: boolean;
   /** Which panel(s) are currently drafting. */
   suggestBusy: DetailsSuggestScope | null;
@@ -154,8 +152,6 @@ export default function DetailsScreen({
   onMetadata,
   onExtras,
   onContinue,
-  onSaveAndLeave,
-  saveAndLeaveBusy = false,
   aiConfigured,
   suggestBusy,
   suggestError,
@@ -840,16 +836,8 @@ export default function DetailsScreen({
         )}
         <button
           type="button"
-          className="btn big"
-          disabled={anyBusy || saveAndLeaveBusy}
-          onClick={onSaveAndLeave}
-        >
-          {saveAndLeaveBusy ? "Saving…" : "Save & leave"}
-        </button>
-        <button
-          type="button"
           className="btn primary big"
-          disabled={!canContinue || saveAndLeaveBusy}
+          disabled={!canContinue}
           title={costsBlockReason ?? undefined}
           onClick={onContinue}
         >

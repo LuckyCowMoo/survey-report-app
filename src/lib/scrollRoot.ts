@@ -27,6 +27,11 @@ export function isProgrammaticScroll(): boolean {
   return performance.now() < programmaticUntil;
 }
 
+/** Keep scroll listeners from treating layout/animation writes as user input. */
+export function markProgrammaticScroll(holdMs = 200) {
+  programmaticUntil = Math.max(programmaticUntil, performance.now() + holdMs);
+}
+
 function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }

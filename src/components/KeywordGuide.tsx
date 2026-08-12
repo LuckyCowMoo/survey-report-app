@@ -1,9 +1,14 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { library } from "../lib/matcher";
+import { AI_PROVIDER_ORDER, AI_PROVIDERS, type AiProvider } from "../lib/aiProviders";
+import { PROVIDER_GUIDE } from "../lib/aiProviderGuide";
+import ProviderKeyGuide from "./ProviderKeyGuide";
 import type { LibraryParagraph } from "../types";
 
 interface Props {
   onClose: () => void;
+  apiKeys: Partial<Record<AiProvider, string>>;
+  onApiKeyChange: (apiKey: string, provider: AiProvider) => void;
 }
 
 /**
@@ -130,24 +135,24 @@ const PURPOSE_COPY = [
 ];
 
 const API_COPY = [
-  "AI API keys (Claude or Gemini)",
-  "Ask AI needs an external Claude (Anthropic) or Gemini (Google) API key to link those LLM providers to this app. Keys stay on this device only and are never uploaded elsewhere by the app, nor are they necessary for all its functionality.",
+  "AI API keys",
+  "Ask AI needs an external LLM API key",
   "Link a key in this app",
-  "On the home screen, open Settings.",
-  "Under AI service, pick Claude or Gemini.",
-  "Paste the matching API key into the key field.",
-  "Leave the model name as the default unless you know you need a different one, then tap Save.",
-  "Get a Claude (Anthropic) key",
-  "platform.claude.com",
-  "Settings → API keys",
-  "Create key",
-  "sk-ant-",
-  "Plans & Billing",
-  "Get a Gemini (Google) key",
-  "aistudio.google.com",
-  "Create API key",
-  "AIza",
-  "free tier"
+  "Settings",
+  "Slide to a provider",
+  "Supported API key types",
+  ...AI_PROVIDER_ORDER.flatMap((id) => {
+    const info = AI_PROVIDERS[id];
+    const guide = PROVIDER_GUIDE[id];
+    return [
+      info.label,
+      info.keyHint,
+      info.keyPrefix,
+      guide.brand.shortName,
+      guide.brand.company,
+      ...guide.steps.map((s) => s.text + (s.linkLabel ?? ""))
+    ];
+  })
 ];
 
 const TOPICS_INTRO =
@@ -161,7 +166,11 @@ function matchesQuery(q: string, ...parts: string[]): boolean {
   return q === "" || haystack(...parts).includes(q);
 }
 
-export default function KeywordGuide({ onClose }: Props) {
+export default function KeywordGuide({
+  onClose,
+  apiKeys,
+  onApiKeyChange
+}: Props) {
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -297,94 +306,8 @@ export default function KeywordGuide({ onClose }: Props) {
 
         {showApi && (
           <>
-            <h3 className="guide-heading">AI API keys (Claude or Gemini)</h3>
-            <p className="muted">
-              Ask AI needs an external Claude (Anthropic) or Gemini (Google) API
-              key to link those LLM providers to this app. Keys stay on this
-              device only and are never uploaded elsewhere by the app, nor are
-              they necessary for all its functionality.
-            </p>
-
-            <h4 className="guide-subheading">Link a key in this app</h4>
-            <ol className="guide-steps">
-              <li>On the home screen, open Settings.</li>
-              <li>
-                Under <strong>AI service</strong>, pick Claude or Gemini.
-              </li>
-              <li>Paste the matching API key into the key field.</li>
-              <li>
-                Leave the model name as the default unless you know you need a
-                different one, then tap Save.
-              </li>
-            </ol>
-
-            <h4 className="guide-subheading">Get a Claude (Anthropic) key</h4>
-            <ol className="guide-steps">
-              <li>
-                Sign in (or create an account) at{" "}
-                <a
-                  href="https://platform.claude.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  platform.claude.com
-                </a>
-                .
-              </li>
-              <li>
-                Open{" "}
-                <a
-                  href="https://platform.claude.com/settings/keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Settings → API keys
-                </a>
-                .
-              </li>
-              <li>
-                Click <strong>Create key</strong>, give it a name, and copy the
-                key immediately (it starts with <code>sk-ant-</code> and is only
-                shown once).
-              </li>
-              <li>
-                In Anthropic&apos;s console, add billing / credits under Plans
-                &amp; Billing — new keys usually will not work until payment is
-                set up.
-              </li>
-              <li>
-                Paste the key into Settings here with AI service set to Claude.
-              </li>
-            </ol>
-
-            <h4 className="guide-subheading">Get a Gemini (Google) key</h4>
-            <ol className="guide-steps">
-              <li>
-                Sign in with a Google account at{" "}
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  aistudio.google.com/app/apikey
-                </a>
-                .
-              </li>
-              <li>
-                Click <strong>Create API key</strong> and choose (or create) a
-                Google Cloud project when asked.
-              </li>
-              <li>
-                Copy the key (often starts with <code>AIza</code>) and store it
-                somewhere safe.
-              </li>
-              <li>
-                Paste it into Settings here with AI service set to Gemini. Gemini
-                has an extremely limited free tier suitable for some testing;
-                check Google AI Studio for current limits and billing if you need
-                more.
-              </li>
-            </ol>
+            <h3 className="guide-heading">AI API keys</h3>
+            <ProviderKeyGuide apiKeys={apiKeys} onApiKeyChange={onApiKeyChange} />
           </>
         )}
 

@@ -23,10 +23,14 @@ import {
 import {
   activeAi,
   activeDetailsSuggestAi,
+  applyApiKey,
+  ensureProviderModels,
   loadSettings,
   saveSettings,
+  providerLabel,
   type AppSettings
 } from "./lib/settings";
+import type { AiProvider } from "./lib/aiProviders";
 import { usePointerInputMode } from "./lib/pointerInput";
 import {
   currentAppHist,
@@ -50,6 +54,10 @@ import {
 } from "./lib/reportProject";
 import { reportFileName } from "./lib/docxGenerator";
 import { coverThumbnailBlob, houseNameFromAddress } from "./lib/reportCover";
+import {
+  getScrollRoot,
+  scrollElementIntoViewCentered
+} from "./lib/scrollRoot";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
 type Step = AppStep;
@@ -126,6 +134,16 @@ export default function App() {
   const { showIntro, dismissIntro } = useIntroSplash();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Fix leftover model ids from another provider (e.g. Claude on Gemini).
+  useEffect(() => {
+    setSettings((prev) => {
+      const fixed = ensureProviderModels(prev);
+      if (fixed === prev) return prev;
+      saveSettings(fixed);
+      return fixed;
+    });
+  }, []);
   const [showGuide, setShowGuide] = useState(false);
   const [focusedSectionIndex, setFocusedSectionIndex] = useState<number | null>(
     null
@@ -145,6 +163,12 @@ export default function App() {
   const [aiErrors, setAiErrors] = useState<Record<number, string>>({});
   const [aiBatchRunning, setAiBatchRunning] = useState(false);
   const aiBatchAbortRef = useRef<AbortController | null>(null);
+  /** While true, batch AI keeps the list scrolled to the section being generated. */
+  const aiBatchFollowRef = useRef(false);
+  const aiBatchRunningRef = useRef(false);
+  const busySectionIndexRef = useRef<number | null>(null);
+  aiBatchRunningRef.current = aiBatchRunning;
+  busySectionIndexRef.current = busySectionIndex;
   const importTriggerRef = useRef<(() => void) | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] =
     useState<PendingSourceMatch | null>(null);
@@ -344,9 +368,66 @@ export default function App() {
   ]);
 
   const focusSection = useCallback((index: number) => {
+    // Tapping the live AI section re-engages camera follow for following sections.
+    if (
+      aiBatchRunningRef.current &&
+      busySectionIndexRef.current !== null &&
+      index === busySectionIndexRef.current
+    ) {
+      aiBatchFollowRef.current = true;
+    }
     setFocusedSectionIndex(index);
     setReviewDwellIndex(index);
   }, []);
+
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+
+  // Follow each section as batch AI works it; stop only on intentional user scroll.
+  useEffect(() => {
+    if (!aiBatchRunning) {
+      aiBatchFollowRef.current = false;
+      return;
+    }
+
+    const cancelFollow = () => {
+      aiBatchFollowRef.current = false;
+    };
+
+    const root = getScrollRoot();
+    const scrollTrack = document.querySelector(".studio-scroll");
+
+    // Wheel / touch / custom scrollbar = user scrolling away.
+    // Do not listen to plain "scroll" — layout chase + follow animation also scroll.
+    window.addEventListener("wheel", cancelFollow, { passive: true });
+    window.addEventListener("touchmove", cancelFollow, { passive: true });
+    if (root instanceof HTMLElement) {
+      root.addEventListener("wheel", cancelFollow, { passive: true });
+      root.addEventListener("touchmove", cancelFollow, { passive: true });
+    }
+    scrollTrack?.addEventListener("pointerdown", cancelFollow);
+
+    return () => {
+      window.removeEventListener("wheel", cancelFollow);
+      window.removeEventListener("touchmove", cancelFollow);
+      if (root instanceof HTMLElement) {
+        root.removeEventListener("wheel", cancelFollow);
+        root.removeEventListener("touchmove", cancelFollow);
+      }
+      scrollTrack?.removeEventListener("pointerdown", cancelFollow);
+    };
+  }, [aiBatchRunning]);
+
+  useEffect(() => {
+    if (!aiBatchRunning || busySectionIndex === null) return;
+    if (!aiBatchFollowRef.current) return;
+    const section = sectionsRef.current[busySectionIndex];
+    if (!section) return;
+    setFocusedSectionIndex(busySectionIndex);
+    setReviewDwellIndex(busySectionIndex);
+    const card = document.getElementById(`section-card-${section.entry.number}`);
+    if (card) scrollElementIntoViewCentered(card);
+  }, [aiBatchRunning, busySectionIndex]);
 
   const completeDwellReview = useCallback((index: number) => {
     setSections((prev) => {
@@ -367,6 +448,15 @@ export default function App() {
       return prev;
     });
   }, []);
+
+  const handleGuideApiKey = useCallback(
+    (apiKey: string, provider: AiProvider) => {
+      const next = applyApiKey(settings, apiKey, provider);
+      setSettings(next);
+      saveSettings(next);
+    },
+    [settings]
+  );
 
   const handleSettingsSave = useCallback((next: AppSettings) => {
     setSettings(next);
@@ -499,7 +589,7 @@ export default function App() {
       const ai = activeAi(settings);
       if (!ai.apiKey) {
         setError(
-          `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
+          `Add your ${providerLabel(ai.provider)} API key in Settings first.`
         );
         openSettings();
         return;
@@ -532,7 +622,7 @@ export default function App() {
     const ai = activeAi(settings);
     if (!ai.apiKey) {
       setError(
-        `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
+        `Add your ${providerLabel(ai.provider)} API key in Settings first.`
       );
       openSettings();
       return;
@@ -546,7 +636,7 @@ export default function App() {
       const ai = activeAi(settings);
       if (!ai.apiKey) {
         setError(
-          `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
+          `Add your ${providerLabel(ai.provider)} API key in Settings first.`
         );
         openSettings();
         return;
@@ -558,6 +648,7 @@ export default function App() {
       aiBatchAbortRef.current?.abort();
       const ac = new AbortController();
       aiBatchAbortRef.current = ac;
+      aiBatchFollowRef.current = true;
       setAiBatchRunning(true);
       setAiErrors({});
 
@@ -601,6 +692,7 @@ export default function App() {
         }
       } finally {
         if (aiBatchAbortRef.current === ac) aiBatchAbortRef.current = null;
+        aiBatchFollowRef.current = false;
         setAiBatchRunning(false);
         setBusy(null);
         setBusySectionIndex(null);
@@ -610,6 +702,7 @@ export default function App() {
   );
 
   const stopAiBatch = useCallback(() => {
+    aiBatchFollowRef.current = false;
     aiBatchAbortRef.current?.abort();
   }, []);
 
@@ -628,7 +721,7 @@ export default function App() {
       if (!ai.apiKey) {
         setDetailsSuggestError({
           scope,
-          message: `Add your ${ai.provider === "gemini" ? "Gemini" : "Claude"} API key in Settings first.`
+          message: `Add your ${providerLabel(ai.provider)} API key in Settings first.`
         });
         openSettings();
         return;
@@ -713,51 +806,69 @@ export default function App() {
     replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
 
-  const saveAndLeave = useCallback(async () => {
-    if (sections.length === 0 || saveAndLeaveBusy) return;
-    const designStep = step === "review" ? "review" : "details";
-    setSaveAndLeaveBusy(true);
-    setError(null);
-    try {
-      const fileName = reportFileName(metadata);
-      const coverThumb = await coverThumbnailBlob(sections);
-      const sourceFingerprint = await fingerprintSourceSections(sections);
-      const projectBlob = encodeReportProject(
-        buildReportProject({
-          sections,
-          metadata,
-          extras,
-          warnings,
+  const saveMidFlowDraft = useCallback(
+    async (designStep: "review" | "details") => {
+      if (sections.length === 0 || saveAndLeaveBusy) return;
+      setSaveAndLeaveBusy(true);
+      setError(null);
+      aiBatchAbortRef.current?.abort();
+      detailsSuggestAbortRef.current?.abort();
+      try {
+        setBusy("Saving draft…");
+        const fileName = reportFileName(metadata);
+        const coverThumb = await coverThumbnailBlob(sections);
+        const sourceFingerprint = await fingerprintSourceSections(sections);
+        const projectBlob = encodeReportProject(
+          buildReportProject({
+            sections,
+            metadata,
+            extras,
+            warnings,
+            fileName,
+            step: designStep,
+            sourceFingerprint
+          })
+        );
+        await saveProjectDraftToLibrary({
+          projectBlob,
           fileName,
-          step: designStep,
-          sourceFingerprint
-        })
-      );
-      await saveProjectDraftToLibrary({
-        projectBlob,
-        fileName,
-        propertyAddress: metadata.propertyAddress,
-        houseName: houseNameFromAddress(metadata.propertyAddress),
-        clientName: metadata.clientName,
-        surveyDate: metadata.surveyDate,
-        coverThumb,
-        sourceFingerprint,
-        step: designStep
-      });
-      reset();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setSaveAndLeaveBusy(false);
-    }
-  }, [
-    sections,
-    saveAndLeaveBusy,
-    step,
-    metadata,
-    extras,
-    warnings,
-    reset
-  ]);
+          propertyAddress: metadata.propertyAddress,
+          houseName: houseNameFromAddress(metadata.propertyAddress),
+          clientName: metadata.clientName,
+          surveyDate: metadata.surveyDate,
+          coverThumb,
+          sourceFingerprint,
+          step: designStep
+        });
+        reset();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        setSaveAndLeaveBusy(false);
+      } finally {
+        setBusy(null);
+      }
+    },
+    [
+      sections,
+      saveAndLeaveBusy,
+      metadata,
+      extras,
+      warnings,
+      reset
+    ]
+  );
+
+  // Leaving review/details/generate back to home auto-saves a Past reports draft.
+  const prevStepRef = useRef(step);
+  useEffect(() => {
+    const prev = prevStepRef.current;
+    prevStepRef.current = step;
+    if (step !== "home") return;
+    if (prev !== "review" && prev !== "details" && prev !== "generate") return;
+    if (sections.length === 0 || saveAndLeaveBusy) return;
+    const designStep = prev === "review" ? "review" : "details";
+    void saveMidFlowDraft(designStep);
+  }, [step, sections.length, saveAndLeaveBusy, saveMidFlowDraft]);
 
   return (
     <div
@@ -844,8 +955,6 @@ export default function App() {
             aiErrors={aiErrors}
             onDismissAiError={dismissAiError}
             onContinue={() => navigateTo("details")}
-            onSaveAndLeave={() => void saveAndLeave()}
-            saveAndLeaveBusy={saveAndLeaveBusy}
             onFocusSection={focusSection}
             focusedSectionIndex={focusedSectionIndex}
             dwellSectionIndex={reviewDwellIndex}
@@ -858,8 +967,6 @@ export default function App() {
             onMetadata={setMetadata}
             onExtras={setExtras}
             onContinue={goToGenerate}
-            onSaveAndLeave={() => void saveAndLeave()}
-            saveAndLeaveBusy={saveAndLeaveBusy}
             aiConfigured={activeDetailsSuggestAi(settings).apiKey.length > 0}
             suggestBusy={detailsSuggestBusy}
             suggestError={detailsSuggestError}
@@ -887,7 +994,13 @@ export default function App() {
         />
       )}
 
-      {showGuide && <KeywordGuide onClose={dismissOverlay} />}
+      {showGuide && (
+        <KeywordGuide
+          onClose={dismissOverlay}
+          apiKeys={settings.apiKeys}
+          onApiKeyChange={handleGuideApiKey}
+        />
+      )}
 
       {showSurveyorNamePrompt && (
         <div

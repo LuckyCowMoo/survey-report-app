@@ -22,6 +22,7 @@ import { scrolledRecently } from "../lib/recentScroll";
 import {
   getScrollRoot,
   isProgrammaticScroll,
+  markProgrammaticScroll,
   readScrollTop,
   writeScrollTop
 } from "../lib/scrollRoot";
@@ -446,6 +447,7 @@ export default function EntryCard({
     const expectedTop = chase.lastTop - scrollDelta;
     const layoutDelta = top - expectedTop;
     if (Math.abs(layoutDelta) > 0.5) {
+      markProgrammaticScroll(120);
       writeScrollTop(scrollRoot, scrollTop + layoutDelta);
       chase.lastScroll = scrollTop + layoutDelta;
       chase.lastTop = top - layoutDelta;

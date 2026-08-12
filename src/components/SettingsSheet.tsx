@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  DEFAULT_DETAILS_SUGGEST_MODEL,
-  DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL,
-  DEFAULT_GEMINI_MODEL,
-  DEFAULT_MODEL,
+  applyApiKey,
+  ensureProviderModels,
+  providerApiKey,
+  setActiveProvider,
   type AppSettings
 } from "../lib/settings";
+import {
+  AI_PROVIDER_ORDER,
+  AI_PROVIDERS,
+  defaultsForProvider,
+  type AiProvider
+} from "../lib/aiProviders";
 import {
   listProviderModels,
   type AiModelOption
@@ -18,6 +24,7 @@ import {
   unlinkReportFolder
 } from "../lib/reportLibrary";
 import ThemePicker from "./ThemeToggle";
+import { canCallOpenAiFromBrowser } from "../lib/openaiBrowserCompat";
 
 interface Props {
   settings: AppSettings;
@@ -27,19 +34,24 @@ interface Props {
 }
 
 function normalizeSettings(draft: AppSettings): AppSettings {
-  return {
+  const defaults = defaultsForProvider(draft.provider);
+  const apiKeys = { ...draft.apiKeys };
+  for (const id of AI_PROVIDER_ORDER) {
+    const v = apiKeys[id];
+    if (typeof v === "string") {
+      const t = v.trim();
+      if (t) apiKeys[id] = t;
+      else delete apiKeys[id];
+    }
+  }
+  return ensureProviderModels({
     ...draft,
-    apiKey: draft.apiKey.trim(),
-    geminiApiKey: draft.geminiApiKey.trim(),
+    apiKeys,
     surveyorName: draft.surveyorName.trim(),
-    model: draft.model.trim() || DEFAULT_MODEL,
+    model: draft.model.trim() || defaults.model,
     detailsSuggestModel:
-      draft.detailsSuggestModel.trim() || DEFAULT_DETAILS_SUGGEST_MODEL,
-    geminiModel: draft.geminiModel.trim() || DEFAULT_GEMINI_MODEL,
-    geminiDetailsSuggestModel:
-      draft.geminiDetailsSuggestModel.trim() ||
-      DEFAULT_GEMINI_DETAILS_SUGGEST_MODEL
-  };
+      draft.detailsSuggestModel.trim() || defaults.detailsSuggestModel
+  });
 }
 
 function ApiKeyField({
@@ -107,6 +119,8 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
   const [modelsLive, setModelsLive] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [modelsBusy, setModelsBusy] = useState(false);
+  const [addingProvider, setAddingProvider] = useState(false);
+  const [openAiBrowserOk, setOpenAiBrowserOk] = useState<boolean | null>(null);
 
   // Persist whatever is on screen whenever Settings closes for any reason
   // (Done, backdrop tap, Back, history pop, etc.).
@@ -129,11 +143,8 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    const key = draft.provider === "gemini" ? draft.geminiApiKey : draft.apiKey;
-    const selected =
-      draft.provider === "gemini"
-        ? [draft.geminiModel, draft.geminiDetailsSuggestModel]
-        : [draft.model, draft.detailsSuggestModel];
+    const key = providerApiKey(draft);
+    const selected = [draft.model, draft.detailsSuggestModel];
     setModelsBusy(true);
     void listProviderModels(draft.provider, key, selected).then((result) => {
       if (cancelled) return;
@@ -145,18 +156,39 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [
-    draft.provider,
-    draft.apiKey,
-    draft.geminiApiKey,
-    draft.model,
-    draft.geminiModel,
-    draft.detailsSuggestModel,
-    draft.geminiDetailsSuggestModel
-  ]);
+  }, [draft.provider, draft.apiKeys, draft.model, draft.detailsSuggestModel]);
+
+  useEffect(() => {
+    if (draft.provider !== "openai") {
+      setOpenAiBrowserOk(null);
+      return;
+    }
+    let cancelled = false;
+    setOpenAiBrowserOk(null);
+    void canCallOpenAiFromBrowser().then((ok) => {
+      if (!cancelled) setOpenAiBrowserOk(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.provider]);
 
   const set = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+
+  const activeKey = providerApiKey(draft);
+  const providerMeta = AI_PROVIDERS[draft.provider];
+
+  const onActiveKeyChange = (value: string) => {
+    setDraft((d) => applyApiKey(d, value, d.provider));
+  };
+
+  const onPickProvider = (provider: AiProvider) => {
+    setDraft((d) => setActiveProvider(d, provider));
+    setAddingProvider(false);
+  };
+
+  const otherProviders = AI_PROVIDER_ORDER.filter((id) => id !== draft.provider);
 
   const onLinkFolder = async () => {
     setFolderError(null);
@@ -282,123 +314,105 @@ export default function SettingsSheet({ settings, onSave, onClose }: Props) {
           )}
         </div>
 
+        <div className="api-key-providers">
+          <p className="api-key-providers-label">Active AI service</p>
+          <div className="api-key-active-row">
+            <span className="api-key-active-name">{providerMeta.keyHint}</span>
+            {otherProviders.length > 0 && (
+              <button
+                type="button"
+                className="btn small"
+                aria-expanded={addingProvider}
+                onClick={() => setAddingProvider((v) => !v)}
+              >
+                {addingProvider ? "Cancel" : "Add other"}
+              </button>
+            )}
+          </div>
+          {addingProvider && (
+            <ul className="api-key-providers-list">
+              {otherProviders.map((id) => {
+                const info = AI_PROVIDERS[id];
+                const hasKey = Boolean(providerApiKey(draft, id));
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      className={`api-key-provider-chip${hasKey ? " has-key" : ""}`}
+                      onClick={() => onPickProvider(id)}
+                    >
+                      <span className="api-key-provider-name">{info.keyHint}</span>
+                      <span className="api-key-provider-meta">
+                        {hasKey ? "Key saved" : info.keyPrefix}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <ApiKeyField
+          label={`${providerMeta.label} API key`}
+          value={activeKey}
+          placeholder={
+            providerMeta.keyPrefix.includes("no fixed")
+              ? "Paste key here"
+              : providerMeta.keyPrefix
+          }
+          hint="Saved on this device only. Ask AI uses this active service — tap Add other to store a key for another provider and switch to it."
+          onChange={onActiveKeyChange}
+        />
+
+        {draft.provider === "openai" && openAiBrowserOk === false && (
+          <p className="openai-compat-warning" role="alert">
+            <strong>This browser can’t use OpenAI from the app.</strong> OpenAI
+            blocks the request (CORS), so Ask AI will fail with a network error.
+            Switch to Claude, Gemini, or OpenRouter instead.
+          </p>
+        )}
+
         <label className="field">
-          <span>AI service</span>
+          <span>Section AI model</span>
           <select
-            value={draft.provider}
-            onChange={(e) => set("provider", e.target.value as AppSettings["provider"])}
+            value={draft.model}
+            onChange={(e) => set("model", e.target.value)}
+            disabled={modelsBusy && modelOptions.length === 0}
           >
-            <option value="claude">Claude (Anthropic)</option>
-            <option value="gemini">Gemini (Google)</option>
+            {modelOptions.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
           </select>
           <small>
-            Used only for sections the app cannot match automatically. The key
-            is stored on this device only.
+            {modelsBusy
+              ? "Loading models…"
+              : modelsLive
+                ? `Live list from ${providerMeta.label}.`
+                : modelsError || "Using built-in model list."}
           </small>
         </label>
 
-        {draft.provider === "claude" ? (
-          <>
-            <ApiKeyField
-              label="Claude API key"
-              value={draft.apiKey}
-              placeholder="sk-ant-..."
-              onChange={(value) => set("apiKey", value)}
-            />
-
-            <label className="field">
-              <span>Section AI model</span>
-              <select
-                value={draft.model}
-                onChange={(e) => set("model", e.target.value)}
-                disabled={modelsBusy && modelOptions.length === 0}
-              >
-                {modelOptions.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <small>
-                {modelsBusy
-                  ? "Loading models…"
-                  : modelsLive
-                    ? "Live list from Anthropic."
-                    : modelsError || "Using built-in model list."}
-              </small>
-            </label>
-
-            <label className="field">
-              <span>Details suggestions model</span>
-              <select
-                value={draft.detailsSuggestModel}
-                onChange={(e) => set("detailsSuggestModel", e.target.value)}
-                disabled={modelsBusy && modelOptions.length === 0}
-              >
-                {modelOptions.map((m) => (
-                  <option key={`details-${m.id}`} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <small>
-                Used for issues, recommendations, and cost suggestions. Pick a
-                higher-tier model here if you want.
-              </small>
-            </label>
-          </>
-        ) : (
-          <>
-            <ApiKeyField
-              label="Gemini API key"
-              value={draft.geminiApiKey}
-              placeholder="AIza..."
-              hint="Free to create at aistudio.google.com - handy for testing with your own account."
-              onChange={(value) => set("geminiApiKey", value)}
-            />
-
-            <label className="field">
-              <span>Section AI model</span>
-              <select
-                value={draft.geminiModel}
-                onChange={(e) => set("geminiModel", e.target.value)}
-                disabled={modelsBusy && modelOptions.length === 0}
-              >
-                {modelOptions.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <small>
-                {modelsBusy
-                  ? "Loading models…"
-                  : modelsLive
-                    ? "Live list from Google."
-                    : modelsError || "Using built-in model list."}
-              </small>
-            </label>
-
-            <label className="field">
-              <span>Details suggestions model</span>
-              <select
-                value={draft.geminiDetailsSuggestModel}
-                onChange={(e) => set("geminiDetailsSuggestModel", e.target.value)}
-                disabled={modelsBusy && modelOptions.length === 0}
-              >
-                {modelOptions.map((m) => (
-                  <option key={`details-${m.id}`} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <small>
-                Used for issues, recommendations, and cost suggestions. Pick a
-                higher-tier model here if you want.
-              </small>
-            </label>
-          </>
-        )}
+        <label className="field">
+          <span>Details suggestions model</span>
+          <select
+            value={draft.detailsSuggestModel}
+            onChange={(e) => set("detailsSuggestModel", e.target.value)}
+            disabled={modelsBusy && modelOptions.length === 0}
+          >
+            {modelOptions.map((m) => (
+              <option key={`details-${m.id}`} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <small>
+            Used for issues, recommendations, and cost suggestions. Pick a
+            higher-tier model here if you want.
+          </small>
+        </label>
 
         <label className="field">
           <span>Your name (report Contact)</span>
