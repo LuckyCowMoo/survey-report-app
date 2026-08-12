@@ -4,6 +4,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent
 } from "react";
+import { degToRad, rotate, spinFromDelta, unrotate } from "../lib/dragSpin";
 
 type CardState = {
   x: number;
@@ -39,12 +40,10 @@ type OBB = {
   rot: number;
 };
 
-/** Soft home — slow settle, little overshoot */
 const SPRING = 0.011 * 0.05;
 const DAMPING = 0.945;
 const ROT_SPRING = 0.009 * 0.05;
 const ROT_DAMPING = 0.94;
-const ANGULAR_GAIN = 0.85;
 const COLLISION_BOUNCE = 0.35;
 /** How much sliding speed is killed on contact (0–1). */
 const COLLISION_FRICTION = 0.62;
@@ -140,21 +139,6 @@ function useImportAtMaxWidth(homeRoot: HTMLElement | null) {
   }, [homeRoot]);
 
   return atMax;
-}
-
-function degToRad(d: number) {
-  return (d * Math.PI) / 180;
-}
-
-function rotate(x: number, y: number, deg: number) {
-  const r = degToRad(deg);
-  const c = Math.cos(r);
-  const s = Math.sin(r);
-  return { x: x * c - y * s, y: x * s + y * c };
-}
-
-function unrotate(x: number, y: number, deg: number) {
-  return rotate(x, y, -deg);
 }
 
 function cardCenter(el: HTMLElement) {
@@ -483,14 +467,13 @@ export default function FloatingReports() {
       drag.lastY = e.clientY;
 
       // Rotate around the grab point from the pointer's tangential motion
-      const lever = rotate(drag.grabLocalX, drag.grabLocalY, c.rot);
-      const leverLen2 = lever.x * lever.x + lever.y * lever.y;
-      let dRot = 0;
-      if (leverLen2 > 36) {
-        const torque = lever.x * pvy - lever.y * pvx;
-        dRot = (torque / leverLen2) * ANGULAR_GAIN * (180 / Math.PI);
-        dRot = Math.max(-12, Math.min(12, dRot));
-      }
+      const dRot = spinFromDelta(
+        drag.grabLocalX,
+        drag.grabLocalY,
+        c.rot,
+        pvx,
+        pvy
+      );
       c.rot += dRot;
       c.vr = dRot;
 

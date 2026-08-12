@@ -320,9 +320,10 @@ function coverPage(meta: ReportMetadata): Paragraph[] {
   ].filter((p): p is Paragraph => p !== null);
 }
 
-function contentsPage(): Paragraph[] {
+function contentsPage(includeEstimates: boolean): Paragraph[] {
   const out: Paragraph[] = [heading("CONTENTS", 36)];
   for (const s of CONTENTS_SECTIONS) {
+    if (!includeEstimates && s.title === "Estimates/Costs") continue;
     out.push(body(s.title, { bold: true }));
     out.push(body(s.blurb));
   }
@@ -528,6 +529,7 @@ function parseAmount(s: string): number | null {
 }
 
 function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
+  if (extras.excludePlanCosts) return [];
   const otherCostText = extras.otherCost ? extras.otherCostDescription.trim() : "";
   if (
     extras.costLines.length === 0 &&
@@ -611,7 +613,7 @@ export function buildReportDocument(input: ReportInput): Document {
   const { sections, metadata, extras, images } = input;
   const children: Array<Paragraph | Table> = [
     ...coverPage(metadata),
-    ...contentsPage(),
+    ...contentsPage(!extras.excludePlanCosts),
     ...introductionPage(metadata),
     ...photoSections(sections, images),
     ...dampTypePages(extras),

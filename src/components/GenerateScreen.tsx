@@ -75,7 +75,9 @@ export default function GenerateScreen({
   const issueCount = Object.values(extras.dampIssues).filter(Boolean).length;
   const recommendationCount =
     extras.recommendationIds.length + (extras.otherRecommendation ? 1 : 0);
-  const costLineCount = extras.costLines.length + (extras.otherCost ? 1 : 0);
+  const costLineCount = extras.excludePlanCosts
+    ? 0
+    : extras.costLines.length + (extras.otherCost ? 1 : 0);
 
   useEffect(() => {
     setFileName((prev) => {
@@ -353,7 +355,15 @@ export default function GenerateScreen({
             <strong>{recommendationCount}</strong> recommendation(s)
           </li>
           <li>
-            <strong>{costLineCount}</strong> cost line(s)
+            {extras.excludePlanCosts ? (
+              <>
+                Plan &amp; costs: <strong>excluded</strong>
+              </>
+            ) : (
+              <>
+                <strong>{costLineCount}</strong> cost line(s)
+              </>
+            )}
           </li>
           <li>
             Property: <strong>{metadata.propertyAddress || "(address not set)"}</strong>

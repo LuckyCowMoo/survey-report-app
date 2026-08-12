@@ -487,6 +487,7 @@ export function normalizeReportExtras(extras: ReportExtras): ReportExtras {
   const issueReasons = cleanReasonMap(ai?.issueReasons);
   return {
     ...extras,
+    excludePlanCosts: Boolean(extras.excludePlanCosts),
     aiSuggested: {
       issues: {
         risingDamp: Boolean(ai?.issues?.risingDamp),
@@ -600,6 +601,7 @@ export function applyDetailsSuggestions(
 
 /** True when every selected cost item has a price and work location. */
 export function detailsCostsComplete(extras: ReportExtras): boolean {
+  if (extras.excludePlanCosts) return true;
   for (const line of extras.costLines) {
     const amount = line.amount.replace(/[£,\s]/g, "").trim();
     if (!amount) return false;
@@ -615,6 +617,7 @@ export function detailsCostsComplete(extras: ReportExtras): boolean {
 }
 
 export function detailsCostsBlockingReason(extras: ReportExtras): string | null {
+  if (extras.excludePlanCosts) return null;
   if (detailsCostsComplete(extras)) return null;
   const missingPrice = extras.costLines.some(
     (line) => !line.amount.replace(/[£,\s]/g, "").trim()

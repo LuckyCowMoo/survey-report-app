@@ -33,6 +33,7 @@ import {
   unlinkReportFolder
 } from "../lib/reportLibrary";
 import ThemePicker from "./ThemeToggle";
+import SheetShell from "./SheetShell";
 import { canCallOpenAiFromBrowser } from "../lib/openaiBrowserCompat";
 
 interface Props {
@@ -267,11 +268,12 @@ export default function SettingsSheet({
     sectionRates?.source === "live" || detailsRates?.source === "live";
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <SheetShell onClose={onClose}>
+      {({ requestClose }) => (
+        <>
         <h2>Settings</h2>
 
-        <ThemePicker />
+        <ThemePicker onThemeApplied={requestClose} />
 
         <div className="pip-jump-row">
           <button
@@ -549,11 +551,12 @@ export default function SettingsSheet({
         </div>
 
         <div className="sheet-actions">
-          <button type="button" className="btn primary" onClick={onClose}>
+          <button type="button" className="btn primary" onClick={requestClose}>
             Done
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </SheetShell>
   );
 }

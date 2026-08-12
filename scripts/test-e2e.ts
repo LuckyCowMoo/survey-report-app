@@ -102,6 +102,7 @@ const extras: ReportExtras = {
   otherCostAmount: "",
   surveyDiscount: "238.80",
   timeEstimate: "5-6 days",
+  excludePlanCosts: false,
   aiSuggested: {
     issues: { risingDamp: false, penetratingDamp: false, condensation: false },
     issueReasons: {},

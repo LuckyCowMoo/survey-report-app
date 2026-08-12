@@ -6,6 +6,7 @@ import DetailsScreen from "./components/DetailsScreen";
 import GenerateScreen from "./components/GenerateScreen";
 import SettingsSheet from "./components/SettingsSheet";
 import KeywordGuide from "./components/KeywordGuide";
+import SheetShell from "./components/SheetShell";
 import IntroSplash, { useIntroSplash } from "./components/IntroSplash";
 import AmbientGlow from "./components/AmbientGlow";
 import StudioAside from "./components/StudioAside";
@@ -61,6 +62,7 @@ import {
   writeScrollTop
 } from "./lib/scrollRoot";
 import { startOrientationGuard } from "./lib/orientationGuard";
+import { reorderArray } from "./lib/sectionLift";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
 type Step = AppStep;
@@ -118,6 +120,7 @@ const defaultExtras: ReportExtras = {
   otherCostAmount: "",
   surveyDiscount: "",
   timeEstimate: "5-7 days",
+  excludePlanCosts: false,
   aiSuggested: {
     issues: {
       risingDamp: false,
@@ -619,6 +622,43 @@ export default function App() {
     setSections((prev) => prev.map((s, i) => (i === index ? next : s)));
   }, []);
 
+  const reorderSections = useCallback((from: number, to: number) => {
+    setSections((prev) => {
+      if (from < 0 || to < 0 || from >= prev.length) return prev;
+      const next = reorderArray(prev, from, to);
+      const unchanged = next.every(
+        (s, i) => s.entry.number === prev[i]?.entry.number
+      );
+      if (unchanged) return prev;
+
+      const remap = (idx: number | null): number | null => {
+        if (idx === null) return null;
+        const num = prev[idx]?.entry.number;
+        if (num == null) return idx;
+        const found = next.findIndex((s) => s.entry.number === num);
+        return found >= 0 ? found : idx;
+      };
+
+      setFocusedSectionIndex((i) => remap(i));
+      setReviewDwellIndex((i) => remap(i));
+      setBusySectionIndex((i) => remap(i));
+      setAiErrors((errs) => {
+        const out: Record<number, string> = {};
+        for (const [k, v] of Object.entries(errs)) {
+          const oldIdx = Number(k);
+          if (!Number.isFinite(oldIdx)) continue;
+          const num = prev[oldIdx]?.entry.number;
+          if (num == null) continue;
+          const ni = next.findIndex((s) => s.entry.number === num);
+          if (ni >= 0) out[ni] = v;
+        }
+        return out;
+      });
+
+      return next;
+    });
+  }, []);
+
   const runAiForSection = useCallback(
     async (index: number) => {
       const ai = activeAi(settings);
@@ -994,6 +1034,7 @@ export default function App() {
             onFocusSection={focusSection}
             focusedSectionIndex={focusedSectionIndex}
             dwellSectionIndex={reviewDwellIndex}
+            onReorderSections={reorderSections}
           />
         )}
         {step === "details" && (
@@ -1040,143 +1081,127 @@ export default function App() {
       )}
 
       {showIdentityPrompt && (
-        <div
-          className="sheet-backdrop"
-          onClick={() => setShowIdentityPrompt(false)}
+        <SheetShell
+          onClose={() => setShowIdentityPrompt(false)}
+          sheetClassName="sheet past-delete-sheet"
+          aria-labelledby="identity-prompt-title"
         >
-          <div
-            className="sheet past-delete-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="identity-prompt-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="identity-prompt-title">Complete report details</h2>
-            <p>
-              Your name, company name, and website are required in the report
-              header and cover. Add them in Settings, then continue to generate.
-            </p>
-            <div className="sheet-actions">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setShowIdentityPrompt(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={() => {
-                  setShowIdentityPrompt(false);
-                  openSettings({ focusIdentity: true });
-                }}
-              >
-                Open Settings
-              </button>
-            </div>
-          </div>
-        </div>
+          {({ requestClose }) => (
+            <>
+              <h2 id="identity-prompt-title">Complete report details</h2>
+              <p>
+                Your name, company name, and website are required in the report
+                header and cover. Add them in Settings, then continue to generate.
+              </p>
+              <div className="sheet-actions">
+                <button type="button" className="btn" onClick={requestClose}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => {
+                    setShowIdentityPrompt(false);
+                    openSettings({ focusIdentity: true });
+                  }}
+                >
+                  Open Settings
+                </button>
+              </div>
+            </>
+          )}
+        </SheetShell>
       )}
 
       {showBatchGuidancePrompt && (
-        <div
-          className="sheet-backdrop"
-          onClick={() => setShowBatchGuidancePrompt(false)}
+        <SheetShell
+          onClose={() => setShowBatchGuidancePrompt(false)}
+          sheetClassName="sheet past-delete-sheet batch-guidance-sheet"
+          aria-labelledby="batch-guidance-title"
         >
-          <div
-            className="sheet past-delete-sheet batch-guidance-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="batch-guidance-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="batch-guidance-title">Guidance for AI</h2>
-            <p>
-              Optional notes for the AI while it writes the flagged sections.
-              This may not apply to every section — it will use it only where
-              relevant.
-            </p>
-            <label className="field">
-              <span>Overall guidance</span>
-              <textarea
-                rows={5}
-                value={batchGuidanceDraft}
-                placeholder="e.g. Emphasise condensation risk in occupied rooms; avoid recommending external works the client cannot access…"
-                onChange={(e) => setBatchGuidanceDraft(e.target.value)}
-                autoFocus
-              />
-            </label>
-            <div className="sheet-actions">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setShowBatchGuidancePrompt(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={() => void runAiForAllFlagged(batchGuidanceDraft)}
-              >
-                Start AI
-              </button>
-            </div>
-          </div>
-        </div>
+          {({ requestClose }) => (
+            <>
+              <h2 id="batch-guidance-title">Guidance for AI</h2>
+              <p>
+                Optional notes for the AI while it writes the flagged sections.
+                This may not apply to every section — it will use it only where
+                relevant.
+              </p>
+              <label className="field">
+                <span>Overall guidance</span>
+                <textarea
+                  rows={5}
+                  value={batchGuidanceDraft}
+                  placeholder="e.g. Emphasise condensation risk in occupied rooms; avoid recommending external works the client cannot access…"
+                  onChange={(e) => setBatchGuidanceDraft(e.target.value)}
+                  autoFocus
+                />
+              </label>
+              <div className="sheet-actions">
+                <button type="button" className="btn" onClick={requestClose}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => void runAiForAllFlagged(batchGuidanceDraft)}
+                >
+                  Start AI
+                </button>
+              </div>
+            </>
+          )}
+        </SheetShell>
       )}
 
       {pendingSourceMatch && (
-        <div
-          className="sheet-backdrop"
-          onClick={() => {
+        <SheetShell
+          onClose={() => {
             if (!resumeBusy) setPendingSourceMatch(null);
           }}
+          sheetClassName="sheet past-delete-sheet"
+          aria-labelledby="resume-match-title"
+          disableClose={resumeBusy}
         >
-          <div
-            className="sheet past-delete-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="resume-match-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="resume-match-title">Continue saved report?</h2>
-            <p>
-              This field notes document matches{" "}
-              <strong>{libraryDisplayTitle(pendingSourceMatch.match)}</strong>
-              {pendingSourceMatch.match.houseName ||
-              pendingSourceMatch.match.clientName
-                ? ` (${[
-                    pendingSourceMatch.match.houseName,
-                    pendingSourceMatch.match.clientName
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")})`
-                : ""}
-              . Continue from that saved work, or start a new report from the
-              import?
-            </p>
-            <div className="sheet-actions">
-              <button
-                type="button"
-                className="btn"
-                disabled={resumeBusy}
-                onClick={startFreshDespiteMatch}
-              >
-                Start fresh
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                disabled={resumeBusy}
-                onClick={() => void resumeMatchedProject()}
-              >
-                {resumeBusy ? "Opening…" : "Continue saved"}
-              </button>
-            </div>
-          </div>
-        </div>
+          {() => (
+            <>
+              <h2 id="resume-match-title">Continue saved report?</h2>
+              <p>
+                This field notes document matches{" "}
+                <strong>{libraryDisplayTitle(pendingSourceMatch.match)}</strong>
+                {pendingSourceMatch.match.houseName ||
+                pendingSourceMatch.match.clientName
+                  ? ` (${[
+                      pendingSourceMatch.match.houseName,
+                      pendingSourceMatch.match.clientName
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")})`
+                  : ""}
+                . Continue from that saved work, or start a new report from the
+                import?
+              </p>
+              <div className="sheet-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={resumeBusy}
+                  onClick={startFreshDespiteMatch}
+                >
+                  Start fresh
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={resumeBusy}
+                  onClick={() => void resumeMatchedProject()}
+                >
+                  {resumeBusy ? "Opening…" : "Continue saved"}
+                </button>
+              </div>
+            </>
+          )}
+        </SheetShell>
       )}
 
       {(step === "review" || step === "details" || step === "generate") &&

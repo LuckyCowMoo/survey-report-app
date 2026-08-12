@@ -7,12 +7,19 @@ const themes: { value: Theme; label: string; swatch: string }[] = [
   { value: "original", label: "Original", swatch: "Blue" }
 ];
 
-export default function ThemePicker() {
+interface Props {
+  /** Fired after a new theme is applied (e.g. close Settings to show the fade). */
+  onThemeApplied?: () => void;
+}
+
+export default function ThemePicker({ onThemeApplied }: Props) {
   const [theme, setTheme] = useState<Theme>(loadTheme);
 
   const selectTheme = (next: Theme) => {
+    if (next === theme) return;
     setTheme(next);
     applyTheme(next);
+    onThemeApplied?.();
   };
 
   return (

@@ -16,6 +16,7 @@ import {
   type ExportFormatOption
 } from "../lib/webShare";
 import ExportFormatSheet from "./ExportFormatSheet";
+import SheetShell from "./SheetShell";
 
 interface Props {
   onOpenProject: (project: ReportProject) => void;
@@ -386,48 +387,46 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
       )}
 
       {pendingDelete && (
-        <div
-          className="sheet-backdrop"
-          onClick={() => {
+        <SheetShell
+          onClose={() => {
             if (!deleting) setPendingDelete(null);
           }}
+          sheetClassName="sheet past-delete-sheet"
+          aria-labelledby="past-delete-title"
+          disableClose={deleting}
         >
-          <div
-            className="sheet past-delete-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="past-delete-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="past-delete-title">Delete report?</h2>
-            <p>
-              Remove{" "}
-              <strong>{displayTitle(pendingDelete)}</strong> from past reports
-              {pendingDelete.backend === "folder"
-                ? " and delete the file from your linked folder if it’s still there"
-                : " and from this app’s storage"}
-              . This can’t be undone.
-            </p>
-            <div className="sheet-actions">
-              <button
-                type="button"
-                className="btn"
-                disabled={deleting}
-                onClick={() => setPendingDelete(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={`btn danger delete-confirm-btn${!deleteArmed && !deleting ? " is-arming" : ""}${deleteArmed ? " is-ready" : ""}${deleteFlash ? " is-flash" : ""}`}
-                disabled={deleting || !deleteArmed}
-                onClick={() => void confirmDelete()}
-              >
-                <span>{deleting ? "Deleting…" : "Delete"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+          {({ requestClose }) => (
+            <>
+              <h2 id="past-delete-title">Delete report?</h2>
+              <p>
+                Remove{" "}
+                <strong>{displayTitle(pendingDelete)}</strong> from past reports
+                {pendingDelete.backend === "folder"
+                  ? " and delete the file from your linked folder if it’s still there"
+                  : " and from this app’s storage"}
+                . This can’t be undone.
+              </p>
+              <div className="sheet-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={deleting}
+                  onClick={requestClose}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`btn danger delete-confirm-btn${!deleteArmed && !deleting ? " is-arming" : ""}${deleteArmed ? " is-ready" : ""}${deleteFlash ? " is-flash" : ""}`}
+                  disabled={deleting || !deleteArmed}
+                  onClick={() => void confirmDelete()}
+                >
+                  <span>{deleting ? "Deleting…" : "Delete"}</span>
+                </button>
+              </div>
+            </>
+          )}
+        </SheetShell>
       )}
     </div>
   );

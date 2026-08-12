@@ -68,24 +68,26 @@ export function buildReportPrintHtml(input: {
       ? [extras.otherRecommendationText.trim()]
       : [])
   ];
-  const costs = [
-    ...extras.costLines.map((line) => {
-      const bits = [line.label || costLabel(line.itemId)];
-      if (line.amount.trim()) bits.push(line.amount.trim());
-      if (line.location?.trim()) bits.push(`(${line.location.trim()})`);
-      return bits.join(" — ");
-    }),
-    ...(extras.otherCost && extras.otherCostDescription.trim()
-      ? [
-          [
-            extras.otherCostDescription.trim(),
-            extras.otherCostAmount.trim()
-          ]
-            .filter(Boolean)
-            .join(" — ")
-        ]
-      : [])
-  ];
+  const costs = extras.excludePlanCosts
+    ? []
+    : [
+        ...extras.costLines.map((line) => {
+          const bits = [line.label || costLabel(line.itemId)];
+          if (line.amount.trim()) bits.push(line.amount.trim());
+          if (line.location?.trim()) bits.push(`(${line.location.trim()})`);
+          return bits.join(" — ");
+        }),
+        ...(extras.otherCost && extras.otherCostDescription.trim()
+          ? [
+              [
+                extras.otherCostDescription.trim(),
+                extras.otherCostAmount.trim()
+              ]
+                .filter(Boolean)
+                .join(" — ")
+            ]
+          : [])
+      ];
 
   return `<!DOCTYPE html>
 <html lang="en">

@@ -44,6 +44,10 @@ interface Props {
   focused?: boolean;
   /** True while the review dwell timer is running on this section (pip + chip fill). */
   dwelling?: boolean;
+  /** Compact (non-expanded) layout — used while this card is the drag source. */
+  liftCompact?: boolean;
+  /** Visual-only clone (e.g. drag ghost): no focus chase, no activate, unique DOM id. */
+  dragPreview?: boolean;
   onChange: (index: number, next: SectionState) => void;
   onAskAi: (index: number) => void;
   onDismissAiError?: (index: number) => void;
@@ -316,6 +320,8 @@ export default function EntryCard({
   aiError = null,
   focused = false,
   dwelling = false,
+  liftCompact = false,
+  dragPreview = false,
   onChange,
   onAskAi,
   onDismissAiError,
@@ -428,7 +434,7 @@ export default function EntryCard({
   const chip = statusChip(section);
   const boxTone = textBoxTone(section);
   const paragraph = section.libraryId ? libraryParagraph(section.libraryId) : undefined;
-  const bodyExpanded = focused || showPicker;
+  const bodyExpanded = (focused || showPicker) && !liftCompact;
 
   const chaseFocusedCard = () => {
     const card = cardRef.current;
@@ -641,7 +647,7 @@ export default function EntryCard({
 
   // After height layout: pin this card in the viewport while neighbours collapse.
   useLayoutEffect(() => {
-    if (!focused) {
+    if (dragPreview || !focused) {
       focusChaseRef.current = null;
       return;
     }
@@ -655,10 +661,10 @@ export default function EntryCard({
       return;
     }
     chaseFocusedCard();
-  }, [focused, bodyExpanded, section.text, noteExpanded, revealDisplay]);
+  }, [dragPreview, focused, bodyExpanded, section.text, noteExpanded, revealDisplay]);
 
   useEffect(() => {
-    if (!focused) return;
+    if (dragPreview || !focused) return;
     const card = cardRef.current;
     if (!card) return;
     if (!focusChaseRef.current) {
@@ -677,7 +683,7 @@ export default function EntryCard({
     };
     focusChaseRafRef.current = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(focusChaseRafRef.current);
-  }, [focused]);
+  }, [dragPreview, focused]);
 
   const otherSections = useMemo(
     () => sectionNumbers.filter((n) => n !== section.entry.number),
@@ -869,24 +875,29 @@ export default function EntryCard({
   return (
     <div
       ref={cardRef}
-      id={`section-card-${section.entry.number}`}
-      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${aiError ? " ai-error" : ""}${focused || showPicker ? " is-active" : ""}`}
+      id={dragPreview ? undefined : `section-card-${section.entry.number}`}
+      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${aiError ? " ai-error" : ""}${focused || showPicker ? " is-active" : ""}${dragPreview ? " is-drag-preview" : ""}`}
       aria-busy={aiWorking}
+      aria-hidden={dragPreview || undefined}
       onFocusCapture={() => {
+        if (dragPreview) return;
         clearHoverActivate();
         onActivate?.(index);
       }}
       onPointerDownCapture={(e) => {
+        if (dragPreview) return;
         // Touch: wait for tap (click). Pointer-down would highlight mid-scroll.
         if (e.pointerType === "touch") return;
         clearHoverActivate();
         onActivate?.(index);
       }}
       onClick={() => {
+        if (dragPreview) return;
         clearHoverActivate();
         onActivate?.(index);
       }}
       onMouseEnter={() => {
+        if (dragPreview) return;
         if (document.documentElement.dataset.pointerInput === "coarse") return;
         // After recent scrolling, require a click — hover would catch cards sliding under the cursor.
         if (scrolledRecently(HOVER_ACTIVATE_MS)) return;
@@ -898,7 +909,7 @@ export default function EntryCard({
           onActivate?.(index);
         }, HOVER_ACTIVATE_MS);
       }}
-      onMouseLeave={clearHoverActivate}
+      onMouseLeave={dragPreview ? undefined : clearHoverActivate}
     >
       {aiError && (
         <div className="ai-error-overlay" role="alert">

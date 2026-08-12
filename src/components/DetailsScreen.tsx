@@ -347,6 +347,7 @@ export default function DetailsScreen({
   const costsComplete = detailsCostsComplete(extras);
   const costsBlockReason = detailsCostsBlockingReason(extras);
   const canContinue = !anyBusy && costsComplete;
+  const excludePlanCosts = extras.excludePlanCosts;
 
   return (
     <div className="details">
@@ -676,9 +677,9 @@ export default function DetailsScreen({
       </section>
 
       <section
-        className={`panel details-ai-panel${costsBusy ? " ai-working" : ""}${costsError ? " ai-error" : ""}`}
+        className={`panel details-ai-panel${costsBusy ? " ai-working" : ""}${costsError ? " ai-error" : ""}${excludePlanCosts ? " is-plan-excluded" : ""}`}
       >
-        {costsError && (
+        {costsError && !excludePlanCosts && (
           <DetailsAiErrorOverlay
             title="AI couldn’t finish project plan & costs"
             message={costsError}
@@ -691,22 +692,49 @@ export default function DetailsScreen({
         <div className="details-panel-head">
           <h2>Project plan & costs</h2>
           <div className="details-panel-actions">
-            <button
-              type="button"
-              className="btn small details-deselect"
-              disabled={costsBusy}
-              onClick={deselectCosts}
-            >
-              Deselect
-            </button>
-            <AskAiButton
-              busy={costsBusy}
-              disabled={!aiConfigured || (anyBusy && !costsBusy)}
-              onClick={() => onAskAi("costs")}
-            />
+            {!excludePlanCosts && (
+              <>
+                <button
+                  type="button"
+                  className="btn small details-deselect"
+                  disabled={costsBusy}
+                  onClick={deselectCosts}
+                >
+                  Deselect
+                </button>
+                <AskAiButton
+                  busy={costsBusy}
+                  disabled={!aiConfigured || (anyBusy && !costsBusy)}
+                  onClick={() => onAskAi("costs")}
+                />
+              </>
+            )}
           </div>
         </div>
-        {costsBusy && (
+
+        <div className="details-exclude-row">
+          <button
+            type="button"
+            className={`pill-switch${excludePlanCosts ? " is-on" : ""}`}
+            role="switch"
+            aria-checked={excludePlanCosts}
+            disabled={costsBusy}
+            onClick={() =>
+              onExtras({ ...extras, excludePlanCosts: !excludePlanCosts })
+            }
+          >
+            <span className="pill-switch-thumb" aria-hidden />
+          </button>
+          <div className="details-exclude-copy">
+            <span className="details-exclude-label">Exclude plan &amp; costs</span>
+            <span className="details-exclude-hint">
+              For recommendation-only reports — omit the project plan, prices,
+              finance offer, and related service paragraphs from the export.
+            </span>
+          </div>
+        </div>
+
+        {costsBusy && !excludePlanCosts && (
           <div className="ai-writing-overlay details-ai-overlay" aria-hidden>
             <span className="ai-writing-pulse" />
             <span className="ai-writing-pulse" />
@@ -714,13 +742,19 @@ export default function DetailsScreen({
             <span className="ai-writing-label">Drafting costs…</span>
           </div>
         )}
+
+        <div
+          className={`details-costs-collapse${excludePlanCosts ? " is-collapsed" : ""}`}
+          aria-hidden={excludePlanCosts}
+        >
+          <div className="details-costs-collapse-inner">
         <label className="field">
           <span>Areas of work (one line per room/area){extras.otherCost ? " *" : ""}</span>
           <textarea
             rows={4}
             placeholder={"Living area: all exterior walls from floor to 1.2 meters\nHallway: interior wall from floor to 1.2 meters"}
             value={extras.projectPlanLines}
-            disabled={costsBusy}
+            disabled={costsBusy || excludePlanCosts}
             onChange={(e) => onExtras({ ...extras, projectPlanLines: e.target.value })}
           />
         </label>
@@ -738,14 +772,14 @@ export default function DetailsScreen({
                   aiSuggested.costItemIds.includes(c.id) ? "ai-suggested" : undefined
                 }
                 checked={hasCostItem(c.id)}
-                disabled={costsBusy}
+                disabled={costsBusy || excludePlanCosts}
                 onChange={() => toggleCostItem(c.id)}
               />
               <span>{c.label}</span>
             </label>
             <button
               className="btn tiny"
-              disabled={costsBusy}
+              disabled={costsBusy || excludePlanCosts}
               onClick={() => setCostPreview(costPreview === c.id ? null : c.id)}
             >
               {costPreview === c.id ? "Hide" : "View"}
@@ -760,7 +794,7 @@ export default function DetailsScreen({
           <input
             type="checkbox"
             checked={extras.otherCost}
-            disabled={costsBusy}
+            disabled={costsBusy || excludePlanCosts}
             onChange={() => onExtras({ ...extras, otherCost: !extras.otherCost })}
           />
           <span>Other</span>
@@ -775,7 +809,7 @@ export default function DetailsScreen({
                 type="text"
                 value={line.location ?? ""}
                 placeholder="e.g. rear reception & hallway exterior walls to 1.2m"
-                disabled={costsBusy}
+                disabled={costsBusy || excludePlanCosts}
                 required
                 onChange={(e) =>
                   updateCostLine(line.id, { location: e.target.value })
@@ -786,7 +820,7 @@ export default function DetailsScreen({
               <button
                 type="button"
                 className="btn tiny"
-                disabled={costsBusy || line.itemId === "custom"}
+                disabled={costsBusy || excludePlanCosts || line.itemId === "custom"}
                 onClick={() => pasteStandardText(line)}
               >
                 Paste standard text
@@ -795,7 +829,7 @@ export default function DetailsScreen({
             <AutoGrowTextarea
               value={line.description}
               placeholder="Describe the work item..."
-              disabled={costsBusy}
+              disabled={costsBusy || excludePlanCosts}
               onChange={(e) => updateCostLine(line.id, { description: e.target.value })}
             />
             <div className="cost-line-foot">
@@ -806,14 +840,14 @@ export default function DetailsScreen({
                   inputMode="decimal"
                   value={line.amount}
                   placeholder="0"
-                  disabled={costsBusy}
+                  disabled={costsBusy || excludePlanCosts}
                   required
                   onChange={(e) => updateCostLine(line.id, { amount: e.target.value })}
                 />
               </label>
               <button
                 className="btn tiny danger"
-                disabled={costsBusy}
+                disabled={costsBusy || excludePlanCosts}
                 onClick={() => removeCostLine(line.id)}
               >
                 Remove
@@ -828,7 +862,7 @@ export default function DetailsScreen({
             <AutoGrowTextarea
               value={extras.otherCostDescription}
               placeholder="Describe the other work item..."
-              disabled={costsBusy}
+              disabled={costsBusy || excludePlanCosts}
               onChange={(e) =>
                 onExtras({ ...extras, otherCostDescription: e.target.value })
               }
@@ -841,7 +875,7 @@ export default function DetailsScreen({
                   inputMode="decimal"
                   value={extras.otherCostAmount}
                   placeholder="0"
-                  disabled={costsBusy}
+                  disabled={costsBusy || excludePlanCosts}
                   required
                   onChange={(e) =>
                     onExtras({ ...extras, otherCostAmount: e.target.value })
@@ -865,7 +899,7 @@ export default function DetailsScreen({
               type="text"
               inputMode="decimal"
               value={extras.surveyDiscount}
-              disabled={costsBusy}
+              disabled={costsBusy || excludePlanCosts}
               onChange={(e) => onExtras({ ...extras, surveyDiscount: e.target.value })}
             />
           </label>
@@ -875,10 +909,12 @@ export default function DetailsScreen({
               type="text"
               value={extras.timeEstimate}
               placeholder="5-7 days"
-              disabled={costsBusy}
+              disabled={costsBusy || excludePlanCosts}
               onChange={(e) => onExtras({ ...extras, timeEstimate: e.target.value })}
             />
           </label>
+        </div>
+          </div>
         </div>
       </section>
 

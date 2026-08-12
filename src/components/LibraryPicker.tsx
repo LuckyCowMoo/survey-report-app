@@ -16,6 +16,7 @@ import {
 import { library } from "../lib/matcher";
 import { usePointerInputModeValue } from "../lib/pointerInput";
 import type { LibraryParagraph } from "../types";
+import SheetShell from "./SheetShell";
 
 interface Props {
   onPick: (paragraph: LibraryParagraph) => void;
@@ -518,90 +519,89 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
   const showBest = Boolean(qTrim && best);
   const onlyBest = showBest && matchCount === 1;
 
-  const pickClosest = () => {
-    const pick = bestSearchMatch(query);
-    if (pick) {
-      onPick(pick);
-      dismiss();
-    }
-  };
-
-  const pickAndDismiss = (p: LibraryParagraph) => {
-    onPick(p);
-    dismiss();
-  };
-
   return createPortal(
-    <div className="sheet-backdrop" onClick={dismiss}>
-      <div className="sheet tall" onClick={(e) => e.stopPropagation()}>
-        <h2>Standard wording</h2>
-        <input
-          ref={searchRef}
-          className="search"
-          type="search"
-          placeholder="Search topics..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter") return;
-            e.preventDefault();
-            pickClosest();
-          }}
-        />
-        <div className="picker-list">
-          {showBest && best && (
-            <div className="picker-best">
-              <PickerItemButton
-                paragraph={best}
-                onPick={pickAndDismiss}
-                highlighted
-              />
-            </div>
-          )}
-          {!onlyBest &&
-            groups.map(([group, items]) => (
-              <div key={group} className="picker-group">
-                <h3>{group}</h3>
-                {group === WEATHER_GROUP ? (
-                  <DirectionCompass paragraphs={items} onPick={pickAndDismiss} />
-                ) : (
-                  toPickerRows(items).map((row) =>
-                    row.kind === "pair" ? (
-                      <div
-                        key={`${row.left.id}|${row.right.id}`}
-                        className="picker-choice-row"
-                      >
-                        <PickerItemButton
-                          paragraph={row.left}
-                          onPick={pickAndDismiss}
-                        />
-                        <PickerItemButton
-                          paragraph={row.right}
-                          onPick={pickAndDismiss}
-                        />
-                      </div>
-                    ) : (
-                      <PickerItemButton
-                        key={row.item.id}
-                        paragraph={row.item}
+    <SheetShell onClose={dismiss} sheetClassName="sheet tall">
+      {({ requestClose }) => {
+        const pickAndDismiss = (p: LibraryParagraph) => {
+          onPick(p);
+          requestClose();
+        };
+        return (
+          <>
+            <h2>Standard wording</h2>
+            <input
+              ref={searchRef}
+              className="search"
+              type="search"
+              placeholder="Search topics..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                const pick = bestSearchMatch(query);
+                if (pick) pickAndDismiss(pick);
+              }}
+            />
+            <div className="picker-list">
+              {showBest && best && (
+                <div className="picker-best">
+                  <PickerItemButton
+                    paragraph={best}
+                    onPick={pickAndDismiss}
+                    highlighted
+                  />
+                </div>
+              )}
+              {!onlyBest &&
+                groups.map(([group, items]) => (
+                  <div key={group} className="picker-group">
+                    <h3>{group}</h3>
+                    {group === WEATHER_GROUP ? (
+                      <DirectionCompass
+                        paragraphs={items}
                         onPick={pickAndDismiss}
                       />
-                    )
-                  )
-                )}
-              </div>
-            ))}
-          {!showBest && groups.length === 0 && (
-            <p className="muted">No matches.</p>
-          )}
-        </div>
-        <div className="sheet-actions">
-          <button className="btn" onClick={dismiss}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>,
+                    ) : (
+                      toPickerRows(items).map((row) =>
+                        row.kind === "pair" ? (
+                          <div
+                            key={`${row.left.id}|${row.right.id}`}
+                            className="picker-choice-row"
+                          >
+                            <PickerItemButton
+                              paragraph={row.left}
+                              onPick={pickAndDismiss}
+                            />
+                            <PickerItemButton
+                              paragraph={row.right}
+                              onPick={pickAndDismiss}
+                            />
+                          </div>
+                        ) : (
+                          <PickerItemButton
+                            key={row.item.id}
+                            paragraph={row.item}
+                            onPick={pickAndDismiss}
+                          />
+                        )
+                      )
+                    )}
+                  </div>
+                ))}
+              {!showBest && groups.length === 0 && (
+                <p className="muted">No matches.</p>
+              )}
+            </div>
+            <div className="sheet-actions">
+              <button className="btn" onClick={requestClose}>
+                Close
+              </button>
+            </div>
+          </>
+        );
+      }}
+    </SheetShell>,
     document.body
   );
 }

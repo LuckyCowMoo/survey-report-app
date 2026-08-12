@@ -6,6 +6,7 @@ import { HOME_SCREEN_GUIDE } from "../lib/homeScreenGuide";
 import { usePointerInputModeValue } from "../lib/pointerInput";
 import HomeScreenGuide from "./HomeScreenGuide";
 import ProviderKeyGuide from "./ProviderKeyGuide";
+import SheetShell from "./SheetShell";
 import type { LibraryParagraph } from "../types";
 
 /**
@@ -309,8 +310,9 @@ export default function KeywordGuide({
     showTopics;
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet tall guide" onClick={(e) => e.stopPropagation()}>
+    <SheetShell onClose={onClose} sheetClassName="sheet tall guide">
+      {({ requestClose }) => (
+        <>
         <h2>Guide</h2>
         <p className="muted">
           How this app turns field notes into a finished damp survey report, and
@@ -469,27 +471,20 @@ export default function KeywordGuide({
         )}
 
         <div className="sheet-actions">
-          <button className="btn primary" onClick={onClose}>
+          <button className="btn primary" onClick={requestClose}>
             Close
           </button>
         </div>
-      </div>
 
       {viewingParagraph && (
-        <div
-          className="sheet-backdrop guide-wording-backdrop"
-          onClick={(e) => {
-            e.stopPropagation();
-            setViewingId(null);
-          }}
+        <SheetShell
+          onClose={() => setViewingId(null)}
+          backdropClassName="guide-wording-backdrop"
+          sheetClassName="sheet guide-wording-sheet"
+          aria-labelledby="guide-wording-title"
         >
-          <div
-            className="sheet guide-wording-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="guide-wording-title"
-            onClick={(e) => e.stopPropagation()}
-          >
+          {({ requestClose: closeWording }) => (
+            <>
             <h2 id="guide-wording-title">{viewingParagraph.topic}</h2>
             <p className="muted">Standard wording produced by these shorthand notes</p>
             <div className="guide-keywords guide-wording-keywords">
@@ -517,14 +512,17 @@ export default function KeywordGuide({
               <button
                 type="button"
                 className="btn primary"
-                onClick={() => setViewingId(null)}
+                onClick={closeWording}
               >
                 Close
               </button>
             </div>
-          </div>
-        </div>
+            </>
+          )}
+        </SheetShell>
       )}
-    </div>
+        </>
+      )}
+    </SheetShell>
   );
 }

@@ -103,6 +103,11 @@ export interface ReportExtras {
   surveyDiscount: string;
   timeEstimate: string;
   /**
+   * When true, omit the project plan, costs, finance graphic and related
+   * service paragraphs from the exported report (recommendations-only).
+   */
+  excludePlanCosts: boolean;
+  /**
    * Which ticks were last set by details AI (shown purple in the UI),
    * plus short reasons shown under each AI pick.
    * Manual toggles clear the matching marks/reasons.

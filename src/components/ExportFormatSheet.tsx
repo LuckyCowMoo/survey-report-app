@@ -1,4 +1,5 @@
 import type { ExportFormat, ExportFormatOption } from "../lib/webShare";
+import SheetShell from "./SheetShell";
 
 interface Props {
   title?: string;
@@ -16,41 +17,42 @@ export default function ExportFormatSheet({
   onClose
 }: Props) {
   return (
-    <div
-      className="sheet-backdrop"
-      onClick={() => {
-        if (!busy) onClose();
-      }}
+    <SheetShell
+      onClose={onClose}
+      sheetClassName="sheet export-format-sheet"
+      aria-labelledby="export-format-title"
+      disableClose={busy}
     >
-      <div
-        className="sheet export-format-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="export-format-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id="export-format-title">{title}</h2>
-        <p className="muted">Choose how you want the report saved.</p>
-        <div className="export-format-list">
-          {options.map((opt) => (
+      {({ requestClose }) => (
+        <>
+          <h2 id="export-format-title">{title}</h2>
+          <p className="muted">Choose how you want the report saved.</p>
+          <div className="export-format-list">
+            {options.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className="btn big export-format-option"
+                disabled={busy || !opt.available}
+                onClick={() => onPick(opt.id)}
+              >
+                <span className="export-format-label">{opt.label}</span>
+                <span className="export-format-hint">{opt.hint}</span>
+              </button>
+            ))}
+          </div>
+          <div className="sheet-actions">
             <button
-              key={opt.id}
               type="button"
-              className="btn big export-format-option"
-              disabled={busy || !opt.available}
-              onClick={() => onPick(opt.id)}
+              className="btn"
+              disabled={busy}
+              onClick={requestClose}
             >
-              <span className="export-format-label">{opt.label}</span>
-              <span className="export-format-hint">{opt.hint}</span>
+              Cancel
             </button>
-          ))}
-        </div>
-        <div className="sheet-actions">
-          <button type="button" className="btn" disabled={busy} onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+          </div>
+        </>
+      )}
+    </SheetShell>
   );
 }
