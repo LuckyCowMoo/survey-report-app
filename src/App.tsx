@@ -56,7 +56,9 @@ import { reportFileName } from "./lib/docxGenerator";
 import { coverThumbnailBlob, houseNameFromAddress } from "./lib/reportCover";
 import {
   getScrollRoot,
-  scrollElementIntoViewCentered
+  markProgrammaticScroll,
+  scrollElementIntoViewCentered,
+  writeScrollTop
 } from "./lib/scrollRoot";
 import type { ReportExtras, ReportMetadata, SectionState } from "./types";
 
@@ -207,6 +209,18 @@ export default function App() {
     setStep(next);
     pushAppHist({ app: 1, step: next });
   }, []);
+
+  // Always open review / details scrolled to the top.
+  useEffect(() => {
+    if (step !== "review" && step !== "details") return;
+    markProgrammaticScroll(300);
+    writeScrollTop(getScrollRoot(), 0);
+    // After layout (aside/content mount), pin top again.
+    const id = window.requestAnimationFrame(() => {
+      writeScrollTop(getScrollRoot(), 0);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [step]);
 
   const openSettings = useCallback(() => {
     setShowSettings(true);
