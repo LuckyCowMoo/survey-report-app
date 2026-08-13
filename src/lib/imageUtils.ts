@@ -128,6 +128,61 @@ export async function imageForDocument(
   return { bytes: out, width, height, type: "jpg" };
 }
 
+async function bitmapFromFile(file: File): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    /* HEIC / older browsers: decode via an <img>, then bitmap. */
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Could not read that picture."));
+      el.src = url;
+    });
+    try {
+      return await createImageBitmap(img, { imageOrientation: "from-image" });
+    } catch {
+      return await createImageBitmap(img);
+    }
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Decode a gallery/camera-roll file and JPEG-encode it for a field note. */
+export async function jpegBytesFromImageFile(
+  file: File,
+  maxDim = 1920,
+  quality = 0.88
+): Promise<Uint8Array> {
+  const bitmap = await bitmapFromFile(file);
+  try {
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not read that picture.");
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (out) =>
+          out ? resolve(out) : reject(new Error("Could not encode picture.")),
+        "image/jpeg",
+        quality
+      );
+    });
+    return new Uint8Array(await blob.arrayBuffer());
+  } finally {
+    bitmap.close();
+  }
+}
+
 /** Object URL for previewing an image in the UI. Caller revokes when done. */
 export function imagePreviewUrl(bytes: Uint8Array, name: string): string {
   return URL.createObjectURL(bytesToBlob(bytes, mimeFromName(name)));

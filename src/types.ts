@@ -10,7 +10,58 @@ export interface ShorthandEntry {
   imageNames: string[];
   /** Raw bytes of each image, matching imageNames. */
   images: Uint8Array[];
+  /**
+   * Editable vector annotations for the primary photo (image 0), in normalized
+   * image coordinates. Persisted in .dmsr; composited into images for Word.
+   */
+  annotations?: PhotoAnnotation[];
 }
+
+/** Normalized point in image space (0..1 on each axis). */
+export type NormPoint = { x: number; y: number };
+
+/** Red-pen markup stored with a field-note / project photo. */
+export type PhotoAnnotation =
+  | {
+      id: string;
+      kind: "freehand";
+      points: NormPoint[];
+    }
+  | {
+      id: string;
+      kind: "line";
+      a: NormPoint;
+      b: NormPoint;
+    }
+  | {
+      id: string;
+      kind: "circle";
+      center: NormPoint;
+      /** Radius as a fraction of image width. */
+      radius: number;
+    }
+  | {
+      id: string;
+      kind: "arrow";
+      tail: NormPoint;
+      tip: NormPoint;
+    }
+  | {
+      id: string;
+      /** Abstract edge-following polyline with sharp corners. */
+      kind: "polyline";
+      points: NormPoint[];
+    }
+  | {
+      id: string;
+      /** Short note callout: leader to an anchor point + text box. */
+      kind: "callout";
+      /** Point on the photo the note refers to. */
+      anchor: NormPoint;
+      /** Top-left of the text box. */
+      label: NormPoint;
+      text: string;
+    };
 
 /** One in-app field-notes capture (pre-matcher). */
 export interface FieldNoteShot {
@@ -22,6 +73,8 @@ export interface FieldNoteShot {
   created: string;
   imageName: string;
   image: Uint8Array;
+  /** Editable vector annotations; raw `image` stays unburned. */
+  annotations?: PhotoAnnotation[];
 }
 
 /** How a section's final text was decided. */

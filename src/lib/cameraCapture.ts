@@ -35,6 +35,18 @@ export async function listVideoCameras(): Promise<CameraDeviceInfo[]> {
     }));
 }
 
+export function isCameraAbortError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const name = "name" in err ? String((err as { name?: string }).name) : "";
+  const msg = "message" in err ? String((err as { message?: string }).message) : "";
+  return (
+    name === "AbortError" ||
+    /aborted by the user agent/i.test(msg) ||
+    /play\(\) request was interrupted/i.test(msg) ||
+    /fetching process for the media resource was aborted/i.test(msg)
+  );
+}
+
 export async function startCamera(
   video: HTMLVideoElement,
   deviceId?: string | null
@@ -79,13 +91,81 @@ export async function startCamera(
   video.srcObject = stream;
   video.setAttribute("playsinline", "true");
   video.muted = true;
-  await video.play();
+  try {
+    await video.play();
+  } catch (err) {
+    // A superseded play() (Strict Mode remount, device switch) aborts with this
+    // message even when a later attempt succeeds. Retry once, then accept the
+    // stream if the element is already showing frames.
+    if (!isCameraAbortError(err)) throw err;
+    if (video.srcObject !== stream) throw err;
+    try {
+      await video.play();
+    } catch (retryErr) {
+      if (!isCameraAbortError(retryErr)) throw retryErr;
+      if (video.srcObject !== stream) throw retryErr;
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA && video.paused) {
+        throw retryErr;
+      }
+    }
+  }
   return stream;
 }
 
 export function stopCamera(stream: MediaStream | null) {
   if (!stream) return;
   for (const track of stream.getTracks()) track.stop();
+}
+
+export type CameraZoomRange = {
+  min: number;
+  max: number;
+  step: number;
+};
+
+/** Hardware zoom range when the active track supports it. */
+export function getCameraZoomRange(
+  stream: MediaStream | null
+): CameraZoomRange | null {
+  const track = stream?.getVideoTracks()[0];
+  if (!track || typeof track.getCapabilities !== "function") return null;
+  const caps = track.getCapabilities() as MediaTrackCapabilities & {
+    zoom?: { min?: number; max?: number; step?: number };
+  };
+  const z = caps.zoom;
+  if (!z || z.min == null || z.max == null || z.max <= z.min) return null;
+  return {
+    min: z.min,
+    max: z.max,
+    step: z.step && z.step > 0 ? z.step : 0.1
+  };
+}
+
+export async function applyCameraZoom(
+  stream: MediaStream | null,
+  zoom: number
+): Promise<boolean> {
+  const track = stream?.getVideoTracks()[0];
+  if (!track || typeof track.applyConstraints !== "function") return false;
+  const range = getCameraZoomRange(stream);
+  if (!range) return false;
+  const clamped = Math.min(range.max, Math.max(range.min, zoom));
+  try {
+    await track.applyConstraints({
+      // Chrome / Android expose zoom via advanced constraints.
+      advanced: [{ zoom: clamped } as MediaTrackConstraintSet]
+    });
+    return true;
+  } catch {
+    try {
+      await track.applyConstraints({
+        zoom: clamped
+      } as MediaTrackConstraints);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 /** Capture the current video frame as JPEG bytes. */

@@ -24,21 +24,6 @@ export default function BrandMark({
     >
       <title>{title}</title>
 
-      {/* Same path as the solid mark — used as a stroked loader, then drawn out.
-          Keeping one geometry avoids a spinner→logo “LOD” pop. */}
-      {intro && (
-        <path
-          className="intro-mark-stroke"
-          d={LOGO_PATH}
-          fill="none"
-          stroke="#d12d26"
-          strokeWidth="1.6"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          pathLength="1"
-        />
-      )}
-
       <g className={intro ? "intro-mark-solid" : undefined}>
         <path fill="#d12d26" d={LOGO_PATH} />
         <rect fill="#d12d26" x="56.4" y="27.14" width="3.69" height="4.22" />
@@ -67,6 +52,30 @@ export default function BrandMark({
           height="4.22"
         />
       </g>
+
+      {intro && (
+        <>
+          {/* Covers the fill during the outline chase, then fades out. */}
+          <rect
+            className="intro-fill-veil"
+            x="-8"
+            y="-8"
+            width="146"
+            height="59"
+            fill="#050505"
+          />
+          <path
+            className="intro-mark-stroke"
+            d={LOGO_PATH}
+            fill="none"
+            stroke="#d12d26"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            pathLength="1"
+          />
+        </>
+      )}
     </svg>
   );
 }

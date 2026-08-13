@@ -556,7 +556,7 @@ export default function App() {
       if (leaveHome) setBusy("Saving field notes…");
       setError(null);
       try {
-        const entries = fieldNotesToShorthand(fieldNotes);
+        const entries = await fieldNotesToShorthand(fieldNotes);
         const nextSections = matchEntries(entries);
         const meta = defaultMetadata(settings);
         const fileName = reportFileName(meta).replace(/\.docx$/i, "") + ".dmsr";
@@ -604,9 +604,19 @@ export default function App() {
 
   const continueFieldNotesToReport = useCallback(() => {
     if (fieldNotes.length === 0) return;
-    const entries = fieldNotesToShorthand(fieldNotes);
-    const nextSections = matchEntries(entries);
-    beginFreshImport(nextSections, []);
+    void (async () => {
+      setBusy("Preparing report…");
+      setError(null);
+      try {
+        const entries = await fieldNotesToShorthand(fieldNotes);
+        const nextSections = matchEntries(entries);
+        beginFreshImport(nextSections, []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(null);
+      }
+    })();
   }, [fieldNotes, beginFreshImport]);
 
   const exportFieldNotesDocx = useCallback(async () => {
@@ -614,7 +624,7 @@ export default function App() {
     setBusy("Exporting shorthand…");
     setError(null);
     try {
-      const entries = fieldNotesToShorthand(fieldNotes);
+      const entries = await fieldNotesToShorthand(fieldNotes);
       const blob = await generateShorthandDocx(entries);
       const name = shorthandDocxFileName();
       const url = URL.createObjectURL(blob);

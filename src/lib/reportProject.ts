@@ -3,7 +3,9 @@ import type {
   ReportMetadata,
   SectionState,
   ShorthandEntry,
-  TextSource
+  TextSource,
+  PhotoAnnotation,
+  NormPoint
 } from "../types";
 import { normalizeReportExtras } from "./detailsSuggest";
 
@@ -37,6 +39,8 @@ interface SerializedEntry {
   imageNames: string[];
   /** Base64 image payloads parallel to imageNames. */
   images: string[];
+  /** Editable vector annotations for the primary photo (optional). */
+  annotations?: PhotoAnnotation[];
 }
 
 interface SerializedSection {
@@ -117,15 +121,84 @@ function base64ToBytes(b64: string): Uint8Array {
   return out;
 }
 
+function clamp01(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+function parseNormPoint(raw: unknown): NormPoint | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as { x?: unknown; y?: unknown };
+  if (typeof p.x !== "number" || typeof p.y !== "number") return null;
+  return { x: clamp01(p.x), y: clamp01(p.y) };
+}
+
+/** Sanitize annotations from .dmsr / in-memory JSON (missing → []). */
+export function normalizePhotoAnnotations(raw: unknown): PhotoAnnotation[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PhotoAnnotation[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const a = item as Record<string, unknown>;
+    const id = typeof a.id === "string" && a.id ? a.id : `ann-${out.length}`;
+    const kind = a.kind;
+    if (kind === "freehand") {
+      const pts = Array.isArray(a.points)
+        ? a.points.map(parseNormPoint).filter((p): p is NormPoint => !!p)
+        : [];
+      if (pts.length >= 2) out.push({ id, kind: "freehand", points: pts });
+      continue;
+    }
+    if (kind === "line") {
+      const pa = parseNormPoint(a.a);
+      const pb = parseNormPoint(a.b);
+      if (pa && pb) out.push({ id, kind: "line", a: pa, b: pb });
+      continue;
+    }
+    if (kind === "circle") {
+      const center = parseNormPoint(a.center);
+      const radius =
+        typeof a.radius === "number" && Number.isFinite(a.radius)
+          ? Math.max(0.001, a.radius)
+          : null;
+      if (center && radius != null)
+        out.push({ id, kind: "circle", center, radius });
+      continue;
+    }
+    if (kind === "arrow") {
+      const tail = parseNormPoint(a.tail);
+      const tip = parseNormPoint(a.tip);
+      if (tail && tip) out.push({ id, kind: "arrow", tail, tip });
+      continue;
+    }
+    if (kind === "polyline") {
+      const pts = Array.isArray(a.points)
+        ? a.points.map(parseNormPoint).filter((p): p is NormPoint => !!p)
+        : [];
+      if (pts.length >= 2) out.push({ id, kind: "polyline", points: pts });
+      continue;
+    }
+    if (kind === "callout") {
+      const anchor = parseNormPoint(a.anchor);
+      const label = parseNormPoint(a.label);
+      const text = typeof a.text === "string" ? a.text.slice(0, 80) : "";
+      if (anchor && label) out.push({ id, kind: "callout", anchor, label, text });
+    }
+  }
+  return out;
+}
+
 function serializeSection(section: SectionState): SerializedSection {
   const { entry } = section;
+  const annotations = normalizePhotoAnnotations(entry.annotations);
   return {
     entry: {
       number: entry.number,
       note: entry.note,
       created: entry.created,
       imageNames: [...entry.imageNames],
-      images: entry.images.map((img) => bytesToBase64(img))
+      images: entry.images.map((img) => bytesToBase64(img)),
+      ...(annotations.length > 0 ? { annotations } : {})
     },
     libraryId: section.libraryId,
     placeholderValues: { ...section.placeholderValues },
@@ -147,12 +220,14 @@ function deserializeEntry(raw: SerializedEntry): ShorthandEntry {
     typeof b64 === "string" && b64 ? base64ToBytes(b64) : new Uint8Array()
   );
   while (images.length < names.length) images.push(new Uint8Array());
+  const annotations = normalizePhotoAnnotations(raw.annotations);
   return {
     number: Number(raw.number) || 0,
     note: String(raw.note ?? ""),
     created: String(raw.created ?? ""),
     imageNames: names,
-    images: images.slice(0, names.length)
+    images: images.slice(0, names.length),
+    ...(annotations.length > 0 ? { annotations } : {})
   };
 }
 
