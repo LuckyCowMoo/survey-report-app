@@ -5752,13 +5752,18 @@ html:not([data-theme="original"]) .app.app-field-notes .content {
 }
 
 .field-notes-notes-viewport {
-  inset: 0;
+  position: relative;
+  inset: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: auto;
 }
 
 .field-notes-notes-slide {
   display: flex;
   flex-direction: column;
-  padding: 14px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 14px 14px 12px;
   box-sizing: border-box;
   background: var(--card);
 }
@@ -5775,25 +5780,8 @@ html:not([data-theme="original"]) .app.app-field-notes .content {
   flex-direction: column;
   justify-content: flex-start;
   gap: 12px;
-  padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 14px 12px;
   box-sizing: border-box;
-}
-
-.field-notes-from-pictures-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-
-.field-notes-from-pictures {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 240px);
-  text-align: center;
-  font-weight: 600;
 }
 
 .field-notes-from-pictures-error {
@@ -5931,6 +5919,13 @@ html:not([data-theme="original"]) .app.app-field-notes .content {
   display: block;
   background: #111;
   pointer-events: none;
+}
+
+/* Retake uses the same stream, overlaid on the current photo slide. */
+.field-notes-video-retake {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
 .field-notes-camera-pick {
@@ -6141,7 +6136,7 @@ html[data-pointer-input="fine"] .field-notes-arrow-next {
   left: calc(50% + var(--fn-dial-clear));
 }
 
-/* Touch: camera lens + annotate fill left of dial */
+/* Touch: camera lens + add-from-pictures fill left of dial */
 .field-notes-cam-float-lens {
   position: absolute;
   left: 12px;
@@ -6184,30 +6179,81 @@ html[data-pointer-input="fine"] .field-notes-cam-float-lens {
   box-sizing: border-box;
 }
 
+.field-notes-gallery-input {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.field-notes-pictures-btn,
+.field-notes-pictures-btn-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+  line-height: 1.15;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--fn-font);
+  cursor: pointer;
+}
+
+.field-notes-lens-btn.is-disabled,
+.field-notes-float-btn.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
 .field-notes-annotate-btn {
-  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--fn-pad-y) var(--fn-pad-x);
   background: var(--ok, #15803d);
-  border-color: color-mix(in srgb, var(--ok, #15803d) 70%, #fff);
+  border: 1px solid color-mix(in srgb, var(--ok, #15803d) 70%, #fff);
   color: #fff;
   font-size: var(--fn-font);
   font-weight: 700;
   white-space: nowrap;
+  border-radius: 12px;
+  cursor: pointer;
+  appearance: none;
+  box-sizing: border-box;
 }
 
-.field-notes-annotate-btn-top {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--ok, #15803d);
-  border-color: color-mix(in srgb, var(--ok, #15803d) 70%, #fff);
-  color: #fff;
-  font-weight: 700;
-  white-space: nowrap;
+.field-notes-annotate-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
-html[data-theme="dark"] .field-notes-annotate-btn,
-html[data-theme="dark"] .field-notes-annotate-btn-top {
+.field-notes-notes-footer {
+  flex: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+
+.field-notes-annotate-footer {
+  width: 100%;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+html[data-theme="dark"] .field-notes-annotate-btn {
   background: #15803d;
   border-color: rgba(255, 255, 255, 0.22);
   color: #fff;
@@ -6215,14 +6261,14 @@ html[data-theme="dark"] .field-notes-annotate-btn-top {
 
 @container (max-width: 152px) {
   .field-notes-cam-float-lens .field-notes-lens-btn,
-  .field-notes-cam-float-lens .field-notes-annotate-btn {
+  .field-notes-cam-float-lens .field-notes-pictures-btn {
     flex: 1 1 100%;
     max-width: none;
     width: 100%;
   }
 }
 
-html:not([data-pointer-input="fine"]) .field-notes-annotate-btn-top {
+html:not([data-pointer-input="fine"]) .field-notes-pictures-btn-top {
   display: none;
 }
 

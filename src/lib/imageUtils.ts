@@ -128,28 +128,51 @@ export async function imageForDocument(
   return { bytes: out, width, height, type: "jpg" };
 }
 
+async function loadHtmlImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Could not read that picture."));
+    el.src = src;
+  });
+}
+
+async function bitmapFromImage(img: HTMLImageElement): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(img, { imageOrientation: "from-image" });
+  } catch {
+    return await createImageBitmap(img);
+  }
+}
+
 async function bitmapFromFile(file: File): Promise<ImageBitmap> {
   try {
     return await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
-    /* HEIC / older browsers: decode via an <img>, then bitmap. */
+    /* continue */
   }
+  try {
+    return await createImageBitmap(file);
+  } catch {
+    /* continue */
+  }
+
   const url = URL.createObjectURL(file);
   try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("Could not read that picture."));
-      el.src = url;
-    });
-    try {
-      return await createImageBitmap(img, { imageOrientation: "from-image" });
-    } catch {
-      return await createImageBitmap(img);
-    }
+    return await bitmapFromImage(await loadHtmlImage(url));
+  } catch {
+    /* continue */
   } finally {
     URL.revokeObjectURL(url);
   }
+
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Could not read that picture."));
+    reader.readAsDataURL(file);
+  });
+  return bitmapFromImage(await loadHtmlImage(dataUrl));
 }
 
 /** Decode a gallery/camera-roll file and JPEG-encode it for a field note. */
@@ -170,12 +193,20 @@ export async function jpegBytesFromImageFile(
     if (!ctx) throw new Error("Could not read that picture.");
     ctx.drawImage(bitmap, 0, 0, width, height);
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (out) =>
-          out ? resolve(out) : reject(new Error("Could not encode picture.")),
-        "image/jpeg",
-        quality
-      );
+      const fail = () => reject(new Error("Could not encode picture."));
+      const finish = (out: Blob | null) => (out ? resolve(out) : fail());
+      try {
+        canvas.toBlob(finish, "image/jpeg", quality);
+      } catch {
+        fail();
+      }
+    }).catch(async () => {
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      const comma = dataUrl.indexOf(",");
+      const bin = atob(dataUrl.slice(comma + 1));
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return new Blob([out], { type: "image/jpeg" });
     });
     return new Uint8Array(await blob.arrayBuffer());
   } finally {

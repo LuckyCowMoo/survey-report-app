@@ -45,6 +45,9 @@ type Props = {
 
 type Mode = "live" | "review" | "retake";
 
+/** Survives iOS photo-picker remounts so we still know new vs replace. */
+let pendingPictureTarget: "new" | number = "new";
+
 const SWIPE_MIN_PX = 56;
 const SLIDE_MS = 320;
 const RETAKE_HOLD_MS = 2000;
@@ -54,6 +57,8 @@ const ANNOTATE_HOLD_MS = 500;
 const ANNOTATE_HOLD_MOVE_PX = 14;
 const ZOOM_CSS_MIN = 1;
 const ZOOM_CSS_MAX = 4;
+/** Keep the camera warm this many slides away from the live slot. */
+const CAMERA_KEEP_ALIVE_SWIPES = 2;
 const DIAL_START_DEG = 180; // left
 const DIAL_END_DEG = 0; // right (upper semicircle, clockwise from left→top→right)
 
@@ -156,7 +161,15 @@ export default function FieldNotesScreen({
   const [importError, setImportError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const retakeVideoRef = useRef<HTMLVideoElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const importingRef = useRef(false);
+  const shotsRef = useRef(shots);
+  shotsRef.current = shots;
+  const createdDraftRef = useRef(createdDraft);
+  createdDraftRef.current = createdDraft;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const streamRef = useRef<MediaStream | null>(null);
   const cameraGenRef = useRef(0);
   const shutterWrapRef = useRef<HTMLDivElement>(null);
@@ -174,6 +187,7 @@ export default function FieldNotesScreen({
   zoomMaxRef.current = zoomMax;
   const hwZoomRef = useRef(hwZoom);
   hwZoomRef.current = hwZoom;
+  const shouldRunCameraRef = useRef(true);
   const swipeRef = useRef<{
     id: number;
     x: number;
@@ -199,9 +213,13 @@ export default function FieldNotesScreen({
   const safeIndex = Math.max(0, Math.min(index, maxIndex));
   const current = safeIndex < shots.length ? shots[safeIndex] : null;
   const isEmptySlot = current === null;
-  const liveSlideIndex =
-    mode === "retake" && current ? safeIndex : shots.length;
   const showLive = isEmptySlot || mode === "retake";
+  const swipesFromLive = shots.length - safeIndex;
+  const shouldRunCamera =
+    mode === "retake" ||
+    capturing ||
+    swipesFromLive <= CAMERA_KEEP_ALIVE_SWIPES;
+  shouldRunCameraRef.current = shouldRunCamera;
   const canCapture =
     showLive && !busy && !capturing && !cameraError && !cameraLoading;
   /** Visual translucent retake look — keep during slide so it doesn’t flash opaque. */
@@ -225,6 +243,24 @@ export default function FieldNotesScreen({
     streamRef.current = null;
     const v = videoRef.current;
     if (v) v.srcObject = null;
+    const r = retakeVideoRef.current;
+    if (r) r.srcObject = null;
+  }, []);
+
+  const applyCameraRunning = useCallback((running: boolean) => {
+    const stream = streamRef.current;
+    if (stream) {
+      for (const track of stream.getVideoTracks()) {
+        track.enabled = running;
+      }
+    }
+    const playEl = (el: HTMLVideoElement | null) => {
+      if (!el) return;
+      if (running) void el.play().catch(() => {});
+      else el.pause();
+    };
+    playEl(videoRef.current);
+    playEl(retakeVideoRef.current);
   }, []);
 
   const refreshCameras = useCallback(async () => {
@@ -267,6 +303,7 @@ export default function FieldNotesScreen({
         return;
       }
       streamRef.current = stream;
+      applyCameraRunning(shouldRunCameraRef.current);
       syncZoomRange(stream);
       const list = await refreshCameras();
       if (gen !== cameraGenRef.current) return;
@@ -296,13 +333,26 @@ export default function FieldNotesScreen({
       setCameraError(err instanceof Error ? err.message : String(err));
       setCameraLoading(false);
     }
-  }, [refreshCameras, syncZoomRange]);
+  }, [applyCameraRunning, refreshCameras, syncZoomRange]);
 
   useEffect(() => {
     void ensureCamera();
-  }, [cameraId, ensureCamera, liveSlideIndex]);
+  }, [cameraId, ensureCamera]);
 
   useEffect(() => () => stopStream(), [stopStream]);
+
+  useEffect(() => {
+    applyCameraRunning(shouldRunCamera);
+  }, [shouldRunCamera, applyCameraRunning]);
+
+  useEffect(() => {
+    if (mode !== "retake") return;
+    const stream = streamRef.current;
+    const el = retakeVideoRef.current;
+    if (!stream || !el) return;
+    if (el.srcObject !== stream) el.srcObject = stream;
+    if (shouldRunCameraRef.current) void el.play().catch(() => {});
+  }, [mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -490,42 +540,60 @@ export default function FieldNotesScreen({
     }
   };
 
-  const addShotsFromPictures = async (files: FileList | File[]) => {
-    const list = [...files].filter(
-      (f) =>
-        f.type.startsWith("image/") ||
-        /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(f.name)
-    );
-    if (!list.length) {
-      setImportError("Choose a photo from your pictures.");
-      return;
-    }
-    if (busy || capturing || importingPictures) return;
+  const applyPictures = useCallback(async (files: File[]) => {
+    if (!files.length || importingRef.current) return;
+    importingRef.current = true;
     setImportingPictures(true);
     setImportError(null);
     try {
-      const created = createdDraft || formatFieldNoteCreated();
-      const added: FieldNoteShot[] = [];
-      for (const file of list) {
-        const bytes = await jpegBytesFromImageFile(file);
-        added.push(
-          createFieldNoteShot(bytes, {
-            imageName: `image${shots.length + added.length + 1}.jpeg`,
-            created
-          })
+      const currentShots = shotsRef.current;
+      const target = pendingPictureTarget;
+      const replacing =
+        typeof target === "number" && target < currentShots.length;
+      const i = replacing ? target : currentShots.length;
+      const created = createdDraftRef.current || formatFieldNoteCreated();
+
+      if (replacing) {
+        const bytes = await jpegBytesFromImageFile(files[0]!);
+        onChangeRef.current(
+          currentShots.map((s, idx) =>
+            idx === i
+              ? {
+                  ...s,
+                  image: bytes,
+                  imageName: s.imageName || `image${s.number}.jpeg`,
+                  annotations: undefined
+                }
+              : s
+          )
         );
+        setMode("review");
+      } else {
+        const added: FieldNoteShot[] = [];
+        for (const file of files) {
+          const bytes = await jpegBytesFromImageFile(file);
+          added.push(
+            createFieldNoteShot(bytes, {
+              imageName: `image${currentShots.length + added.length + 1}.jpeg`,
+              created
+            })
+          );
+        }
+        const next = renumberFieldNotes([...currentShots, ...added]);
+        onChangeRef.current(next);
+        setIndex(currentShots.length);
+        setMode("review");
+        setDragX(0);
       }
-      const next = renumberFieldNotes([...shots, ...added]);
-      onChange(next);
-      setIndex(shots.length);
-      setMode("review");
-      setDragX(0);
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : String(err));
+      setImportError(
+        err instanceof Error ? err.message : "Could not add that picture."
+      );
     } finally {
+      importingRef.current = false;
       setImportingPictures(false);
     }
-  };
+  }, []);
 
   const cancelHold = useCallback(() => {
     holdArmedRef.current = false;
@@ -750,7 +818,7 @@ export default function FieldNotesScreen({
     if (
       t instanceof Element &&
       t.closest(
-        "button,a,select,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-arrow"
+        "button,a,label,select,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-arrow,.field-notes-notes-footer"
       )
     ) {
       swipeRef.current = null;
@@ -935,63 +1003,61 @@ export default function FieldNotesScreen({
       onTouchEnd={onTouchEndPinch}
       onTouchCancel={onTouchEndPinch}
     >
+      <input
+        id="field-notes-gallery"
+        ref={galleryInputRef}
+        className="field-notes-gallery-input"
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
+        onChange={(e) => {
+          const input = e.currentTarget;
+          const files = input.files ? [...input.files] : [];
+          input.value = "";
+          if (files.length) void applyPictures(files);
+        }}
+      />
       <div className="field-notes-stage">
         <div className="field-notes-camera-panel">
           <div className="field-notes-media-viewport">
             <div className="field-notes-media-track" style={trackStyle}>
               {shots.map((shot, i) => (
                 <div key={shot.id} className="field-notes-media-slide">
-                  {liveSlideIndex === i ? (
-                    <video
-                      ref={videoRef}
-                      className="field-notes-video"
+                  {thumbUrls[i] && (
+                    <img
+                      className="field-notes-photo"
                       style={mediaZoomStyle}
-                      playsInline
-                      muted
-                      autoPlay
+                      src={thumbUrls[i]}
+                      alt={`Field note (${shot.number})`}
+                      draggable={false}
                     />
-                  ) : (
-                    thumbUrls[i] && (
-                      <img
-                        className="field-notes-photo"
-                        style={mediaZoomStyle}
-                        src={thumbUrls[i]}
-                        alt={`Field note (${shot.number})`}
-                        draggable={false}
-                      />
-                    )
                   )}
                 </div>
               ))}
               <div className="field-notes-media-slide field-notes-media-live">
-                {liveSlideIndex === shots.length ? (
-                  <video
-                    ref={videoRef}
-                    className="field-notes-video"
-                    style={mediaZoomStyle}
-                    playsInline
-                    muted
-                    autoPlay
-                  />
-                ) : (
-                  <div className="field-notes-live-placeholder" aria-hidden />
-                )}
-                {cameraError &&
-                  !cameraLoading &&
-                  liveSlideIndex === shots.length && (
-                  <div className="field-notes-camera-error" role="alert">
-                    <p>{cameraError}</p>
-                    <button
-                      type="button"
-                      className="btn small"
-                      onClick={() => void ensureCamera()}
-                    >
-                      Retry camera
-                    </button>
-                  </div>
-                )}
+                {/*
+                  Always mounted on the rightmost slide so the feed slides in
+                  with the track; getUserMedia is not restarted on swipe.
+                */}
+                <video
+                  ref={videoRef}
+                  className="field-notes-video"
+                  style={mediaZoomStyle}
+                  playsInline
+                  muted
+                  autoPlay
+                />
               </div>
             </div>
+            {mode === "retake" && (
+              <video
+                ref={retakeVideoRef}
+                className="field-notes-video field-notes-video-retake"
+                style={mediaZoomStyle}
+                playsInline
+                muted
+                autoPlay
+              />
+            )}
             <div
               key={flashKey || "flash"}
               className={`field-notes-flash${flashKey ? " is-on" : ""}`}
@@ -1009,6 +1075,18 @@ export default function FieldNotesScreen({
                 />
               </div>
             )}
+            {showLive && cameraError && !cameraLoading && (
+              <div className="field-notes-camera-error" role="alert">
+                <p>{cameraError}</p>
+                <button
+                  type="button"
+                  className="btn small"
+                  onClick={() => void ensureCamera()}
+                >
+                  Retry camera
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="field-notes-cam-float field-notes-cam-float-top">
@@ -1016,15 +1094,19 @@ export default function FieldNotesScreen({
               <span className="field-notes-index-chip">{indexLabel}</span>
             </div>
             <div className="field-notes-cam-float-top-actions">
-              <button
-                type="button"
-                className="field-notes-float-btn field-notes-annotate-btn-top"
-                disabled={!current || busy || capturing || isEmptySlot}
-                aria-label="Annotate photo"
-                onClick={openAnnotate}
+              <label
+                htmlFor="field-notes-gallery"
+                className={`field-notes-float-btn field-notes-pictures-btn-top${
+                  capturing || importingPictures ? " is-disabled" : ""
+                }`}
+                onPointerDown={() => {
+                  const len = shotsRef.current.length;
+                  const at = Math.max(0, Math.min(indexRef.current, len));
+                  pendingPictureTarget = at < len ? at : "new";
+                }}
               >
-                Annotate
-              </button>
+                {importingPictures ? "Adding…" : "Add from pictures"}
+              </label>
               {cameras.length > 1 ? (
                 <label className="field-notes-camera-pick">
                   <select
@@ -1076,15 +1158,19 @@ export default function FieldNotesScreen({
             </button>
 
             <div className="field-notes-cam-float-lens">
-              <button
-                type="button"
-                className="field-notes-lens-btn field-notes-annotate-btn"
-                disabled={!current || busy || capturing || isEmptySlot}
-                aria-label="Annotate photo"
-                onClick={openAnnotate}
+              <label
+                htmlFor="field-notes-gallery"
+                className={`field-notes-lens-btn field-notes-pictures-btn${
+                  capturing || importingPictures ? " is-disabled" : ""
+                }`}
+                onPointerDown={() => {
+                  const len = shotsRef.current.length;
+                  const at = Math.max(0, Math.min(indexRef.current, len));
+                  pendingPictureTarget = at < len ? at : "new";
+                }}
               >
-                Annotate
-              </button>
+                {importingPictures ? "Adding…" : "Add from pictures"}
+              </label>
               {cameras.length > 1 ? (
                 <label className="field-notes-lens-btn">
                   <CameraLensIcon />
@@ -1258,35 +1344,6 @@ export default function FieldNotesScreen({
               ))}
               <div className="field-notes-notes-slide field-notes-notes-summary">
                 <div className="field-notes-summary">
-                  <div className="field-notes-from-pictures-wrap">
-                    <input
-                      ref={galleryInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      hidden
-                      onChange={(e) => {
-                        const files = e.target.files;
-                        e.target.value = "";
-                        if (files?.length) void addShotsFromPictures(files);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="btn field-notes-from-pictures"
-                      disabled={busy || capturing || importingPictures}
-                      onClick={() => galleryInputRef.current?.click()}
-                    >
-                      {importingPictures
-                        ? "Adding…"
-                        : "Add from pictures"}
-                    </button>
-                    {importError ? (
-                      <p className="field-notes-from-pictures-error" role="alert">
-                        {importError}
-                      </p>
-                    ) : null}
-                  </div>
                   <div className="field-notes-summary-body">
                     <div className="field-notes-summary-main">
                       <label className="field-notes-created field-notes-summary-date">
@@ -1346,6 +1403,26 @@ export default function FieldNotesScreen({
               </div>
             </div>
           </div>
+          {(importError || !isEmptySlot) && (
+            <div className="field-notes-notes-footer">
+              {importError ? (
+                <p className="field-notes-from-pictures-error" role="alert">
+                  {importError}
+                </p>
+              ) : null}
+              {!isEmptySlot ? (
+                <button
+                  type="button"
+                  className="field-notes-annotate-btn field-notes-annotate-footer"
+                  disabled={!current || busy || capturing}
+                  aria-label="Annotate photo"
+                  onClick={openAnnotate}
+                >
+                  Annotate
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
 
