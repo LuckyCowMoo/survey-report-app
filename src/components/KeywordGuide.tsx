@@ -161,7 +161,7 @@ const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
 
 const PURPOSE_COPY = [
   "What this tool is for",
-  "This app helps a damp and timber surveyor turn a shorthand site document — numbered photos with short field notes — into a polished, client-ready report. You import the .docx from the Files app (on your computer or mobile device); the app reads it entirely on this device.",
+  "This app helps a damp and timber surveyor turn numbered photo field notes into a polished, client-ready report. Start a new report to create field notes with the device camera, or import a Report and Run .docx. Everything stays on this device.",
   "For each photo it tries to match the note to the firm's approved standard wording, filling in values from the note (such as humidity or pin readings). You then review every section, edit or swap wording, add property and client details, choose which damp issues and recommendations apply, and generate the finished report — cover, contents, photo sections, explainers, costs, and limitations — again entirely on the device."
 ];
 
@@ -332,11 +332,10 @@ export default function KeywordGuide({
           <>
             <h3 className="guide-heading">What this tool is for</h3>
             <p className="muted">
-              This app helps a damp and timber surveyor turn a shorthand site
-              document — numbered photos with short field notes — into a
-              polished, client-ready report. You import the{" "}
-              <code>.docx</code> from the Files app (on your computer or mobile
-              device); the app reads it entirely on this device.
+              This app helps a damp and timber surveyor turn numbered photo field
+              notes into a polished, client-ready report. Start a new report to
+              create field notes with the device camera, or import a Report and
+              Run <code>.docx</code>. Everything stays on this device.
             </p>
             <p className="muted">
               For each photo it tries to match the note to the firm&apos;s

@@ -26,6 +26,31 @@
         } catch (e) {
           document.documentElement.dataset.theme = "dark";
         }
+
+        // Local / LAN only: kill stale PWA caches before modules load.
+        // Old SW + new hashed assets = blank dark-gray screen on phones.
+        var h = location.hostname;
+        var local =
+          h === "localhost" ||
+          h === "127.0.0.1" ||
+          h === "[::1]" ||
+          /\.local$/.test(h) ||
+          /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(h);
+        if (!local) return;
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.unregister();
+            });
+          });
+        }
+        if (window.caches && caches.keys) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (k) {
+              caches.delete(k);
+            });
+          });
+        }
       })();
     </script>
   </head>

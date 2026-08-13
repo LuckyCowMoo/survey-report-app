@@ -12,6 +12,18 @@ export interface ShorthandEntry {
   images: Uint8Array[];
 }
 
+/** One in-app field-notes capture (pre-matcher). */
+export interface FieldNoteShot {
+  id: string;
+  /** 1-based entry number; renumbered on reorder/delete. */
+  number: number;
+  note: string;
+  /** Report-and-Run style date string, e.g. "Thu, 8/6/2026". */
+  created: string;
+  imageName: string;
+  image: Uint8Array;
+}
+
 /** How a section's final text was decided. */
 export type TextSource = "library" | "ai" | "manual" | "crossref" | "empty";
 

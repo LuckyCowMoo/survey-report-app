@@ -17,7 +17,7 @@ const PORTAL_MS = 1400;
  * Logo layout phases. "settled" covers the shine hold.
  * "portal" zooms through a light window square into the app.
  */
-type Phase = "boot" | "spin" | "unravel" | "settled" | "portal";
+type Phase = "spin" | "unravel" | "settled" | "portal";
 
 /** viewBox 129.92×42.97 — top-right light pane center, as % of the logo box */
 const PORTAL_ORIGIN_X = "49.07%";
@@ -44,8 +44,8 @@ interface Props {
 
 export default function IntroSplash({ onDone }: Props) {
   const hold = introParams().hold;
-  const [phase, setPhase] = useState<Phase>("boot");
-  const [shine, setShine] = useState(false);
+  const [phase, setPhase] = useState<Phase>(hold ? "settled" : "spin");
+  const [shine, setShine] = useState(hold);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
   const finished = useRef(false);
@@ -59,47 +59,47 @@ export default function IntroSplash({ onDone }: Props) {
   useEffect(() => {
     const timers: number[] = [];
 
+    // Hard failsafe — never leave users on a black/gray void.
+    timers.push(window.setTimeout(finish, 7000));
+
     if (hold) {
       setPhase("settled");
       setShine(true);
-      return;
+      return () => {
+        for (const id of timers) window.clearTimeout(id);
+      };
     }
 
-    const start = requestAnimationFrame(() => {
-      setPhase("spin");
-
-      const beginUnravel = () => {
-        setPhase("unravel");
-        // Shine as soon as the solid fill finishes — no pause after “full”
-        timers.push(window.setTimeout(() => setShine(true), FILL_MS));
-        timers.push(window.setTimeout(() => setPhase("settled"), UNRAVEL_MS));
-        timers.push(
-          window.setTimeout(() => {
-            setShine(false);
-            setPhase("portal");
-          }, FILL_MS + SHINE_MS)
-        );
-        timers.push(
-          window.setTimeout(finish, FILL_MS + SHINE_MS + PORTAL_MS)
-        );
-      };
-
-      /** At a cycle boundary: 25% another circle, else end the loading chase. */
-      const decideSpinStop = () => {
-        if (Math.random() < EXTRA_CIRCLE_CHANCE) {
-          timers.push(window.setTimeout(decideSpinStop, DASH_PERIOD_MS));
-          return;
-        }
-        beginUnravel();
-      };
-
+    const beginUnravel = () => {
+      setPhase("unravel");
+      // Shine as soon as the solid fill finishes — no pause after “full”
+      timers.push(window.setTimeout(() => setShine(true), FILL_MS));
+      timers.push(window.setTimeout(() => setPhase("settled"), UNRAVEL_MS));
       timers.push(
-        window.setTimeout(decideSpinStop, MIN_SPIN_CYCLES * DASH_PERIOD_MS)
+        window.setTimeout(() => {
+          setShine(false);
+          setPhase("portal");
+        }, FILL_MS + SHINE_MS)
       );
-    });
+      timers.push(
+        window.setTimeout(finish, FILL_MS + SHINE_MS + PORTAL_MS)
+      );
+    };
+
+    /** At a cycle boundary: chance of another circle, else end the loading chase. */
+    const decideSpinStop = () => {
+      if (Math.random() < EXTRA_CIRCLE_CHANCE) {
+        timers.push(window.setTimeout(decideSpinStop, DASH_PERIOD_MS));
+        return;
+      }
+      beginUnravel();
+    };
+
+    timers.push(
+      window.setTimeout(decideSpinStop, MIN_SPIN_CYCLES * DASH_PERIOD_MS)
+    );
 
     return () => {
-      cancelAnimationFrame(start);
       for (const id of timers) window.clearTimeout(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

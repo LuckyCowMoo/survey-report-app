@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HomeScreen from "./components/HomeScreen";
 import PastReportsScreen from "./components/PastReportsScreen";
+import FieldNotesScreen from "./components/FieldNotesScreen";
 import ReviewScreen from "./components/ReviewScreen";
 import DetailsScreen from "./components/DetailsScreen";
 import GenerateScreen from "./components/GenerateScreen";
@@ -63,7 +64,17 @@ import {
 } from "./lib/scrollRoot";
 import { startOrientationGuard } from "./lib/orientationGuard";
 import { reorderArray } from "./lib/sectionLift";
-import type { ReportExtras, ReportMetadata, SectionState } from "./types";
+import { fieldNotesToShorthand } from "./lib/fieldNotes";
+import {
+  generateShorthandDocx,
+  shorthandDocxFileName
+} from "./lib/shorthandDocxGenerator";
+import type {
+  FieldNoteShot,
+  ReportExtras,
+  ReportMetadata,
+  SectionState
+} from "./types";
 
 type Step = AppStep;
 
@@ -159,6 +170,8 @@ export default function App() {
   /** Section the user has actively focused; dwell timer only runs for this. */
   const [reviewDwellIndex, setReviewDwellIndex] = useState<number | null>(null);
   const [step, setStep] = useState<Step>("home");
+  const [fieldNotes, setFieldNotes] = useState<FieldNoteShot[]>([]);
+  const fieldNotesSessionKeyRef = useRef(`fieldnotes:${crypto.randomUUID()}`);
   const [sections, setSections] = useState<SectionState[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [metadata, setMetadata] = useState<ReportMetadata>(() =>
@@ -518,10 +531,113 @@ export default function App() {
       setReviewDwellIndex(null);
       detailsSuggestRanRef.current = false;
       setDetailsSuggestError(null);
+      setFieldNotes([]);
       navigateTo("review");
     },
     [navigateTo]
   );
+
+  const startFieldNotes = useCallback(() => {
+    setError(null);
+    setFieldNotes([]);
+    fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
+    navigateTo("fieldNotes");
+  }, [navigateTo]);
+
+  const saveFieldNotesDraft = useCallback(
+    async (leaveHome: boolean) => {
+      if (fieldNotes.length === 0) {
+        if (leaveHome) {
+          setFieldNotes([]);
+          navigateTo("home");
+        }
+        return;
+      }
+      if (leaveHome) setBusy("Saving field notes…");
+      setError(null);
+      try {
+        const entries = fieldNotesToShorthand(fieldNotes);
+        const nextSections = matchEntries(entries);
+        const meta = defaultMetadata(settings);
+        const fileName = reportFileName(meta).replace(/\.docx$/i, "") + ".dmsr";
+        const coverThumb = await coverThumbnailBlob(nextSections);
+        // Stable session key while capturing so autosave upserts one draft row.
+        // Final leave uses content fingerprint for resume-after-reimport.
+        const sourceFingerprint = leaveHome
+          ? await fingerprintSourceEntries(entries)
+          : fieldNotesSessionKeyRef.current;
+        const projectBlob = encodeReportProject(
+          buildReportProject({
+            sections: nextSections,
+            metadata: meta,
+            extras: defaultExtras,
+            warnings: [],
+            fileName,
+            step: "review",
+            sourceFingerprint
+          })
+        );
+        await saveProjectDraftToLibrary({
+          projectBlob,
+          fileName,
+          propertyAddress: meta.propertyAddress,
+          houseName: houseNameFromAddress(meta.propertyAddress),
+          clientName: meta.clientName,
+          surveyDate: meta.surveyDate,
+          coverThumb,
+          sourceFingerprint,
+          step: "review"
+        });
+        if (leaveHome) {
+          setFieldNotes([]);
+          setStep("home");
+          replaceAppHist({ app: 1, step: "home" });
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (leaveHome) setBusy(null);
+      }
+    },
+    [fieldNotes, navigateTo, settings]
+  );
+
+  const continueFieldNotesToReport = useCallback(() => {
+    if (fieldNotes.length === 0) return;
+    const entries = fieldNotesToShorthand(fieldNotes);
+    const nextSections = matchEntries(entries);
+    beginFreshImport(nextSections, []);
+  }, [fieldNotes, beginFreshImport]);
+
+  const exportFieldNotesDocx = useCallback(async () => {
+    if (fieldNotes.length === 0) return;
+    setBusy("Exporting shorthand…");
+    setError(null);
+    try {
+      const entries = fieldNotesToShorthand(fieldNotes);
+      const blob = await generateShorthandDocx(entries);
+      const name = shorthandDocxFileName();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  }, [fieldNotes]);
+
+  // Autosave field-notes draft while capturing.
+  useEffect(() => {
+    if (step !== "fieldNotes" || fieldNotes.length === 0) return;
+    const timer = window.setTimeout(() => {
+      void saveFieldNotesDraft(false);
+    }, 8000);
+    return () => window.clearTimeout(timer);
+  }, [step, fieldNotes, saveFieldNotesDraft]);
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -855,6 +971,7 @@ export default function App() {
 
   const reset = useCallback(() => {
     setSections([]);
+    setFieldNotes([]);
     setWarnings([]);
     setExtras(defaultExtras);
     setMetadata(defaultMetadata(settings));
@@ -935,16 +1052,29 @@ export default function App() {
   );
 
   // Leaving review/details/generate back to home auto-saves a Past reports draft.
+  // Leaving field notes also persists a draft when shots exist.
   const prevStepRef = useRef(step);
   useEffect(() => {
     const prev = prevStepRef.current;
     prevStepRef.current = step;
     if (step !== "home") return;
+    if (prev === "fieldNotes") {
+      if (fieldNotes.length > 0) void saveFieldNotesDraft(false);
+      setFieldNotes([]);
+      return;
+    }
     if (prev !== "review" && prev !== "details" && prev !== "generate") return;
     if (sections.length === 0 || saveAndLeaveBusy) return;
     const designStep = prev === "review" ? "review" : "details";
     void saveMidFlowDraft(designStep);
-  }, [step, sections.length, saveAndLeaveBusy, saveMidFlowDraft]);
+  }, [
+    step,
+    sections.length,
+    saveAndLeaveBusy,
+    saveMidFlowDraft,
+    fieldNotes.length,
+    saveFieldNotesDraft
+  ]);
 
   return (
     <div
@@ -952,7 +1082,7 @@ export default function App() {
         step === "home" ? " app-home" : ""
       }${
         step === "review" || step === "details" || step === "generate" ? " app-aside" : ""
-      }`}
+      }${step === "fieldNotes" ? " app-field-notes" : ""}`}
     >
       <AmbientGlow />
       {showIntro && <IntroSplash onDone={dismissIntro} />}
@@ -971,6 +1101,7 @@ export default function App() {
           </button>
           <h1 className="topbar-title">
             {step === "past" && "Past reports"}
+            {step === "fieldNotes" && "Field notes"}
             {step === "review" && "Review sections"}
             {step === "details" && "Report details"}
             {step === "generate" && "Generate"}
@@ -1005,6 +1136,7 @@ export default function App() {
         {step === "home" && (
           <HomeScreen
             onFile={handleFile}
+            onCreateFieldNotes={startFieldNotes}
             busy={busy !== null}
             onShowGuide={openGuide}
             onShowSettings={openSettings}
@@ -1014,6 +1146,16 @@ export default function App() {
         )}
         {step === "past" && (
           <PastReportsScreen onOpenProject={openProject} />
+        )}
+        {step === "fieldNotes" && (
+          <FieldNotesScreen
+            shots={fieldNotes}
+            onChange={setFieldNotes}
+            busy={busy !== null}
+            onSaveAndLeave={() => void saveFieldNotesDraft(true)}
+            onContinueToReport={continueFieldNotesToReport}
+            onExportDocx={() => void exportFieldNotesDocx()}
+          />
         )}
         {step === "review" && (
           <ReviewScreen
