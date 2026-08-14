@@ -119,15 +119,17 @@ export function cameraLook(alpha: number, beta: number, gamma: number): Look {
   };
 }
 
+/**
+ * RelativeOrientationSensor is already a camera-style attitude.
+ * Do not apply the DeviceOrientation −90° X (that aims out the top of the phone).
+ */
 export function lookFromQuaternion(
   x: number,
   y: number,
   z: number,
   w: number
 ): Look {
-  let q = { x, y, z, w };
-  q = quatMul(q, quatAxisAngle(1, 0, 0, -Math.PI / 2));
-  const d = quatRotate(q, 0, 0, -1);
+  const d = quatRotate({ x, y, z, w }, 0, 0, -1);
   return {
     yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
     pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
