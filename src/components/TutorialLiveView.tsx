@@ -290,7 +290,7 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
 
         <div className="tutorial-live-hud">
           <p className="tutorial-live-hint">{hint}</p>
-          <p className="tutorial-build-stamp">test</p>
+          <p className="tutorial-build-stamp">test gyro</p>
           {needGyroTap && !locked && (
             <button
               type="button"

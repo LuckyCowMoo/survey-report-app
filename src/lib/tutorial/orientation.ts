@@ -85,19 +85,33 @@ export function wrapPi(a: number) {
   return x - Math.PI;
 }
 
-/**
- * Chrome DeviceMotion XY is 90° off portrait-camera (Y up the phone).
- * Do not fold in screen.orientation here — adding 90° to 270° wraps to 0
- * and the remap becomes a no-op.
- */
-function inPortraitCamera(x: number, y: number, z: number) {
-  return { x: -y, y: x, z };
+export function screenAngleDeg(): number {
+  const so = screen.orientation;
+  if (so && typeof so.angle === "number") return so.angle;
+  const wo = (window as Window & { orientation?: number }).orientation;
+  return typeof wo === "number" ? wo : 0;
 }
 
+/**
+ * DeviceMotion axes → screen axes. Portrait (angle 0) is unchanged.
+ * Do not add an extra 90° — that is what kept the look a right-angle off.
+ */
+function deviceToScreen(x: number, y: number, z: number) {
+  const a = ((screenAngleDeg() % 360) + 360) % 360;
+  if (a === 90) return { x: y, y: -x, z };
+  if (a === 180) return { x: -x, y: -y, z };
+  if (a === 270) return { x: -y, y: x, z };
+  return { x, y, z };
+}
+
+/**
+ * Rear-camera look: −90° around X (flat device → looking through the back),
+ * then undo the screen’s rotation. No extra Z offset.
+ */
 export function cameraLook(alpha: number, beta: number, gamma: number): Look {
   let q = quatEulerYXZ(beta * DEG, alpha * DEG, -gamma * DEG);
   q = quatMul(q, quatAxisAngle(1, 0, 0, -Math.PI / 2));
-  q = quatMul(q, quatAxisAngle(0, 0, 1, Math.PI / 2));
+  q = quatMul(q, quatAxisAngle(0, 0, 1, -screenAngleDeg() * DEG));
   const d = quatRotate(q, 0, 0, -1);
   return {
     yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
@@ -112,7 +126,7 @@ export function lookFromQuaternion(
   w: number
 ): Look {
   let q = { x, y, z, w };
-  q = quatMul(q, quatAxisAngle(0, 0, 1, Math.PI / 2));
+  q = quatMul(q, quatAxisAngle(1, 0, 0, -Math.PI / 2));
   const d = quatRotate(q, 0, 0, -1);
   return {
     yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
@@ -184,7 +198,7 @@ export function trackerPushMotion(
     rate.beta != null &&
     rate.gamma != null
   ) {
-    const w0 = inPortraitCamera(
+    const w0 = deviceToScreen(
       rate.beta * DEG,
       rate.gamma * DEG,
       rate.alpha * DEG
@@ -196,7 +210,7 @@ export function trackerPushMotion(
     let uy = 1;
     let uz = 0;
     if (accel && accel.x != null && accel.y != null && accel.z != null) {
-      const g = inPortraitCamera(accel.x, accel.y, accel.z);
+      const g = deviceToScreen(accel.x, accel.y, accel.z);
       const mag = Math.hypot(g.x, g.y, g.z);
       if (mag > 4) {
         ux = g.x / mag;
@@ -210,7 +224,7 @@ export function trackerPushMotion(
   }
 
   if (accel && accel.x != null && accel.y != null && accel.z != null) {
-    const g = inPortraitCamera(accel.x, accel.y, accel.z);
+    const g = deviceToScreen(accel.x, accel.y, accel.z);
     const mag = Math.hypot(g.x, g.y, g.z);
     if (mag > 4) {
       const gp = gravityPitch(g.x, g.y, g.z);
@@ -286,7 +300,7 @@ export function startRelativeOrientation(
   if (!Ctor) return () => {};
   let sensor: RelativeSensor;
   try {
-    sensor = new Ctor({ frequency: 60, referenceFrame: "device" });
+    sensor = new Ctor({ frequency: 60, referenceFrame: "screen" });
   } catch {
     return () => {};
   }
