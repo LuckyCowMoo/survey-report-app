@@ -306,7 +306,7 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
           </div>
         </div>
 
-        <p className="tutorial-build-stamp">test cam free</p>
+        <p className="tutorial-build-stamp">test cam map</p>
       </div>
     );
   }

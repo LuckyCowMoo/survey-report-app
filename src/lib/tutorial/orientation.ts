@@ -1,4 +1,4 @@
-/** Camera-style look-around: gyro yaw + gravity pitch. No compass. */
+/** Camera-style look-around: gyroscope only. No gravity, no compass, no horizon. */
 
 type PermissionedSensor = {
   requestPermission?: () => Promise<"granted" | "denied" | string>;
@@ -34,7 +34,7 @@ export async function requestOrientationPermission(): Promise<boolean> {
 
 export type DevicePose = { alpha: number; beta: number; gamma: number };
 
-export type Look = { yaw: number; pitch: number };
+export type Look = { yaw: number; pitch: number; roll?: number };
 
 export type CamQuat = { x: number; y: number; z: number; w: number };
 
@@ -62,15 +62,21 @@ export function quatFromLook(yaw: number, pitch: number, roll = 0): CamQuat {
 
 export function lookFromCamQuat(q: CamQuat): Look {
   const d = quatRotate(q, 0, 0, -1);
-  return {
-    yaw: Math.atan2(d.x, -d.z),
-    pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
-  };
+  const u = quatRotate(q, 0, 1, 0);
+  const yaw = Math.atan2(d.x, -d.z);
+  const pitch = Math.asin(Math.max(-1, Math.min(1, d.y)));
+  const cy = Math.cos(-yaw);
+  const sy = Math.sin(-yaw);
+  const ux = u.x * cy + u.z * sy;
+  const uy = u.y;
+  const uz = -u.x * sy + u.z * cy;
+  const cp = Math.cos(-pitch);
+  const sp = Math.sin(-pitch);
+  const roll = Math.atan2(ux, uy * cp - uz * sp);
+  return { yaw, pitch, roll };
 }
 
 const DEG = Math.PI / 180;
-/** Flip left/right so turning the phone right shows the right of the scene. */
-const YAW_SIGN = -1;
 
 export function quatMul(a: CamQuat, b: CamQuat): CamQuat {
   return {
@@ -135,23 +141,8 @@ function deviceToScreen(x: number, y: number, z: number) {
 }
 
 /**
- * Rear-camera look: −90° around X (flat device → looking through the back),
- * then undo the screen’s rotation. No extra Z offset.
- */
-export function cameraLook(alpha: number, beta: number, gamma: number): Look {
-  let q = quatEulerYXZ(beta * DEG, alpha * DEG, -gamma * DEG);
-  q = quatMul(q, quatAxisAngle(1, 0, 0, -Math.PI / 2));
-  q = quatMul(q, quatAxisAngle(0, 0, 1, -screenAngleDeg() * DEG));
-  const d = quatRotate(q, 0, 0, -1);
-  return {
-    yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
-    pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
-  };
-}
-
-/**
- * RelativeOrientationSensor is already a camera-style attitude.
- * Do not apply the DeviceOrientation −90° X (that aims out the top of the phone).
+ * Map a sensor quaternion into the same yaw/pitch the viewfinder used
+ * before free-look (including YAW_SIGN), plus roll so you can go inverted.
  */
 export function lookFromQuaternion(
   x: number,
@@ -159,11 +150,27 @@ export function lookFromQuaternion(
   z: number,
   w: number
 ): Look {
-  const d = quatRotate({ x, y, z, w }, 0, 0, -1);
-  return {
-    yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
-    pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
-  };
+  const q = { x, y, z, w };
+  const f = quatRotate(q, 0, 0, -1);
+  const u = quatRotate(q, 0, 1, 0);
+  const yaw0 = Math.atan2(f.x, -f.z);
+  const pitch = Math.asin(Math.max(-1, Math.min(1, f.y)));
+  const cy = Math.cos(-yaw0);
+  const sy = Math.sin(-yaw0);
+  const ux = u.x * cy + u.z * sy;
+  const uy = u.y;
+  const uz = -u.x * sy + u.z * cy;
+  const cp = Math.cos(-pitch);
+  const sp = Math.sin(-pitch);
+  const upx = ux;
+  const upy = uy * cp - uz * sp;
+  const roll = Math.atan2(upx, upy);
+  return { yaw: yaw0, pitch, roll };
+}
+
+export function cameraLook(alpha: number, beta: number, gamma: number): Look {
+  const q = cameraQuat(alpha, beta, gamma);
+  return lookFromQuaternion(q.x, q.y, q.z, q.w);
 }
 
 export function readPose(ev: DeviceOrientationEvent): DevicePose | null {
@@ -173,7 +180,6 @@ export function readPose(ev: DeviceOrientationEvent): DevicePose | null {
 
 export type LookTracker = {
   calib: Look | null;
-  calibQ: CamQuat | null;
   filtered: Look | null;
   filteredQ: CamQuat | null;
   lastGyroT: number;
@@ -184,7 +190,6 @@ export type LookTracker = {
 export function createLookTracker(): LookTracker {
   return {
     calib: null,
-    calibQ: null,
     filtered: null,
     filteredQ: null,
     lastGyroT: 0,
@@ -195,41 +200,44 @@ export function createLookTracker(): LookTracker {
 
 export function resetLookTracker(t: LookTracker) {
   t.calib = null;
-  t.calibQ = null;
   t.filtered = null;
   t.filteredQ = null;
   t.lastGyroT = 0;
 }
 
 function ensureFiltered(t: LookTracker): Look {
-  if (!t.filtered) t.filtered = { yaw: 0, pitch: 0 };
+  if (!t.filtered) t.filtered = { yaw: 0, pitch: 0, roll: 0 };
   if (!t.filteredQ) t.filteredQ = quatIdentity();
   return t.filtered;
 }
 
-function signedRelQuat(rel: CamQuat): CamQuat {
-  if (YAW_SIGN >= 0) return quatNorm(rel);
-  return quatNorm({ x: rel.x, y: -rel.y, z: rel.z, w: rel.w });
-}
-
-function setFromQuat(t: LookTracker, q: CamQuat): Look {
-  t.filteredQ = quatNorm(q);
-  t.filtered = lookFromCamQuat(t.filteredQ);
+function setFromLook(t: LookTracker, look: Look): Look {
+  const roll = look.roll ?? 0;
+  t.filtered = { yaw: look.yaw, pitch: look.pitch, roll };
+  t.filteredQ = quatFromLook(look.yaw, look.pitch, roll);
   return t.filtered;
 }
 
+function quatIntegrate(q: CamQuat, wx: number, wy: number, wz: number, dt: number): CamQuat {
+  const ang = Math.hypot(wx, wy, wz) * dt;
+  if (ang < 1e-10) return q;
+  const inv = dt / ang;
+  return quatNorm(
+    quatMul(q, quatAxisAngle(wx * inv, wy * inv, wz * inv, ang))
+  );
+}
+
 /**
- * IMU sample: integrate all three gyro axes. No horizon lock, no pitch clamp.
+ * Gyro rates in the phone's own axes. Does not use gravity, so the
+ * photosphere can go inverted and does not re-level to the floor.
  */
 export function trackerPushMotion(
   t: LookTracker,
   rate: { alpha: number | null; beta: number | null; gamma: number | null },
-  _accel: { x: number | null; y: number | null; z: number | null } | null,
   now: number
 ): Look {
-  if (t.usedRelative) return ensureFiltered(t);
   t.usedMotion = true;
-  ensureFiltered(t);
+  const look = ensureFiltered(t);
   const prev = t.lastGyroT;
   t.lastGyroT = now;
   const dt = prev ? Math.min(0.05, Math.max(0, (now - prev) / 1000)) : 0;
@@ -245,14 +253,21 @@ export function trackerPushMotion(
       rate.gamma * DEG,
       rate.alpha * DEG
     );
-    const mag = Math.hypot(w0.x, w0.y, w0.z);
-    if (mag > 1e-6) {
-      const dq = quatAxisAngle(w0.x / mag, w0.y / mag, w0.z / mag, mag * dt);
-      t.filteredQ = quatNorm(quatMul(t.filteredQ ?? quatIdentity(), dq));
-    }
+    /* Nod→pitch, turn→yaw, roll→roll; yaw and roll signs flipped from the first solve. */
+    t.filteredQ = quatIntegrate(
+      t.filteredQ ?? quatIdentity(),
+      w0.z,
+      w0.x,
+      w0.y,
+      dt
+    );
+    const next = lookFromCamQuat(t.filteredQ);
+    look.yaw = next.yaw;
+    look.pitch = next.pitch;
+    look.roll = next.roll ?? 0;
   }
 
-  return setFromQuat(t, t.filteredQ ?? quatIdentity());
+  return look;
 }
 
 /** Chrome RelativeOrientationSensor (game-rotation vector, no compass). */
@@ -264,12 +279,13 @@ export function trackerPushQuaternion(
   w: number
 ): Look {
   t.usedRelative = true;
-  const abs: CamQuat = { x, y, z, w };
-  if (!t.calibQ) t.calibQ = abs;
-  return setFromQuat(
-    t,
-    signedRelQuat(quatMul(quatConj(t.calibQ), abs))
-  );
+  const abs = lookFromQuaternion(x, y, z, w);
+  if (!t.calib) t.calib = { ...abs, roll: abs.roll ?? 0 };
+  return setFromLook(t, {
+    yaw: wrapPi(abs.yaw - t.calib.yaw),
+    pitch: abs.pitch - t.calib.pitch,
+    roll: wrapPi((abs.roll ?? 0) - (t.calib.roll ?? 0))
+  });
 }
 
 function cameraQuat(alpha: number, beta: number, gamma: number): CamQuat {
@@ -285,9 +301,13 @@ export function trackerPushOrientation(
   pose: DevicePose
 ): Look | null {
   if (t.usedMotion || t.usedRelative) return t.filtered;
-  const abs = cameraQuat(pose.alpha, pose.beta, pose.gamma);
-  if (!t.calibQ) t.calibQ = abs;
-  return setFromQuat(t, signedRelQuat(quatMul(quatConj(t.calibQ), abs)));
+  const abs = cameraLook(pose.alpha, pose.beta, pose.gamma);
+  if (!t.calib) t.calib = { ...abs, roll: abs.roll ?? 0 };
+  return setFromLook(t, {
+    yaw: wrapPi(abs.yaw - t.calib.yaw),
+    pitch: abs.pitch - t.calib.pitch,
+    roll: wrapPi((abs.roll ?? 0) - (t.calib.roll ?? 0))
+  });
 }
 
 type RelativeSensor = {

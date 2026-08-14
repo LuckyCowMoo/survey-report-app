@@ -9,15 +9,12 @@ import { captureJpegFromCanvas } from "../lib/cameraCapture";
 import { angleDelta } from "../lib/tutorial/script";
 import {
   createLookTracker,
-  resetLookTracker,
-  startRelativeOrientation,
-  trackerPushMotion,
-  trackerPushOrientation,
-  readPose,
+  lookFromCamQuat,
   quatFromLook,
   quatIdentity,
   quatMul,
-  lookFromCamQuat,
+  resetLookTracker,
+  trackerPushMotion,
   type CamQuat
 } from "../lib/tutorial/orientation";
 
@@ -49,8 +46,6 @@ vec3 quatRot(vec4 q, vec3 v) {
 void main() {
   vec2 ndc = vec2(vUv.x * 2.0 - 1.0, vUv.y * 2.0 - 1.0);
   ndc.x *= uRes.x / max(uRes.y, 1.0);
-  /* 90° clockwise in the viewfinder to match the phone IMU. */
-  ndc = vec2(ndc.y, -ndc.x);
   float t = tan(uFov * 0.5);
   vec3 dir = normalize(vec3(ndc.x * t, ndc.y * t, -1.0));
   dir = quatRot(uQuat, dir);
@@ -131,13 +126,7 @@ function drawSoftware(
 ) {
   ctx.fillStyle = "#c9d6e2";
   ctx.fillRect(0, 0, w, h);
-  ctx.save();
-  ctx.translate(w / 2, h / 2);
-  ctx.rotate(Math.PI / 2);
-  ctx.translate(-h / 2, -w / 2);
-  const rw = h;
-  const rh = w;
-  const aspect = rw / Math.max(1, rh);
+  const aspect = w / Math.max(1, h);
   const vfov = 2 * Math.atan(Math.tan(fov / 2) / aspect);
   const spanX = (fov / (Math.PI * 2)) * img.naturalWidth;
   const spanY = (vfov / Math.PI) * img.naturalHeight;
@@ -151,14 +140,13 @@ function drawSoftware(
     )
   );
   if (sx + spanX <= img.naturalWidth) {
-    ctx.drawImage(img, sx, sy, spanX, spanY, 0, 0, rw, rh);
+    ctx.drawImage(img, sx, sy, spanX, spanY, 0, 0, w, h);
   } else {
     const first = img.naturalWidth - sx;
     const t = first / spanX;
-    ctx.drawImage(img, sx, sy, first, spanY, 0, 0, rw * t, rh);
-    ctx.drawImage(img, 0, sy, spanX - first, spanY, rw * t, 0, rw * (1 - t), rh);
+    ctx.drawImage(img, sx, sy, first, spanY, 0, 0, w * t, h);
+    ctx.drawImage(img, 0, sy, spanX - first, spanY, w * t, 0, w * (1 - t), h);
   }
-  ctx.restore();
 }
 
 const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
@@ -183,8 +171,7 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     const texDirtyRef = useRef(true);
     const lookRef = useRef({ yaw: 0, pitch: 0 });
     const quatRef = useRef<CamQuat>(quatIdentity());
-    const dragRef = useRef({ yaw: 0, pitch: 0 });
-    const dragQuatRef = useRef<CamQuat>(quatIdentity());
+    const dragRef = useRef({ yaw: 0, pitch: 0, roll: 0 });
     const trackerRef = useRef(createLookTracker());
     const lockedRef = useRef(locked);
     const draggingRef = useRef<{
@@ -206,10 +193,22 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       texDirtyRef.current = true;
     }
 
-    const applyLook = (yaw: number, pitch: number, q?: CamQuat) => {
-      const quat = q ?? quatFromLook(yaw, pitch);
-      quatRef.current = quat;
-      lookRef.current = lookFromCamQuat(quat);
+    const applyLook = (yaw: number, pitch: number, roll = 0) => {
+      dragRef.current = { yaw, pitch, roll };
+      quatRef.current = quatFromLook(yaw, pitch, roll);
+      lookRef.current = { yaw, pitch };
+      onLookRef.current?.(lookRef.current);
+    };
+
+    const applyTracked = () => {
+      const relQ = trackerRef.current.filteredQ ?? quatIdentity();
+      const d = dragRef.current;
+      quatRef.current = quatMul(
+        quatFromLook(d.yaw, d.pitch, d.roll ?? 0),
+        relQ
+      );
+      const look = lookFromCamQuat(quatRef.current);
+      lookRef.current = { yaw: look.yaw, pitch: look.pitch };
       onLookRef.current?.(lookRef.current);
     };
 
@@ -343,11 +342,9 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     useImperativeHandle(ref, () => ({
       getLook: () => ({ ...lookRef.current }),
       setLook: (yaw, pitch) => {
-        const q = quatFromLook(yaw, pitch);
-        dragRef.current = { yaw, pitch };
-        dragQuatRef.current = q;
+        dragRef.current = { yaw, pitch, roll: 0 };
         resetLookTracker(trackerRef.current);
-        applyLook(yaw, pitch, q);
+        applyLook(yaw, pitch, 0);
       },
       animateTo: (yaw, pitch, ms) =>
         new Promise((resolve) => {
@@ -361,11 +358,9 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
             const e = t * t * (3 - 2 * t);
             const ny = from.yaw + (toYaw - from.yaw) * e;
             const np = from.pitch + (toPitch - from.pitch) * e;
-            const q = quatFromLook(ny, np);
-            dragRef.current = { yaw: ny, pitch: np };
-            dragQuatRef.current = q;
+            dragRef.current = { yaw: ny, pitch: np, roll: 0 };
             resetLookTracker(trackerRef.current);
-            applyLook(ny, np, q);
+            applyLook(ny, np, 0);
             if (t < 1) animRef.current = requestAnimationFrame(tick);
             else resolve();
           };
@@ -375,15 +370,13 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       setLocked: (next) => {
         lockedRef.current = next;
         if (!next) {
-          dragRef.current = { ...lookRef.current };
-          dragQuatRef.current = quatRef.current;
+          dragRef.current = { ...lookRef.current, roll: 0 };
           resetLookTracker(trackerRef.current);
         }
       },
       recalibrate: () => {
         resetLookTracker(trackerRef.current);
-        dragRef.current = { ...lookRef.current };
-        dragQuatRef.current = quatRef.current;
+        dragRef.current = { ...lookRef.current, roll: 0 };
       },
       captureJpeg: async () => {
         const canvas = canvasRef.current;
@@ -430,43 +423,18 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     }, []);
 
     useEffect(() => {
-      const applyTracked = () => {
-        const rel = trackerRef.current.filteredQ;
-        if (!rel) return;
-        applyLook(0, 0, quatMul(dragQuatRef.current, rel));
-      };
-
-      const stopRelative = startRelativeOrientation(
-        trackerRef.current,
-        () => {
-          if (lockedRef.current || draggingRef.current) return;
-          applyTracked();
-        }
-      );
-
-      const onOrient = (ev: DeviceOrientationEvent) => {
-        if (lockedRef.current || draggingRef.current) return;
-        const pose = readPose(ev);
-        if (!pose) return;
-        if (trackerPushOrientation(trackerRef.current, pose)) applyTracked();
-      };
-
       const onMotion = (ev: DeviceMotionEvent) => {
         if (lockedRef.current || draggingRef.current) return;
         trackerPushMotion(
           trackerRef.current,
           ev.rotationRate ?? { alpha: null, beta: null, gamma: null },
-          ev.accelerationIncludingGravity ?? null,
           performance.now()
         );
         applyTracked();
       };
 
-      window.addEventListener("deviceorientation", onOrient, true);
       window.addEventListener("devicemotion", onMotion, true);
       return () => {
-        stopRelative();
-        window.removeEventListener("deviceorientation", onOrient, true);
         window.removeEventListener("devicemotion", onMotion, true);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -495,20 +463,17 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       const h = canvas?.clientHeight || 1;
       const dx = (e.clientX - d.x) / w;
       const dy = (e.clientY - d.y) / h;
-      const yaw = d.yaw - dy * fovRef.current * 1.6;
-      const pitch = d.pitch - dx * fovRef.current * 1.2;
-      const q = quatFromLook(yaw, pitch);
-      dragRef.current = { yaw, pitch };
-      dragQuatRef.current = q;
+      const yaw = d.yaw - dx * fovRef.current * 1.6;
+      const pitch = d.pitch - dy * fovRef.current * 1.2;
+      dragRef.current = { yaw, pitch, roll: 0 };
       resetLookTracker(trackerRef.current);
-      applyLook(yaw, pitch, q);
+      applyLook(yaw, pitch, 0);
     };
 
     const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>) => {
       if (draggingRef.current?.id !== e.pointerId) return;
       draggingRef.current = null;
-      dragRef.current = { ...lookRef.current };
-      dragQuatRef.current = quatRef.current;
+      dragRef.current = { ...lookRef.current, roll: 0 };
       resetLookTracker(trackerRef.current);
     };
 
