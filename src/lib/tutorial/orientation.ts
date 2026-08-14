@@ -85,33 +85,19 @@ export function wrapPi(a: number) {
   return x - Math.PI;
 }
 
-export function screenAngleDeg(): number {
-  const so = screen.orientation;
-  if (so && typeof so.angle === "number") return so.angle;
-  const wo = (window as Window & { orientation?: number }).orientation;
-  return typeof wo === "number" ? wo : 0;
-}
-
 /**
- * Chrome on phones often reports IMU XY 90° from “camera portrait”
- * (Y up the phone, X right). Combine that with screen.orientation.
+ * Chrome DeviceMotion XY is 90° off portrait-camera (Y up the phone).
+ * Do not fold in screen.orientation here — adding 90° to 270° wraps to 0
+ * and the remap becomes a no-op.
  */
 function inPortraitCamera(x: number, y: number, z: number) {
-  const a = (((screenAngleDeg() + 90) % 360) + 360) % 360;
-  if (a === 90) return { x: -y, y: x, z };
-  if (a === 180) return { x: -x, y: -y, z };
-  if (a === 270) return { x: y, y: -x, z };
-  return { x, y, z };
-}
-
-function portraitRollRad() {
-  return ((screenAngleDeg() + 90) * DEG);
+  return { x: -y, y: x, z };
 }
 
 export function cameraLook(alpha: number, beta: number, gamma: number): Look {
   let q = quatEulerYXZ(beta * DEG, alpha * DEG, -gamma * DEG);
   q = quatMul(q, quatAxisAngle(1, 0, 0, -Math.PI / 2));
-  q = quatMul(q, quatAxisAngle(0, 0, 1, portraitRollRad()));
+  q = quatMul(q, quatAxisAngle(0, 0, 1, Math.PI / 2));
   const d = quatRotate(q, 0, 0, -1);
   return {
     yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
@@ -126,7 +112,7 @@ export function lookFromQuaternion(
   w: number
 ): Look {
   let q = { x, y, z, w };
-  q = quatMul(q, quatAxisAngle(0, 0, 1, portraitRollRad()));
+  q = quatMul(q, quatAxisAngle(0, 0, 1, Math.PI / 2));
   const d = quatRotate(q, 0, 0, -1);
   return {
     yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
@@ -300,7 +286,7 @@ export function startRelativeOrientation(
   if (!Ctor) return () => {};
   let sensor: RelativeSensor;
   try {
-    sensor = new Ctor({ frequency: 60, referenceFrame: "screen" });
+    sensor = new Ctor({ frequency: 60, referenceFrame: "device" });
   } catch {
     return () => {};
   }
