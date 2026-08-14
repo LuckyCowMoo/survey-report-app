@@ -3532,9 +3532,9 @@ html:not([data-theme="original"]) .app {
 }
 
 html:not([data-theme="original"]) .app.app-field-notes {
-  width: min(100%, calc(100dvh * 9 / 19.5));
-  max-width: min(100%, calc(100dvh * 9 / 19.5));
-  margin-inline: auto;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
 }
 
 /* Home: lock to the viewport — no page scroll */
@@ -5889,11 +5889,20 @@ html[data-theme="dark"] .chip.kw {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  /* 19.5:9 portrait phone. On a real phone this is ~full width; on a wide
-     window (already past the 720/1040 app cap) it pillarboxes to that ratio. */
-  width: min(100%, calc(100dvh * 9 / 19.5));
-  max-width: min(100%, calc(100dvh * 9 / 19.5));
-  margin-inline: auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+/* Only pinch to 19.5:9 portrait when the free-flowing window is ≥ 3× that
+   frame’s width (viewport ≥ 27:19.5). */
+@media (min-aspect-ratio: 27 / 19.5) {
+  .app.app-field-notes,
+  html:not([data-theme="original"]) .app.app-field-notes {
+    width: min(100%, calc(100dvh * 9 / 19.5));
+    max-width: min(100%, calc(100dvh * 9 / 19.5));
+    margin-inline: auto;
+  }
 }
 
 html:has(.app-field-notes),
