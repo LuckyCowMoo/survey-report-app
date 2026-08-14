@@ -286,26 +286,27 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
           </div>
         )}
 
-        <div className="tutorial-aim-frame" data-ok={aligned && walkMode === "off"} />
+        <div className="tutorial-aim-frame" data-ok={aligned && walkMode === "off"}>
+          <div className="tutorial-live-hud">
+            <p className="tutorial-live-hint">{hint}</p>
+            {needGyroTap && !locked && (
+              <button
+                type="button"
+                className="btn small tutorial-gyro-btn"
+                onClick={() => void enableGyro()}
+              >
+                {hasGyro ? "Motion on" : "Look by turning the phone"}
+              </button>
+            )}
+            {!needGyroTap && walkMode === "off" && !locked && (
+              <p className="tutorial-live-sub">
+                Drag to look · turn the phone if motion is allowed
+              </p>
+            )}
+          </div>
+        </div>
 
         <p className="tutorial-build-stamp">test cam up</p>
-        <div className="tutorial-live-hud">
-          <p className="tutorial-live-hint">{hint}</p>
-          {needGyroTap && !locked && (
-            <button
-              type="button"
-              className="btn small tutorial-gyro-btn"
-              onClick={() => void enableGyro()}
-            >
-              {hasGyro ? "Motion on" : "Look by turning the phone"}
-            </button>
-          )}
-          {!needGyroTap && walkMode === "off" && !locked && (
-            <p className="tutorial-live-sub">
-              Drag to look · turn the phone if motion is allowed
-            </p>
-          )}
-        </div>
       </div>
     );
   }

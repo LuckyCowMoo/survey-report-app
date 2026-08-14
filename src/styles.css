@@ -7733,6 +7733,11 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   z-index: 4;
   box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.18);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 14px 0;
+  box-sizing: border-box;
 }
 
 .tutorial-aim-frame[data-ok="true"] {
@@ -7741,17 +7746,18 @@ html[data-theme="dark"] .field-notes-annotate-btn {
 }
 
 .tutorial-live-hud {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 14px;
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
   z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   pointer-events: none;
   text-align: center;
+  max-width: 100%;
 }
 
 .tutorial-live-hud .tutorial-gyro-btn {
