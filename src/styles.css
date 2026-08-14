@@ -3531,6 +3531,12 @@ html:not([data-theme="original"]) .app {
   max-width: 1040px;
 }
 
+html:not([data-theme="original"]) .app.app-field-notes {
+  width: min(100%, calc(100dvh * 9 / 19.5));
+  max-width: min(100%, calc(100dvh * 9 / 19.5));
+  margin-inline: auto;
+}
+
 /* Home: lock to the viewport — no page scroll */
 html:has(.app-home),
 html:has(.app-home) body {
