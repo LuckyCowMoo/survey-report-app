@@ -2,14 +2,27 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   // GitHub Pages serves project sites from /<repo-name>/; the deploy workflow
   // sets BASE_PATH accordingly. Cloudflare Pages and local dev use "/".
   base: process.env.BASE_PATH || "/",
+  server: {
+    host: true,
+    // LAN phones hit this as http://192.168.x.x:5173 — allow any Host header in dev.
+    allowedHosts: true,
+    cors: true
+  },
+  preview: {
+    host: true,
+    allowedHosts: true
+  },
   plugins: [
     react(),
     VitePWA({
+      // Dev: do not inject a SW. A stale PWA cache on the phone is a blank screen.
+      injectRegister: command === "build" ? "auto" : null,
       registerType: "autoUpdate",
+      devOptions: { enabled: false },
       includeAssets: ["icons/apple-touch-icon.png", "favicon.svg"],
       manifest: {
         name: "Damp Survey Report Generator",
@@ -50,4 +63,4 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1500
   }
-});
+}));

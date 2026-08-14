@@ -36,13 +36,43 @@ export type DevicePose = { alpha: number; beta: number; gamma: number };
 
 export type Look = { yaw: number; pitch: number };
 
+export type CamQuat = { x: number; y: number; z: number; w: number };
+
+export function quatIdentity(): CamQuat {
+  return { x: 0, y: 0, z: 0, w: 1 };
+}
+
+export function quatConj(q: CamQuat): CamQuat {
+  return { x: -q.x, y: -q.y, z: -q.z, w: q.w };
+}
+
+export function quatNorm(q: CamQuat): CamQuat {
+  const n = Math.hypot(q.x, q.y, q.z, q.w) || 1;
+  return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n };
+}
+
+export function quatFromLook(yaw: number, pitch: number, roll = 0): CamQuat {
+  return quatNorm(
+    quatMul(
+      quatMul(quatAxisAngle(0, 1, 0, yaw), quatAxisAngle(1, 0, 0, pitch)),
+      quatAxisAngle(0, 0, 1, roll)
+    )
+  );
+}
+
+export function lookFromCamQuat(q: CamQuat): Look {
+  const d = quatRotate(q, 0, 0, -1);
+  return {
+    yaw: Math.atan2(d.x, -d.z),
+    pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
+  };
+}
+
 const DEG = Math.PI / 180;
 /** Flip left/right so turning the phone right shows the right of the scene. */
 const YAW_SIGN = -1;
 
-type Quat = { x: number; y: number; z: number; w: number };
-
-function quatMul(a: Quat, b: Quat): Quat {
+export function quatMul(a: CamQuat, b: CamQuat): CamQuat {
   return {
     x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
     y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
@@ -51,13 +81,13 @@ function quatMul(a: Quat, b: Quat): Quat {
   };
 }
 
-function quatAxisAngle(x: number, y: number, z: number, angle: number): Quat {
+function quatAxisAngle(x: number, y: number, z: number, angle: number): CamQuat {
   const h = angle * 0.5;
   const s = Math.sin(h);
   return { x: x * s, y: y * s, z: z * s, w: Math.cos(h) };
 }
 
-function quatEulerYXZ(x: number, y: number, z: number): Quat {
+function quatEulerYXZ(x: number, y: number, z: number): CamQuat {
   const cx = Math.cos(x / 2);
   const sx = Math.sin(x / 2);
   const cy = Math.cos(y / 2);
@@ -72,9 +102,9 @@ function quatEulerYXZ(x: number, y: number, z: number): Quat {
   };
 }
 
-function quatRotate(q: Quat, vx: number, vy: number, vz: number) {
-  const qv: Quat = { x: vx, y: vy, z: vz, w: 0 };
-  const qi: Quat = { x: -q.x, y: -q.y, z: -q.z, w: q.w };
+function quatRotate(q: CamQuat, vx: number, vy: number, vz: number) {
+  const qv: CamQuat = { x: vx, y: vy, z: vz, w: 0 };
+  const qi: CamQuat = { x: -q.x, y: -q.y, z: -q.z, w: q.w };
   const r = quatMul(quatMul(q, qv), qi);
   return { x: r.x, y: r.y, z: r.z };
 }
@@ -143,8 +173,9 @@ export function readPose(ev: DeviceOrientationEvent): DevicePose | null {
 
 export type LookTracker = {
   calib: Look | null;
+  calibQ: CamQuat | null;
   filtered: Look | null;
-  gravPitch0: number | null;
+  filteredQ: CamQuat | null;
   lastGyroT: number;
   usedMotion: boolean;
   usedRelative: boolean;
@@ -153,8 +184,9 @@ export type LookTracker = {
 export function createLookTracker(): LookTracker {
   return {
     calib: null,
+    calibQ: null,
     filtered: null,
-    gravPitch0: null,
+    filteredQ: null,
     lastGyroT: 0,
     usedMotion: false,
     usedRelative: false
@@ -163,33 +195,41 @@ export function createLookTracker(): LookTracker {
 
 export function resetLookTracker(t: LookTracker) {
   t.calib = null;
+  t.calibQ = null;
   t.filtered = null;
-  t.gravPitch0 = null;
+  t.filteredQ = null;
   t.lastGyroT = 0;
 }
 
 function ensureFiltered(t: LookTracker): Look {
   if (!t.filtered) t.filtered = { yaw: 0, pitch: 0 };
+  if (!t.filteredQ) t.filteredQ = quatIdentity();
   return t.filtered;
 }
 
-function gravityPitch(_ax: number, ay: number, az: number) {
-  return Math.atan2(az, ay);
+function signedRelQuat(rel: CamQuat): CamQuat {
+  if (YAW_SIGN >= 0) return quatNorm(rel);
+  return quatNorm({ x: rel.x, y: -rel.y, z: rel.z, w: rel.w });
+}
+
+function setFromQuat(t: LookTracker, q: CamQuat): Look {
+  t.filteredQ = quatNorm(q);
+  t.filtered = lookFromCamQuat(t.filteredQ);
+  return t.filtered;
 }
 
 /**
- * IMU sample: gyro for yaw (locked, like a camera), gravity for pitch (horizon).
- * rotationRate is deg/s on device X/Y/Z = beta/gamma/alpha.
+ * IMU sample: integrate all three gyro axes. No horizon lock, no pitch clamp.
  */
 export function trackerPushMotion(
   t: LookTracker,
   rate: { alpha: number | null; beta: number | null; gamma: number | null },
-  accel: { x: number | null; y: number | null; z: number | null } | null,
+  _accel: { x: number | null; y: number | null; z: number | null } | null,
   now: number
 ): Look {
   if (t.usedRelative) return ensureFiltered(t);
   t.usedMotion = true;
-  const look = ensureFiltered(t);
+  ensureFiltered(t);
   const prev = t.lastGyroT;
   t.lastGyroT = now;
   const dt = prev ? Math.min(0.05, Math.max(0, (now - prev) / 1000)) : 0;
@@ -205,41 +245,14 @@ export function trackerPushMotion(
       rate.gamma * DEG,
       rate.alpha * DEG
     );
-    const wx = w0.x;
-    const wy = w0.y;
-    const wz = w0.z;
-    let ux = 0;
-    let uy = 1;
-    let uz = 0;
-    if (accel && accel.x != null && accel.y != null && accel.z != null) {
-      const g = deviceToScreen(accel.x, accel.y, accel.z);
-      const mag = Math.hypot(g.x, g.y, g.z);
-      if (mag > 4) {
-        ux = g.x / mag;
-        uy = g.y / mag;
-        uz = g.z / mag;
-      }
-    }
-    const yawRate = YAW_SIGN * (wx * ux + wy * uy + wz * uz);
-    look.yaw = wrapPi(look.yaw + yawRate * dt);
-    look.pitch += wx * dt;
-  }
-
-  if (accel && accel.x != null && accel.y != null && accel.z != null) {
-    const g = deviceToScreen(accel.x, accel.y, accel.z);
-    const mag = Math.hypot(g.x, g.y, g.z);
-    if (mag > 4) {
-      const gp = gravityPitch(g.x, g.y, g.z);
-      if (t.gravPitch0 == null) t.gravPitch0 = gp;
-      const target = gp - t.gravPitch0;
-      // Tight horizon lock (~45ms), not the old compass ease.
-      const k = dt > 0 ? 1 - Math.exp(-dt / 0.045) : 0.2;
-      look.pitch += (target - look.pitch) * k;
+    const mag = Math.hypot(w0.x, w0.y, w0.z);
+    if (mag > 1e-6) {
+      const dq = quatAxisAngle(w0.x / mag, w0.y / mag, w0.z / mag, mag * dt);
+      t.filteredQ = quatNorm(quatMul(t.filteredQ ?? quatIdentity(), dq));
     }
   }
 
-  look.pitch = Math.max(-1.45, Math.min(1.45, look.pitch));
-  return look;
+  return setFromQuat(t, t.filteredQ ?? quatIdentity());
 }
 
 /** Chrome RelativeOrientationSensor (game-rotation vector, no compass). */
@@ -251,14 +264,19 @@ export function trackerPushQuaternion(
   w: number
 ): Look {
   t.usedRelative = true;
-  const abs = lookFromQuaternion(x, y, z, w);
-  if (!t.calib) t.calib = { ...abs };
-  const next = {
-    yaw: wrapPi(abs.yaw - t.calib.yaw),
-    pitch: abs.pitch - t.calib.pitch
-  };
-  t.filtered = next;
-  return next;
+  const abs: CamQuat = { x, y, z, w };
+  if (!t.calibQ) t.calibQ = abs;
+  return setFromQuat(
+    t,
+    signedRelQuat(quatMul(quatConj(t.calibQ), abs))
+  );
+}
+
+function cameraQuat(alpha: number, beta: number, gamma: number): CamQuat {
+  let q = quatEulerYXZ(beta * DEG, alpha * DEG, -gamma * DEG);
+  q = quatMul(q, quatAxisAngle(1, 0, 0, -Math.PI / 2));
+  q = quatMul(q, quatAxisAngle(0, 0, 1, -screenAngleDeg() * DEG));
+  return q;
 }
 
 /** Last resort when no gyro/motion (rare). */
@@ -267,16 +285,9 @@ export function trackerPushOrientation(
   pose: DevicePose
 ): Look | null {
   if (t.usedMotion || t.usedRelative) return t.filtered;
-  const abs = cameraLook(pose.alpha, pose.beta, pose.gamma);
-  if (!t.calib) t.calib = { ...abs };
-  const target = {
-    yaw: wrapPi(abs.yaw - t.calib.yaw),
-    pitch: abs.pitch - t.calib.pitch
-  };
-  const look = ensureFiltered(t);
-  look.yaw = wrapPi(look.yaw + wrapPi(target.yaw - look.yaw) * 0.55);
-  look.pitch += (target.pitch - look.pitch) * 0.55;
-  return look;
+  const abs = cameraQuat(pose.alpha, pose.beta, pose.gamma);
+  if (!t.calibQ) t.calibQ = abs;
+  return setFromQuat(t, signedRelQuat(quatMul(quatConj(t.calibQ), abs)));
 }
 
 type RelativeSensor = {

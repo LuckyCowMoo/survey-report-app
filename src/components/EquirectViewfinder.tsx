@@ -13,7 +13,12 @@ import {
   startRelativeOrientation,
   trackerPushMotion,
   trackerPushOrientation,
-  readPose
+  readPose,
+  quatFromLook,
+  quatIdentity,
+  quatMul,
+  lookFromCamQuat,
+  type CamQuat
 } from "../lib/tutorial/orientation";
 
 const VERT = `
@@ -32,21 +37,23 @@ uniform vec2 uRes;
 uniform float uYaw;
 uniform float uPitch;
 uniform float uFov;
+uniform vec4 uQuat;
 varying vec2 vUv;
+
+vec3 quatRot(vec4 q, vec3 v) {
+  vec3 u = q.xyz;
+  float s = q.w;
+  return 2.0 * dot(u, v) * u + (s * s - dot(u, u)) * v + 2.0 * s * cross(u, v);
+}
 
 void main() {
   vec2 ndc = vec2(vUv.x * 2.0 - 1.0, vUv.y * 2.0 - 1.0);
-  /* 2D clockwise viewfinder (not a 3D camera roll — that sent yaw into the nadir). */
-  ndc = vec2(-ndc.y, ndc.x);
-  ndc.x *= uRes.y / max(uRes.x, 1.0);
+  ndc.x *= uRes.x / max(uRes.y, 1.0);
+  /* 90° clockwise in the viewfinder to match the phone IMU. */
+  ndc = vec2(ndc.y, -ndc.x);
   float t = tan(uFov * 0.5);
   vec3 dir = normalize(vec3(ndc.x * t, ndc.y * t, -1.0));
-  float cp = cos(uPitch);
-  float sp = sin(uPitch);
-  dir = vec3(dir.x, dir.y * cp - dir.z * sp, dir.y * sp + dir.z * cp);
-  float cy = cos(uYaw);
-  float sy = sin(uYaw);
-  dir = vec3(dir.x * cy + dir.z * sy, dir.y, -dir.x * sy + dir.z * cy);
+  dir = quatRot(uQuat, dir);
   float lon = atan(dir.x, -dir.z);
   float lat = asin(clamp(dir.y, -1.0, 1.0));
   vec2 uv = vec2(lon / 6.28318530718 + 0.5, 0.5 - lat / 3.14159265359);
@@ -82,10 +89,6 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
     throw new Error(log || "WebGL shader failed.");
   }
   return sh;
-}
-
-function clampPitch(p: number) {
-  return Math.max(-1.45, Math.min(1.45, p));
 }
 
 function getGl(canvas: HTMLCanvasElement): WebGLRenderingContext | null {
@@ -174,11 +177,14 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       yaw: WebGLUniformLocation | null;
       pitch: WebGLUniformLocation | null;
       fov: WebGLUniformLocation | null;
+      quat: WebGLUniformLocation | null;
     } | null>(null);
     const panoRef = useRef<HTMLImageElement | null>(null);
     const texDirtyRef = useRef(true);
     const lookRef = useRef({ yaw: 0, pitch: 0 });
+    const quatRef = useRef<CamQuat>(quatIdentity());
     const dragRef = useRef({ yaw: 0, pitch: 0 });
+    const dragQuatRef = useRef<CamQuat>(quatIdentity());
     const trackerRef = useRef(createLookTracker());
     const lockedRef = useRef(locked);
     const draggingRef = useRef<{
@@ -200,8 +206,10 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       texDirtyRef.current = true;
     }
 
-    const applyLook = (yaw: number, pitch: number) => {
-      lookRef.current = { yaw, pitch: clampPitch(pitch) };
+    const applyLook = (yaw: number, pitch: number, q?: CamQuat) => {
+      const quat = q ?? quatFromLook(yaw, pitch);
+      quatRef.current = quat;
+      lookRef.current = lookFromCamQuat(quat);
       onLookRef.current?.(lookRef.current);
     };
 
@@ -249,7 +257,8 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
         res: gl.getUniformLocation(prog, "uRes"),
         yaw: gl.getUniformLocation(prog, "uYaw"),
         pitch: gl.getUniformLocation(prog, "uPitch"),
-        fov: gl.getUniformLocation(prog, "uFov")
+        fov: gl.getUniformLocation(prog, "uFov"),
+        quat: gl.getUniformLocation(prog, "uQuat")
       };
       const tex = gl.createTexture();
       texRef.current = tex;
@@ -311,6 +320,8 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
         gl.uniform1f(uniforms.yaw, lookRef.current.yaw);
         gl.uniform1f(uniforms.pitch, lookRef.current.pitch);
         gl.uniform1f(uniforms.fov, fovRef.current);
+        const q = quatRef.current;
+        gl.uniform4f(uniforms.quat, q.x, q.y, q.z, q.w);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         return;
       }
@@ -332,15 +343,17 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     useImperativeHandle(ref, () => ({
       getLook: () => ({ ...lookRef.current }),
       setLook: (yaw, pitch) => {
-        dragRef.current = { yaw, pitch: clampPitch(pitch) };
+        const q = quatFromLook(yaw, pitch);
+        dragRef.current = { yaw, pitch };
+        dragQuatRef.current = q;
         resetLookTracker(trackerRef.current);
-        applyLook(yaw, clampPitch(pitch));
+        applyLook(yaw, pitch, q);
       },
       animateTo: (yaw, pitch, ms) =>
         new Promise((resolve) => {
           const from = { ...lookRef.current };
           const toYaw = from.yaw + angleDelta(yaw, from.yaw);
-          const toPitch = clampPitch(pitch);
+          const toPitch = pitch;
           const start = performance.now();
           const dur = Math.max(1, ms);
           const tick = (now: number) => {
@@ -348,9 +361,11 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
             const e = t * t * (3 - 2 * t);
             const ny = from.yaw + (toYaw - from.yaw) * e;
             const np = from.pitch + (toPitch - from.pitch) * e;
+            const q = quatFromLook(ny, np);
             dragRef.current = { yaw: ny, pitch: np };
+            dragQuatRef.current = q;
             resetLookTracker(trackerRef.current);
-            applyLook(ny, np);
+            applyLook(ny, np, q);
             if (t < 1) animRef.current = requestAnimationFrame(tick);
             else resolve();
           };
@@ -361,12 +376,14 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
         lockedRef.current = next;
         if (!next) {
           dragRef.current = { ...lookRef.current };
+          dragQuatRef.current = quatRef.current;
           resetLookTracker(trackerRef.current);
         }
       },
       recalibrate: () => {
         resetLookTracker(trackerRef.current);
         dragRef.current = { ...lookRef.current };
+        dragQuatRef.current = quatRef.current;
       },
       captureJpeg: async () => {
         const canvas = canvasRef.current;
@@ -414,9 +431,9 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
 
     useEffect(() => {
       const applyTracked = () => {
-        const rel = trackerRef.current.filtered;
+        const rel = trackerRef.current.filteredQ;
         if (!rel) return;
-        applyLook(dragRef.current.yaw + rel.yaw, dragRef.current.pitch + rel.pitch);
+        applyLook(0, 0, quatMul(dragQuatRef.current, rel));
       };
 
       const stopRelative = startRelativeOrientation(
@@ -480,15 +497,18 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       const dy = (e.clientY - d.y) / h;
       const yaw = d.yaw - dy * fovRef.current * 1.6;
       const pitch = d.pitch - dx * fovRef.current * 1.2;
-      dragRef.current = { yaw, pitch: clampPitch(pitch) };
+      const q = quatFromLook(yaw, pitch);
+      dragRef.current = { yaw, pitch };
+      dragQuatRef.current = q;
       resetLookTracker(trackerRef.current);
-      applyLook(dragRef.current.yaw, dragRef.current.pitch);
+      applyLook(yaw, pitch, q);
     };
 
     const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>) => {
       if (draggingRef.current?.id !== e.pointerId) return;
       draggingRef.current = null;
       dragRef.current = { ...lookRef.current };
+      dragQuatRef.current = quatRef.current;
       resetLookTracker(trackerRef.current);
     };
 
