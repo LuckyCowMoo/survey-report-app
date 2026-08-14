@@ -37,8 +37,8 @@ varying vec2 vUv;
 void main() {
   vec2 ndc = vec2(vUv.x * 2.0 - 1.0, vUv.y * 2.0 - 1.0);
   ndc.x *= uRes.x / max(uRes.y, 1.0);
-  /* 90° anticlockwise in the viewfinder to match the phone IMU. */
-  ndc = vec2(-ndc.y, ndc.x);
+  /* 90° clockwise in the viewfinder to match the phone IMU. */
+  ndc = vec2(ndc.y, -ndc.x);
   float t = tan(uFov * 0.5);
   vec3 dir = normalize(vec3(ndc.x * t, ndc.y * t, -1.0));
   float cp = cos(uPitch);
@@ -130,7 +130,7 @@ function drawSoftware(
   ctx.fillRect(0, 0, w, h);
   ctx.save();
   ctx.translate(w / 2, h / 2);
-  ctx.rotate(-Math.PI / 2);
+  ctx.rotate(Math.PI / 2);
   ctx.translate(-h / 2, -w / 2);
   const rw = h;
   const rh = w;
@@ -478,8 +478,8 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       const h = canvas?.clientHeight || 1;
       const dx = (e.clientX - d.x) / w;
       const dy = (e.clientY - d.y) / h;
-      const yaw = d.yaw + dy * fovRef.current * 1.6;
-      const pitch = d.pitch + dx * fovRef.current * 1.2;
+      const yaw = d.yaw - dy * fovRef.current * 1.6;
+      const pitch = d.pitch - dx * fovRef.current * 1.2;
       dragRef.current = { yaw, pitch: clampPitch(pitch) };
       resetLookTracker(trackerRef.current);
       applyLook(dragRef.current.yaw, dragRef.current.pitch);

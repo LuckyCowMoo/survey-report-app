@@ -8,3 +8,11 @@ dev-dist/
 samples/
 test-output/
 scripts/extracted/
+
+# Blender intermediates (source mesh is >100MB; GitHub rejects it)
+public/tutorial/_extract/
+public/tutorial/_walk_frames/
+public/tutorial/*.blend
+public/tutorial/*.log
+public/tutorial/RENDER_DONE.txt
+public/tutorial/blender_render.err.log

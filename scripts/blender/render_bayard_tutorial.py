@@ -9,7 +9,10 @@ Writes (into this repo's public/tutorial/):
 The app already runs without these files (it feathers your Sketchfab stills
 into fog). Drop the baked files in public/tutorial/ to replace the stand-ins.
 
-Usage (Blender 4.x, EEVEE):
+Usage (Blender 4.x / 5.x, EEVEE):
+
+  Double-click scripts/blender/run_tutorial_render.bat
+  or from this repo:
 
   blender --background --python scripts/blender/render_bayard_tutorial.py -- ^
     --obj "C:\\Users\\lukea\\Downloads\\bayard-station-valve-house\\source\\model.zip" ^
@@ -53,7 +56,7 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--blend-out", default="")
     p.add_argument("--resolution", type=int, default=2048, help="Equirect width (height is half)")
-    p.add_argument("--walk-frames", type=int, default=96)
+    p.add_argument("--walk-frames", type=int, default=168)
     p.add_argument("--fps", type=int, default=24)
     return p.parse_args(_argv_after_dashes(sys.argv))
 
@@ -73,6 +76,37 @@ def ensure_obj(path: str, work: str) -> str:
     raise SystemExit(f"Could not find OBJ or zip at {path}")
 
 
+def encode_walk_ffmpeg(walk_dir: str, walk_mp4: str, fps: int) -> bool:
+    import shutil
+    import subprocess
+
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return False
+    pattern = os.path.join(walk_dir, "walk_%04d.png")
+    r = subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-framerate",
+            str(fps),
+            "-i",
+            pattern,
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            walk_mp4,
+        ],
+        check=False,
+    )
+    return r.returncode == 0 and os.path.isfile(walk_mp4)
+
+
+def log(msg: str) -> None:
+    print(msg, flush=True)
+
+
 def configure_world(bpy, fog_density: float = 0.035) -> None:
     world = bpy.context.scene.world
     if world is None:
@@ -89,23 +123,34 @@ def configure_world(bpy, fog_density: float = 0.035) -> None:
 
     # EEVEE mist: hide the torn photogrammetry skirt.
     scene = bpy.context.scene
-    scene.eevee.use_gtao = True
+    eevee = getattr(scene, "eevee", None)
+    if eevee is not None:
+        for attr, value in (
+            ("use_gtao", True),
+            ("gtao_quality", 0.5),
+            ("use_raytracing", False),
+            ("use_soft_shadows", True),
+        ):
+            if hasattr(eevee, attr):
+                setattr(eevee, attr, value)
     try:
-        scene.eevee.use_raytracing = False
+        scene.view_settings.view_transform = "Standard"
     except Exception:
         pass
-    view = scene.view_settings
-    view.view_transform = "Standard"
 
-    cam_data_keys = []
     for cam in bpy.data.cameras:
-        cam_data_keys.append(cam)
-        cam.show_mist = True
+        if hasattr(cam, "show_mist"):
+            cam.show_mist = True
 
-    scene.world.mist_settings.use_mist = True
-    scene.world.mist_settings.start = 8.0
-    scene.world.mist_settings.depth = 42.0
-    scene.world.mist_settings.falloff = "QUADRATIC"
+    mist = getattr(scene.world, "mist_settings", None)
+    if mist is not None:
+        try:
+            mist.use_mist = True
+            mist.start = 8.0
+            mist.depth = 42.0
+            mist.falloff = "QUADRATIC"
+        except Exception:
+            pass
 
 
 def add_ground(bpy, z: float) -> None:
@@ -125,10 +170,12 @@ def add_camera(bpy, name: str, loc, rot, panoramic: bool) -> object:
     data = bpy.data.cameras.new(name)
     if panoramic:
         data.type = "PANO"
-        try:
-            data.panorama_type = "EQUIRECTANGULAR"
-        except Exception:
-            pass
+        for pano_type in ("EQUIRECTANGULAR", "EQUIRECT"):
+            try:
+                data.panorama_type = pano_type
+                break
+            except Exception:
+                continue
         data.clip_start = 0.1
         data.clip_end = 250.0
     else:
@@ -216,21 +263,25 @@ def main() -> None:
     cam_walk = add_camera(bpy, "CameraWalk", spawn_loc, look_at(spawn_loc, facade), False)
 
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE"
-    try:
-        scene.render.engine = "BLENDER_EEVEE_NEXT"
-    except Exception:
-        scene.render.engine = "BLENDER_EEVEE"
+    for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "EEVEE"):
+        try:
+            scene.render.engine = engine
+            break
+        except Exception:
+            continue
+    log(f"Render engine: {scene.render.engine}")
     scene.render.image_settings.file_format = "JPEG"
     scene.render.image_settings.quality = 92
     scene.render.resolution_x = args.resolution
     scene.render.resolution_y = args.resolution // 2
     scene.render.filepath = os.path.join(out_dir, "spawn.jpg")
     scene.camera = cam_spawn
+    log("Rendering spawn.jpg")
     bpy.ops.render.render(write_still=True)
 
     scene.render.filepath = os.path.join(out_dir, "gutter.jpg")
     scene.camera = cam_gutter
+    log("Rendering gutter.jpg")
     bpy.ops.render.render(write_still=True)
 
     # Walk: 2D perspective, spawn → walk-start → gutter.
@@ -251,24 +302,54 @@ def main() -> None:
     key(cam_walk, f0, spawn_loc, look_at(spawn_loc, facade))
     key(cam_walk, f1, walk_loc, look_at(walk_loc, facade))
     key(cam_walk, f2, gutter_loc, look_at(gutter_loc, gutter_tgt))
-    for fc in cam_walk.animation_data.action.fcurves:
-        for kp in fc.keyframe_points:
-            kp.interpolation = "BEZIER"
+    try:
+        for fc in cam_walk.animation_data.action.fcurves:
+            for kp in fc.keyframe_points:
+                kp.interpolation = "BEZIER"
+    except Exception as exc:
+        log(f"Could not set bezier interpolation ({exc}); using defaults")
+
+    walk_mp4 = os.path.join(out_dir, "walk.mp4")
+    encoded = False
+    try:
+        scene.render.image_settings.file_format = "FFMPEG"
+        ff = scene.render.ffmpeg
+        ff.format = "MPEG4"
+        ff.codec = "H264"
+        try:
+            ff.constant_rate_factor = "MEDIUM"
+        except Exception:
+            pass
+        scene.render.filepath = walk_mp4
+        log(f"Rendering walk.mp4 ({args.walk_frames} frames @ {args.fps} fps)")
+        bpy.ops.render.render(animation=True)
+        encoded = os.path.isfile(walk_mp4)
+    except Exception as exc:
+        log(f"Direct mp4 encode failed ({exc}); falling back to PNG frames")
 
     walk_dir = os.path.join(out_dir, "_walk_frames")
-    os.makedirs(walk_dir, exist_ok=True)
-    scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = os.path.join(walk_dir, "walk_")
-    bpy.ops.render.render(animation=True)
+    if not encoded:
+        os.makedirs(walk_dir, exist_ok=True)
+        scene.render.image_settings.file_format = "PNG"
+        scene.render.filepath = os.path.join(walk_dir, "walk_")
+        log("Rendering walk PNG sequence")
+        bpy.ops.render.render(animation=True)
+        encoded = encode_walk_ffmpeg(walk_dir, walk_mp4, args.fps)
 
     blend = args.blend_out or os.path.join(out_dir, "bayard_tutorial.blend")
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(blend))
-    print("Wrote stills, walk frames, and", blend)
-    print("Encode walk.mp4 with ffmpeg, e.g.")
-    print(
-        f'  ffmpeg -y -framerate {args.fps} -i "{walk_dir}/walk_%04d.png" '
-        f'-c:v libx264 -pix_fmt yuv420p "{os.path.join(out_dir, "walk.mp4")}"'
-    )
+    done = os.path.join(out_dir, "RENDER_DONE.txt")
+    with open(done, "w", encoding="utf-8") as f:
+        f.write(f"spawn.jpg, gutter.jpg, blend={blend}\n")
+        f.write(f"walk.mp4={'yes' if encoded else 'NO — encode PNG frames with ffmpeg'}\n")
+    log("Wrote stills, " + ("walk.mp4, " if encoded else "walk frames, ") + str(blend))
+    if not encoded:
+        log("Encode walk.mp4 with ffmpeg, e.g.")
+        log(
+            f'  ffmpeg -y -framerate {args.fps} -i "{walk_dir}/walk_%04d.png" '
+            f'-c:v libx264 -pix_fmt yuv420p "{walk_mp4}"'
+        )
+    log("DONE")
 
 
 if __name__ == "__main__":
