@@ -108,7 +108,8 @@ export function loadTutorialPano(kind: TutorialPanoKind): Promise<HTMLImageEleme
 }
 
 /**
- * 90° clockwise roll on the sphere, same as the viewfinder (`(x,y) → (y,-x)`).
+ * 90° anticlockwise on the sphere. The viewfinder is already 90° clockwise;
+ * rolling the pano the same way flipped the house 180°.
  */
 function rollEquirectForViewfinder(src: HTMLImageElement): Promise<HTMLImageElement> {
   const w = src.naturalWidth || PANO_W;
@@ -132,8 +133,8 @@ function rollEquirectForViewfinder(src: HTMLImageElement): Promise<HTMLImageElem
       const dx = Math.sin(lon) * cl;
       const dy = sl;
       const dz = -Math.cos(lon) * cl;
-      const rxd = dy;
-      const ryd = -dx;
+      const rxd = -dy;
+      const ryd = dx;
       const rzd = dz;
       const lon2 = Math.atan2(rxd, -rzd);
       const lat2 = Math.asin(Math.max(-1, Math.min(1, ryd)));
