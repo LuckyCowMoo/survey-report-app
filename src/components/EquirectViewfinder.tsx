@@ -10,7 +10,8 @@ import { angleDelta } from "../lib/tutorial/script";
 import {
   createLookTracker,
   resetLookTracker,
-  trackerPushGyro,
+  startRelativeOrientation,
+  trackerPushMotion,
   trackerPushOrientation,
   readPose
 } from "../lib/tutorial/orientation";
@@ -409,25 +410,36 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
         applyLook(dragRef.current.yaw + rel.yaw, dragRef.current.pitch + rel.pitch);
       };
 
+      const stopRelative = startRelativeOrientation(
+        trackerRef.current,
+        () => {
+          if (lockedRef.current || draggingRef.current) return;
+          applyTracked();
+        }
+      );
+
       const onOrient = (ev: DeviceOrientationEvent) => {
         if (lockedRef.current || draggingRef.current) return;
         const pose = readPose(ev);
         if (!pose) return;
-        trackerPushOrientation(trackerRef.current, pose);
-        applyTracked();
+        if (trackerPushOrientation(trackerRef.current, pose)) applyTracked();
       };
 
       const onMotion = (ev: DeviceMotionEvent) => {
         if (lockedRef.current || draggingRef.current) return;
-        const rate = ev.rotationRate;
-        if (!rate) return;
-        trackerPushGyro(trackerRef.current, rate, performance.now());
+        trackerPushMotion(
+          trackerRef.current,
+          ev.rotationRate ?? { alpha: null, beta: null, gamma: null },
+          ev.accelerationIncludingGravity ?? null,
+          performance.now()
+        );
         applyTracked();
       };
 
       window.addEventListener("deviceorientation", onOrient, true);
       window.addEventListener("devicemotion", onMotion, true);
       return () => {
+        stopRelative();
         window.removeEventListener("deviceorientation", onOrient, true);
         window.removeEventListener("devicemotion", onMotion, true);
       };

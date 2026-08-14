@@ -1,4 +1,4 @@
-/** Device look-around: camera-style yaw/pitch from orientation + gyro. */
+/** Camera-style look-around: gyro yaw + gravity pitch. No compass. */
 
 type PermissionedSensor = {
   requestPermission?: () => Promise<"granted" | "denied" | string>;
@@ -37,6 +37,8 @@ export type DevicePose = { alpha: number; beta: number; gamma: number };
 export type Look = { yaw: number; pitch: number };
 
 const DEG = Math.PI / 180;
+/** Flip left/right so turning the phone right shows the right of the scene. */
+const YAW_SIGN = -1;
 
 type Quat = { x: number; y: number; z: number; w: number };
 
@@ -55,7 +57,6 @@ function quatAxisAngle(x: number, y: number, z: number, angle: number): Quat {
   return { x: x * s, y: y * s, z: z * s, w: Math.cos(h) };
 }
 
-/** Euler in YXZ order (radians). */
 function quatEulerYXZ(x: number, y: number, z: number): Quat {
   const cx = Math.cos(x / 2);
   const sx = Math.sin(x / 2);
@@ -91,11 +92,6 @@ export function screenAngleDeg(): number {
   return typeof wo === "number" ? wo : 0;
 }
 
-/**
- * Rear-camera look direction from deviceorientation (W3C / typical VR controls).
- * Yaw: around world up. Pitch: up/down. Turn the phone right → yaw decreases
- * so the panorama behaves like a real camera (world slides left).
- */
 export function cameraLook(
   alpha: number,
   beta: number,
@@ -107,7 +103,20 @@ export function cameraLook(
   q = quatMul(q, quatAxisAngle(0, 0, 1, -screenDeg * DEG));
   const d = quatRotate(q, 0, 0, -1);
   return {
-    yaw: Math.atan2(d.x, -d.z),
+    yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
+    pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
+  };
+}
+
+export function lookFromQuaternion(
+  x: number,
+  y: number,
+  z: number,
+  w: number
+): Look {
+  const d = quatRotate({ x, y, z, w }, 0, 0, -1);
+  return {
+    yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
     pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
   };
 }
@@ -120,88 +129,178 @@ export function readPose(ev: DeviceOrientationEvent): DevicePose | null {
 export type LookTracker = {
   calib: Look | null;
   filtered: Look | null;
-  absLook: Look | null;
-  pose: DevicePose | null;
+  gravPitch0: number | null;
   lastGyroT: number;
+  usedMotion: boolean;
+  usedRelative: boolean;
 };
 
 export function createLookTracker(): LookTracker {
   return {
     calib: null,
     filtered: null,
-    absLook: null,
-    pose: null,
-    lastGyroT: 0
+    gravPitch0: null,
+    lastGyroT: 0,
+    usedMotion: false,
+    usedRelative: false
   };
 }
 
 export function resetLookTracker(t: LookTracker) {
   t.calib = null;
   t.filtered = null;
-  t.absLook = null;
-  t.pose = null;
+  t.gravPitch0 = null;
   t.lastGyroT = 0;
 }
 
-function relativeLook(t: LookTracker, abs: Look): Look {
-  if (!t.calib) t.calib = { ...abs };
-  return {
-    yaw: wrapPi(abs.yaw - t.calib.yaw),
-    pitch: abs.pitch - t.calib.pitch
-  };
+function ensureFiltered(t: LookTracker): Look {
+  if (!t.filtered) t.filtered = { yaw: 0, pitch: 0 };
+  return t.filtered;
 }
 
-/** Absolute orientation sample. Compass yaw is pulled in gently to kill drift. */
-export function trackerPushOrientation(
-  t: LookTracker,
-  pose: DevicePose
-): Look {
-  t.pose = pose;
-  const abs = cameraLook(pose.alpha, pose.beta, pose.gamma);
-  t.absLook = abs;
-  const target = relativeLook(t, abs);
-  if (!t.filtered) {
-    t.filtered = { ...target };
-    return t.filtered;
-  }
-  const hasGyro = t.lastGyroT !== 0;
-  const kYaw = hasGyro ? 0.04 : 0.28;
-  const kPitch = hasGyro ? 0.12 : 0.4;
-  t.filtered.yaw = wrapPi(
-    t.filtered.yaw + wrapPi(target.yaw - t.filtered.yaw) * kYaw
-  );
-  t.filtered.pitch += (target.pitch - t.filtered.pitch) * kPitch;
-  return t.filtered;
+function gravityPitch(_ax: number, ay: number, az: number) {
+  return Math.atan2(az, ay);
 }
 
 /**
- * Integrate device gyro (deg/s). This is what makes side-to-side stable;
- * magnetometer alpha is too noisy when the phone is held upright.
+ * IMU sample: gyro for yaw (locked, like a camera), gravity for pitch (horizon).
+ * rotationRate is deg/s on device X/Y/Z = beta/gamma/alpha.
  */
-export function trackerPushGyro(
+export function trackerPushMotion(
   t: LookTracker,
   rate: { alpha: number | null; beta: number | null; gamma: number | null },
+  accel: { x: number | null; y: number | null; z: number | null } | null,
   now: number
-): Look | null {
-  if (rate.alpha == null || rate.beta == null || rate.gamma == null) return t.filtered;
-  if (!t.filtered) {
-    t.filtered = { yaw: 0, pitch: 0 };
-  }
+): Look {
+  if (t.usedRelative) return ensureFiltered(t);
+  t.usedMotion = true;
+  const look = ensureFiltered(t);
   const prev = t.lastGyroT;
   t.lastGyroT = now;
-  const dt = prev ? Math.min(0.08, Math.max(0, (now - prev) / 1000)) : 0;
-  if (dt <= 0) return t.filtered;
+  const dt = prev ? Math.min(0.05, Math.max(0, (now - prev) / 1000)) : 0;
 
-  const beta = (t.pose?.beta ?? 90) * DEG;
-  const sB = Math.sin(beta);
-  const cB = Math.cos(beta);
-  // Portrait, camera-forward: world yaw is mostly device-Y (gamma).
-  const yawRate = (-rate.gamma * sB - rate.alpha * cB) * DEG;
-  const pitchRate = rate.beta * DEG;
-  t.filtered.yaw = wrapPi(t.filtered.yaw + yawRate * dt);
-  t.filtered.pitch = Math.max(
-    -1.2,
-    Math.min(1.2, t.filtered.pitch + pitchRate * dt)
-  );
-  return t.filtered;
+  if (
+    dt > 0 &&
+    rate.alpha != null &&
+    rate.beta != null &&
+    rate.gamma != null
+  ) {
+    const wx = rate.beta * DEG;
+    const wy = rate.gamma * DEG;
+    const wz = rate.alpha * DEG;
+    let ux = 0;
+    let uy = 1;
+    let uz = 0;
+    if (accel && accel.x != null && accel.y != null && accel.z != null) {
+      const mag = Math.hypot(accel.x, accel.y, accel.z);
+      if (mag > 4) {
+        ux = accel.x / mag;
+        uy = accel.y / mag;
+        uz = accel.z / mag;
+      }
+    }
+    const yawRate = YAW_SIGN * (wx * ux + wy * uy + wz * uz);
+    look.yaw = wrapPi(look.yaw + yawRate * dt);
+    look.pitch += wx * dt;
+  }
+
+  if (accel && accel.x != null && accel.y != null && accel.z != null) {
+    const mag = Math.hypot(accel.x, accel.y, accel.z);
+    if (mag > 4) {
+      const gp = gravityPitch(accel.x, accel.y, accel.z);
+      if (t.gravPitch0 == null) t.gravPitch0 = gp;
+      const target = gp - t.gravPitch0;
+      // Tight horizon lock (~45ms), not the old compass ease.
+      const k = dt > 0 ? 1 - Math.exp(-dt / 0.045) : 0.2;
+      look.pitch += (target - look.pitch) * k;
+    }
+  }
+
+  look.pitch = Math.max(-1.2, Math.min(1.2, look.pitch));
+  return look;
+}
+
+/** Chrome RelativeOrientationSensor (game-rotation vector, no compass). */
+export function trackerPushQuaternion(
+  t: LookTracker,
+  x: number,
+  y: number,
+  z: number,
+  w: number
+): Look {
+  t.usedRelative = true;
+  const abs = lookFromQuaternion(x, y, z, w);
+  if (!t.calib) t.calib = { ...abs };
+  const next = {
+    yaw: wrapPi(abs.yaw - t.calib.yaw),
+    pitch: abs.pitch - t.calib.pitch
+  };
+  t.filtered = next;
+  return next;
+}
+
+/** Last resort when no gyro/motion (rare). */
+export function trackerPushOrientation(
+  t: LookTracker,
+  pose: DevicePose
+): Look | null {
+  if (t.usedMotion || t.usedRelative) return t.filtered;
+  const abs = cameraLook(pose.alpha, pose.beta, pose.gamma);
+  if (!t.calib) t.calib = { ...abs };
+  const target = {
+    yaw: wrapPi(abs.yaw - t.calib.yaw),
+    pitch: abs.pitch - t.calib.pitch
+  };
+  const look = ensureFiltered(t);
+  look.yaw = wrapPi(look.yaw + wrapPi(target.yaw - look.yaw) * 0.55);
+  look.pitch += (target.pitch - look.pitch) * 0.55;
+  return look;
+}
+
+type RelativeSensor = {
+  quaternion?: number[] | null;
+  start: () => void;
+  stop: () => void;
+  addEventListener: (type: string, fn: () => void) => void;
+  removeEventListener: (type: string, fn: () => void) => void;
+};
+
+export function startRelativeOrientation(
+  t: LookTracker,
+  onReading: (look: Look) => void
+): () => void {
+  const Ctor = (
+    window as unknown as {
+      RelativeOrientationSensor?: new (opts: {
+        frequency: number;
+        referenceFrame: string;
+      }) => RelativeSensor;
+    }
+  ).RelativeOrientationSensor;
+  if (!Ctor) return () => {};
+  let sensor: RelativeSensor;
+  try {
+    sensor = new Ctor({ frequency: 60, referenceFrame: "screen" });
+  } catch {
+    return () => {};
+  }
+  const onRead = () => {
+    const q = sensor.quaternion;
+    if (!q || q.length < 4) return;
+    onReading(trackerPushQuaternion(t, q[0]!, q[1]!, q[2]!, q[3]!));
+  };
+  try {
+    sensor.addEventListener("reading", onRead);
+    sensor.start();
+  } catch {
+    return () => {};
+  }
+  return () => {
+    try {
+      sensor.removeEventListener("reading", onRead);
+      sensor.stop();
+    } catch {
+      /* ignore */
+    }
+  };
 }
