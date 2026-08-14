@@ -36,9 +36,9 @@ varying vec2 vUv;
 
 void main() {
   vec2 ndc = vec2(vUv.x * 2.0 - 1.0, vUv.y * 2.0 - 1.0);
-  ndc.x *= uRes.x / max(uRes.y, 1.0);
-  /* 90° clockwise in the viewfinder to match the phone IMU. */
-  ndc = vec2(ndc.y, -ndc.x);
+  /* 2D clockwise viewfinder (not a 3D camera roll — that sent yaw into the nadir). */
+  ndc = vec2(-ndc.y, ndc.x);
+  ndc.x *= uRes.y / max(uRes.x, 1.0);
   float t = tan(uFov * 0.5);
   vec3 dir = normalize(vec3(ndc.x * t, ndc.y * t, -1.0));
   float cp = cos(uPitch);
@@ -85,7 +85,7 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
 }
 
 function clampPitch(p: number) {
-  return Math.max(-1.2, Math.min(1.2, p));
+  return Math.max(-1.45, Math.min(1.45, p));
 }
 
 function getGl(canvas: HTMLCanvasElement): WebGLRenderingContext | null {

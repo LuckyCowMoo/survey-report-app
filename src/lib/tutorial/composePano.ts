@@ -107,70 +107,11 @@ export function loadTutorialPano(kind: TutorialPanoKind): Promise<HTMLImageEleme
   return pending;
 }
 
-/**
- * 90° anticlockwise on the sphere. The viewfinder is already 90° clockwise;
- * rolling the pano the same way flipped the house 180°.
- */
-function rollEquirectForViewfinder(src: HTMLImageElement): Promise<HTMLImageElement> {
-  const w = src.naturalWidth || PANO_W;
-  const h = src.naturalHeight || PANO_H;
-  const read = document.createElement("canvas");
-  read.width = w;
-  read.height = h;
-  const rx = read.getContext("2d", { willReadFrequently: true });
-  if (!rx) throw new Error("Could not read panorama.");
-  rx.drawImage(src, 0, 0);
-  const srcPx = rx.getImageData(0, 0, w, h).data;
-  const out = rx.createImageData(w, h);
-  const dst = out.data;
-  const twoPi = Math.PI * 2;
-  for (let y = 0; y < h; y++) {
-    const lat = (0.5 - (y + 0.5) / h) * Math.PI;
-    const cl = Math.cos(lat);
-    const sl = Math.sin(lat);
-    for (let x = 0; x < w; x++) {
-      const lon = ((x + 0.5) / w - 0.5) * twoPi;
-      const dx = Math.sin(lon) * cl;
-      const dy = sl;
-      const dz = -Math.cos(lon) * cl;
-      const rxd = -dy;
-      const ryd = dx;
-      const rzd = dz;
-      const lon2 = Math.atan2(rxd, -rzd);
-      const lat2 = Math.asin(Math.max(-1, Math.min(1, ryd)));
-      let u = (lon2 / twoPi + 0.5) * w;
-      let v = (0.5 - lat2 / Math.PI) * h;
-      u = ((u % w) + w) % w;
-      v = Math.max(0, Math.min(h - 1.0001, v));
-      const x0 = Math.floor(u);
-      const y0 = Math.floor(v);
-      const x1 = (x0 + 1) % w;
-      const y1 = Math.min(h - 1, y0 + 1);
-      const fx = u - x0;
-      const fy = v - y0;
-      const i00 = (y0 * w + x0) * 4;
-      const i10 = (y0 * w + x1) * 4;
-      const i01 = (y1 * w + x0) * 4;
-      const i11 = (y1 * w + x1) * 4;
-      const o = (y * w + x) * 4;
-      for (let c = 0; c < 4; c++) {
-        const a = srcPx[i00 + c] * (1 - fx) + srcPx[i10 + c] * fx;
-        const b = srcPx[i01 + c] * (1 - fx) + srcPx[i11 + c] * fx;
-        dst[o + c] = a * (1 - fy) + b * fy;
-      }
-    }
-  }
-  rx.putImageData(out, 0, 0);
-  return canvasToImage(read);
-}
-
 async function buildPano(kind: TutorialPanoKind): Promise<HTMLImageElement> {
   const bakedSrc =
     kind === "spawn" ? TUTORIAL_ASSETS.spawnPano : TUTORIAL_ASSETS.gutterPano;
   const baked = await tryLoad(bakedSrc);
-  if (baked && baked.naturalWidth >= 1024) {
-    return rollEquirectForViewfinder(baked);
-  }
+  if (baked && baked.naturalWidth >= 1024) return baked;
 
   const canvas = document.createElement("canvas");
   canvas.width = PANO_W;
@@ -186,6 +127,5 @@ async function buildPano(kind: TutorialPanoKind): Promise<HTMLImageElement> {
     yawSpan: kind === "spawn" ? 0.34 : 0.28,
     vCenter: kind === "spawn" ? 0.52 : 0.46
   });
-  const standIn = await canvasToImage(canvas);
-  return rollEquirectForViewfinder(standIn);
+  return canvasToImage(canvas);
 }

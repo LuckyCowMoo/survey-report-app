@@ -238,7 +238,7 @@ export function trackerPushMotion(
     }
   }
 
-  look.pitch = Math.max(-1.2, Math.min(1.2, look.pitch));
+  look.pitch = Math.max(-1.45, Math.min(1.45, look.pitch));
   return look;
 }
 
