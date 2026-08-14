@@ -34,6 +34,9 @@ import type { FieldNoteShot, PhotoAnnotation } from "../types";
 import AnnotationOverlay from "./AnnotationOverlay";
 import BrandMark from "./BrandMark";
 import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
+import TutorialLiveView, {
+  type TutorialLiveHandle
+} from "./TutorialLiveView";
 
 type Props = {
   shots: FieldNoteShot[];
@@ -44,6 +47,8 @@ type Props = {
   onExportDocx: () => void;
   /** When true, pip jumps animate through every in-between photo. */
   photoPassThrough?: boolean;
+  /** Replace the live camera with the interactive house tutorial. */
+  tutorial?: boolean;
 };
 
 type Mode = "live" | "review" | "retake";
@@ -130,12 +135,13 @@ export default function FieldNotesScreen({
   onSaveInApp,
   onContinueToReport,
   onExportDocx,
-  photoPassThrough = false
+  photoPassThrough = false,
+  tutorial = false
 }: Props) {
   const [index, setIndex] = useState(() => shots.length);
   const [mode, setMode] = useState<Mode>("live");
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [cameraLoading, setCameraLoading] = useState(true);
+  const [cameraLoading, setCameraLoading] = useState(() => !tutorial);
   const [capturing, setCapturing] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [cameras, setCameras] = useState<CameraDeviceInfo[]>([]);
@@ -166,9 +172,11 @@ export default function FieldNotesScreen({
   const [annotateUrl, setAnnotateUrl] = useState<string | null>(null);
   const [importingPictures, setImportingPictures] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [tutorialCanCapture, setTutorialCanCapture] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const retakeVideoRef = useRef<HTMLVideoElement>(null);
+  const tutorialViewRef = useRef<TutorialLiveHandle>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const importingRef = useRef(false);
   const shotsRef = useRef(shots);
@@ -227,8 +235,9 @@ export default function FieldNotesScreen({
     capturing ||
     swipesFromLive <= CAMERA_KEEP_ALIVE_SWIPES;
   shouldRunCameraRef.current = shouldRunCamera;
-  const canCapture =
-    showLive && !busy && !capturing && !cameraError && !cameraLoading;
+  const canCapture = tutorial
+    ? showLive && !busy && !capturing && tutorialCanCapture
+    : showLive && !busy && !capturing && !cameraError && !cameraLoading;
   /** Visual translucent retake look — keep during slide so it doesn’t flash opaque. */
   const shutterRetakeLook =
     mode === "review" && !!current && !shutterSolid;
@@ -346,8 +355,12 @@ export default function FieldNotesScreen({
   }, [applyCameraRunning, refreshCameras, syncZoomRange]);
 
   useEffect(() => {
+    if (tutorial) {
+      setCameraLoading(false);
+      return;
+    }
     void ensureCamera();
-  }, [cameraId, ensureCamera]);
+  }, [cameraId, ensureCamera, tutorial]);
 
   useEffect(() => () => stopStream(), [stopStream]);
 
@@ -555,18 +568,26 @@ export default function FieldNotesScreen({
 
   const takePhoto = async () => {
     if (!canCapture) return;
-    const video = videoRef.current;
-    if (!video || !streamRef.current) {
-      await ensureCamera();
-      return;
-    }
     setCapturing(true);
     triggerPulse();
     triggerFlash();
     setCapturePulse(true);
     window.setTimeout(() => setCapturePulse(false), 450);
     try {
-      const bytes = await captureJpegFromVideo(video);
+      const bytes = tutorial
+        ? await (async () => {
+            const view = tutorialViewRef.current;
+            if (!view) throw new Error("Tutorial viewfinder is not ready yet.");
+            return view.captureJpeg();
+          })()
+        : await (async () => {
+            const video = videoRef.current;
+            if (!video || !streamRef.current) {
+              await ensureCamera();
+              throw new Error("Camera is not ready yet — wait a moment and try again.");
+            }
+            return captureJpegFromVideo(video);
+          })();
       if (mode === "retake" && current) {
         onChange(
           shots.map((s, i) =>
@@ -880,7 +901,7 @@ export default function FieldNotesScreen({
     if (
       t instanceof Element &&
       t.closest(
-        "button,a,label,select,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-notes-footer"
+        "button,a,label,select,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-notes-footer,.tutorial-live-view"
       )
     ) {
       swipeRef.current = null;
@@ -1054,7 +1075,7 @@ export default function FieldNotesScreen({
 
   return (
     <div
-      className="field-notes"
+      className={`field-notes${tutorial ? " is-tutorial" : ""}`}
       onPointerDownCapture={onSwipeDown}
       onPointerMoveCapture={onSwipeMove}
       onPointerUpCapture={onSwipeUp}
@@ -1095,21 +1116,19 @@ export default function FieldNotesScreen({
                 </div>
               ))}
               <div className="field-notes-media-slide field-notes-media-live">
-                {/*
-                  Always mounted on the rightmost slide so the feed slides in
-                  with the track; getUserMedia is not restarted on swipe.
-                */}
-                <video
-                  ref={videoRef}
-                  className="field-notes-video"
-                  style={mediaZoomStyle}
-                  playsInline
-                  muted
-                  autoPlay
-                />
+                {!tutorial && (
+                  <video
+                    ref={videoRef}
+                    className="field-notes-video"
+                    style={mediaZoomStyle}
+                    playsInline
+                    muted
+                    autoPlay
+                  />
+                )}
               </div>
             </div>
-            {mode === "retake" && (
+            {mode === "retake" && !tutorial && (
               <video
                 ref={retakeVideoRef}
                 className="field-notes-video field-notes-video-retake"
@@ -1119,12 +1138,21 @@ export default function FieldNotesScreen({
                 autoPlay
               />
             )}
+            {tutorial && showLive && (
+              <TutorialLiveView
+                ref={tutorialViewRef}
+                shotCount={shots.length}
+                retake={mode === "retake"}
+                retakeIndex={safeIndex}
+                onCanCaptureChange={setTutorialCanCapture}
+              />
+            )}
             <div
               key={flashKey || "flash"}
               className={`field-notes-flash${flashKey ? " is-on" : ""}`}
               aria-hidden
             />
-            {showLive && cameraLoading && !cameraError && (
+            {showLive && cameraLoading && !cameraError && !tutorial && (
               <div
                 className="field-notes-camera-loading"
                 role="status"
@@ -1152,6 +1180,8 @@ export default function FieldNotesScreen({
 
           <div className="field-notes-cam-float field-notes-cam-float-bottom">
             <div className="field-notes-cam-float-lens">
+              {!tutorial && (
+                <>
               <label
                 htmlFor="field-notes-gallery"
                 className={`field-notes-lens-btn field-notes-pictures-btn${
@@ -1193,6 +1223,8 @@ export default function FieldNotesScreen({
                 >
                   <CameraLensIcon />
                 </button>
+              )}
+                </>
               )}
             </div>
 
@@ -1367,7 +1399,13 @@ export default function FieldNotesScreen({
                 <div key={shot.id} className="field-notes-notes-slide">
                   <textarea
                     className="field-notes-textarea"
-                    placeholder="Add a note for this photo…"
+                    placeholder={
+                      tutorial
+                        ? i === 0
+                          ? "e.g. front elevation of the house"
+                          : "e.g. vegetation growing in the gutter"
+                        : "Add a note for this photo…"
+                    }
                     value={shot.note}
                     disabled={busy}
                     aria-label={`Notes for photo ${shot.number}`}

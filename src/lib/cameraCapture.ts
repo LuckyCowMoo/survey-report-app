@@ -193,3 +193,23 @@ export async function captureJpegFromVideo(
   });
   return new Uint8Array(await blob.arrayBuffer());
 }
+
+/** Capture a canvas (e.g. the tutorial 360 viewfinder) as JPEG bytes. */
+export async function captureJpegFromCanvas(
+  canvas: HTMLCanvasElement,
+  quality = 0.88
+): Promise<Uint8Array> {
+  const w = canvas.width;
+  const h = canvas.height;
+  if (!w || !h) {
+    throw new Error("Viewfinder is not ready yet — wait a moment and try again.");
+  }
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Could not encode photo."))),
+      "image/jpeg",
+      quality
+    );
+  });
+  return new Uint8Array(await blob.arrayBuffer());
+}

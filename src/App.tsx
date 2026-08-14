@@ -180,6 +180,7 @@ export default function App() {
   const [reviewDwellIndex, setReviewDwellIndex] = useState<number | null>(null);
   const [step, setStep] = useState<Step>("home");
   const [fieldNotes, setFieldNotes] = useState<FieldNoteShot[]>([]);
+  const [tutorialMode, setTutorialMode] = useState(false);
   const fieldNotesSessionKeyRef = useRef(`fieldnotes:${crypto.randomUUID()}`);
   /** Stable upsert key for mid-flow .dmsr drafts (survives AI text edits). */
   const draftFingerprintRef = useRef<string | null>(null);
@@ -563,6 +564,15 @@ export default function App() {
   const startFieldNotes = useCallback(() => {
     setError(null);
     setFieldNotes([]);
+    setTutorialMode(false);
+    fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
+    navigateTo("fieldNotes");
+  }, [navigateTo]);
+
+  const startTutorial = useCallback(() => {
+    setError(null);
+    setFieldNotes([]);
+    setTutorialMode(true);
     fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
     navigateTo("fieldNotes");
   }, [navigateTo]);
@@ -862,6 +872,13 @@ export default function App() {
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`Sample fetch failed (${r.status})`))))
       .then((b) => handleFile(new File([b], "sample.docx")))
       .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("tutorial");
+    if (q !== "1" && q !== "true") return;
+    startTutorial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1260,6 +1277,7 @@ export default function App() {
     const prev = prevStepRef.current;
     prevStepRef.current = step;
     if (prev === step) return;
+    if (step === "home") setTutorialMode(false);
 
     const isReport = (s: Step) =>
       s === "review" || s === "details" || s === "generate";
@@ -1356,7 +1374,7 @@ export default function App() {
           </button>
           <h1 className="topbar-title">
             {step === "past" && "Past reports"}
-            {step === "fieldNotes" && "Field notes"}
+            {step === "fieldNotes" && (tutorialMode ? "Tutorial" : "Field notes")}
             {step === "review" && "Review sections"}
             {step === "details" && "Report details"}
             {step === "generate" && "Generate"}
@@ -1392,6 +1410,7 @@ export default function App() {
           <            HomeScreen
             onFile={handleFile}
             onCreateFieldNotes={startFieldNotes}
+            onStartTutorial={startTutorial}
             busy={busy !== null}
             onShowGuide={openGuide}
             onShowSettings={openSettings}
@@ -1412,6 +1431,7 @@ export default function App() {
             onContinueToReport={continueFieldNotesToReport}
             onExportDocx={() => void exportFieldNotesDocx(true)}
             photoPassThrough={settings.studioPhotoPassThrough}
+            tutorial={tutorialMode}
           />
         )}
         {step === "review" && (
