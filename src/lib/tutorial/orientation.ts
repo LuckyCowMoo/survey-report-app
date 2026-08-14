@@ -92,15 +92,26 @@ export function screenAngleDeg(): number {
   return typeof wo === "number" ? wo : 0;
 }
 
-export function cameraLook(
-  alpha: number,
-  beta: number,
-  gamma: number,
-  screenDeg = screenAngleDeg()
-): Look {
+/**
+ * Chrome on phones often reports IMU XY 90° from “camera portrait”
+ * (Y up the phone, X right). Combine that with screen.orientation.
+ */
+function inPortraitCamera(x: number, y: number, z: number) {
+  const a = (((screenAngleDeg() + 90) % 360) + 360) % 360;
+  if (a === 90) return { x: -y, y: x, z };
+  if (a === 180) return { x: -x, y: -y, z };
+  if (a === 270) return { x: y, y: -x, z };
+  return { x, y, z };
+}
+
+function portraitRollRad() {
+  return ((screenAngleDeg() + 90) * DEG);
+}
+
+export function cameraLook(alpha: number, beta: number, gamma: number): Look {
   let q = quatEulerYXZ(beta * DEG, alpha * DEG, -gamma * DEG);
   q = quatMul(q, quatAxisAngle(1, 0, 0, -Math.PI / 2));
-  q = quatMul(q, quatAxisAngle(0, 0, 1, -screenDeg * DEG));
+  q = quatMul(q, quatAxisAngle(0, 0, 1, portraitRollRad()));
   const d = quatRotate(q, 0, 0, -1);
   return {
     yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
@@ -114,7 +125,9 @@ export function lookFromQuaternion(
   z: number,
   w: number
 ): Look {
-  const d = quatRotate({ x, y, z, w }, 0, 0, -1);
+  let q = { x, y, z, w };
+  q = quatMul(q, quatAxisAngle(0, 0, 1, portraitRollRad()));
+  const d = quatRotate(q, 0, 0, -1);
   return {
     yaw: YAW_SIGN * Math.atan2(d.x, -d.z),
     pitch: Math.asin(Math.max(-1, Math.min(1, d.y)))
@@ -185,18 +198,24 @@ export function trackerPushMotion(
     rate.beta != null &&
     rate.gamma != null
   ) {
-    const wx = rate.beta * DEG;
-    const wy = rate.gamma * DEG;
-    const wz = rate.alpha * DEG;
+    const w0 = inPortraitCamera(
+      rate.beta * DEG,
+      rate.gamma * DEG,
+      rate.alpha * DEG
+    );
+    const wx = w0.x;
+    const wy = w0.y;
+    const wz = w0.z;
     let ux = 0;
     let uy = 1;
     let uz = 0;
     if (accel && accel.x != null && accel.y != null && accel.z != null) {
-      const mag = Math.hypot(accel.x, accel.y, accel.z);
+      const g = inPortraitCamera(accel.x, accel.y, accel.z);
+      const mag = Math.hypot(g.x, g.y, g.z);
       if (mag > 4) {
-        ux = accel.x / mag;
-        uy = accel.y / mag;
-        uz = accel.z / mag;
+        ux = g.x / mag;
+        uy = g.y / mag;
+        uz = g.z / mag;
       }
     }
     const yawRate = YAW_SIGN * (wx * ux + wy * uy + wz * uz);
@@ -205,9 +224,10 @@ export function trackerPushMotion(
   }
 
   if (accel && accel.x != null && accel.y != null && accel.z != null) {
-    const mag = Math.hypot(accel.x, accel.y, accel.z);
+    const g = inPortraitCamera(accel.x, accel.y, accel.z);
+    const mag = Math.hypot(g.x, g.y, g.z);
     if (mag > 4) {
-      const gp = gravityPitch(accel.x, accel.y, accel.z);
+      const gp = gravityPitch(g.x, g.y, g.z);
       if (t.gravPitch0 == null) t.gravPitch0 = gp;
       const target = gp - t.gravPitch0;
       // Tight horizon lock (~45ms), not the old compass ease.
