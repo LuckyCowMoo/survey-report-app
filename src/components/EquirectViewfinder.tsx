@@ -8,9 +8,11 @@ import {
 import { captureJpegFromCanvas } from "../lib/cameraCapture";
 import { angleDelta } from "../lib/tutorial/script";
 import {
-  poseToLook,
-  readPose,
-  type DevicePose
+  createLookTracker,
+  resetLookTracker,
+  trackerPushGyro,
+  trackerPushOrientation,
+  readPose
 } from "../lib/tutorial/orientation";
 
 const VERT = `
@@ -167,7 +169,7 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     const texDirtyRef = useRef(true);
     const lookRef = useRef({ yaw: 0, pitch: 0 });
     const dragRef = useRef({ yaw: 0, pitch: 0 });
-    const calibRef = useRef<DevicePose | null>(null);
+    const trackerRef = useRef(createLookTracker());
     const lockedRef = useRef(locked);
     const draggingRef = useRef<{
       id: number;
@@ -321,6 +323,7 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       getLook: () => ({ ...lookRef.current }),
       setLook: (yaw, pitch) => {
         dragRef.current = { yaw, pitch: clampPitch(pitch) };
+        resetLookTracker(trackerRef.current);
         applyLook(yaw, clampPitch(pitch));
       },
       animateTo: (yaw, pitch, ms) =>
@@ -336,6 +339,7 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
             const ny = from.yaw + (toYaw - from.yaw) * e;
             const np = from.pitch + (toPitch - from.pitch) * e;
             dragRef.current = { yaw: ny, pitch: np };
+            resetLookTracker(trackerRef.current);
             applyLook(ny, np);
             if (t < 1) animRef.current = requestAnimationFrame(tick);
             else resolve();
@@ -347,11 +351,11 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
         lockedRef.current = next;
         if (!next) {
           dragRef.current = { ...lookRef.current };
-          calibRef.current = null;
+          resetLookTracker(trackerRef.current);
         }
       },
       recalibrate: () => {
-        calibRef.current = null;
+        resetLookTracker(trackerRef.current);
         dragRef.current = { ...lookRef.current };
       },
       captureJpeg: async () => {
@@ -399,17 +403,34 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     }, []);
 
     useEffect(() => {
+      const applyTracked = () => {
+        const rel = trackerRef.current.filtered;
+        if (!rel) return;
+        applyLook(dragRef.current.yaw + rel.yaw, dragRef.current.pitch + rel.pitch);
+      };
+
       const onOrient = (ev: DeviceOrientationEvent) => {
         if (lockedRef.current || draggingRef.current) return;
         const pose = readPose(ev);
         if (!pose) return;
-        if (!calibRef.current) calibRef.current = pose;
-        const g = poseToLook(pose, calibRef.current);
-        applyLook(dragRef.current.yaw + g.yaw, dragRef.current.pitch + g.pitch);
+        trackerPushOrientation(trackerRef.current, pose);
+        applyTracked();
       };
+
+      const onMotion = (ev: DeviceMotionEvent) => {
+        if (lockedRef.current || draggingRef.current) return;
+        const rate = ev.rotationRate;
+        if (!rate) return;
+        trackerPushGyro(trackerRef.current, rate, performance.now());
+        applyTracked();
+      };
+
       window.addEventListener("deviceorientation", onOrient, true);
-      return () =>
+      window.addEventListener("devicemotion", onMotion, true);
+      return () => {
         window.removeEventListener("deviceorientation", onOrient, true);
+        window.removeEventListener("devicemotion", onMotion, true);
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -439,12 +460,15 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       const yaw = d.yaw - dx * fovRef.current * 1.6;
       const pitch = d.pitch + dy * fovRef.current * 1.2;
       dragRef.current = { yaw, pitch: clampPitch(pitch) };
-      calibRef.current = null;
+      resetLookTracker(trackerRef.current);
       applyLook(dragRef.current.yaw, dragRef.current.pitch);
     };
 
     const onPointerUp = (e: ReactPointerEvent<HTMLCanvasElement>) => {
-      if (draggingRef.current?.id === e.pointerId) draggingRef.current = null;
+      if (draggingRef.current?.id !== e.pointerId) return;
+      draggingRef.current = null;
+      dragRef.current = { ...lookRef.current };
+      resetLookTracker(trackerRef.current);
     };
 
     return (
