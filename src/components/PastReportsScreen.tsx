@@ -224,7 +224,7 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
       setDeleteArmed(true);
       setDeleteFlash(true);
       window.setTimeout(() => setDeleteFlash(false), PIP_FLASH_MS);
-    }, 5000);
+    }, 3000);
     return () => window.clearTimeout(arm);
   }, [pendingDelete]);
 

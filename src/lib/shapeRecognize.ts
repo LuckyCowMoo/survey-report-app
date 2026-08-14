@@ -321,35 +321,10 @@ export function rdpSimplify(pts: NormPoint[], epsilon: number): NormPoint[] {
   ];
 }
 
-/** One Chaikin subdivision pass for freehand polish. */
-function chaikin(pts: NormPoint[], iterations = 2): NormPoint[] {
-  let cur = pts;
-  for (let k = 0; k < iterations; k++) {
-    if (cur.length < 2) break;
-    const next: NormPoint[] = [{ ...cur[0]! }];
-    for (let i = 0; i < cur.length - 1; i++) {
-      const a = cur[i]!;
-      const b = cur[i + 1]!;
-      next.push({
-        x: 0.75 * a.x + 0.25 * b.x,
-        y: 0.75 * a.y + 0.25 * b.y
-      });
-      next.push({
-        x: 0.25 * a.x + 0.75 * b.x,
-        y: 0.25 * a.y + 0.75 * b.y
-      });
-    }
-    next.push({ ...cur[cur.length - 1]! });
-    cur = next;
-  }
-  return cur;
-}
-
 export function smoothFreehand(pts: NormPoint[]): NormPoint[] {
-  // 25% less smoothing than the original (epsilon 0.008 / 2 Chaikin passes).
-  const simplified = rdpSimplify(pts, 0.006);
-  const smoothed = chaikin(simplified, 1);
-  return smoothed.length >= 2 ? smoothed : pts.map((p) => ({ ...p }));
+  // Keep most of the raw stroke — light simplify only, no Chaikin polish.
+  const simplified = rdpSimplify(pts, 0.003);
+  return simplified.length >= 2 ? simplified : pts.map((p) => ({ ...p }));
 }
 
 function newId(): string {
@@ -437,6 +412,143 @@ export function recognizeStroke(
     id,
     kind: "freehand",
     points: smoothFreehand(raw)
+  };
+}
+
+export type GeometricShapeKind = "line" | "circle" | "arrow";
+
+/** Snapshot of a shape the user just erased — used to avoid re-snapping. */
+export type ErasedShapeMemory = {
+  kind: GeometricShapeKind;
+  /** Circle center / line-or-arrow midpoint. */
+  cx: number;
+  cy: number;
+  /** Circle radius, or half chord / shaft length. */
+  size: number;
+  /** Line/arrow endpoints (normalized). */
+  a?: NormPoint;
+  b?: NormPoint;
+  t: number;
+};
+
+export function isGeometricShape(
+  ann: PhotoAnnotation
+): ann is PhotoAnnotation & { kind: GeometricShapeKind } {
+  return ann.kind === "line" || ann.kind === "circle" || ann.kind === "arrow";
+}
+
+export function erasedShapeMemory(
+  ann: PhotoAnnotation,
+  now = Date.now()
+): ErasedShapeMemory | null {
+  if (ann.kind === "circle") {
+    return {
+      kind: "circle",
+      cx: ann.center.x,
+      cy: ann.center.y,
+      size: ann.radius,
+      t: now
+    };
+  }
+  if (ann.kind === "line") {
+    return {
+      kind: "line",
+      cx: (ann.a.x + ann.b.x) / 2,
+      cy: (ann.a.y + ann.b.y) / 2,
+      size: dist(ann.a, ann.b) / 2,
+      a: { ...ann.a },
+      b: { ...ann.b },
+      t: now
+    };
+  }
+  if (ann.kind === "arrow") {
+    return {
+      kind: "arrow",
+      cx: (ann.tail.x + ann.tip.x) / 2,
+      cy: (ann.tail.y + ann.tip.y) / 2,
+      size: dist(ann.tail, ann.tip) / 2,
+      a: { ...ann.tail },
+      b: { ...ann.tip },
+      t: now
+    };
+  }
+  return null;
+}
+
+function nearPoint(a: NormPoint, b: NormPoint, tol: number): boolean {
+  return dist(a, b) <= tol;
+}
+
+function endpointsMatch(
+  a1: NormPoint,
+  b1: NormPoint,
+  a2: NormPoint,
+  b2: NormPoint,
+  tol: number
+): boolean {
+  return (
+    (nearPoint(a1, a2, tol) && nearPoint(b1, b2, tol)) ||
+    (nearPoint(a1, b2, tol) && nearPoint(b1, a2, tol))
+  );
+}
+
+/**
+ * True when `candidate` is the same kind of shape in roughly the same place
+ * as a recently erased one (user likely did not want that snap again).
+ */
+export function matchesErasedShape(
+  candidate: PhotoAnnotation,
+  erased: ErasedShapeMemory[],
+  maxAgeMs = 120_000
+): boolean {
+  if (!isGeometricShape(candidate)) return false;
+  const now = Date.now();
+  for (const mem of erased) {
+    if (mem.kind !== candidate.kind) continue;
+    if (now - mem.t > maxAgeMs) continue;
+
+    if (candidate.kind === "circle" && mem.kind === "circle") {
+      const centerDist = Math.hypot(
+        candidate.center.x - mem.cx,
+        candidate.center.y - mem.cy
+      );
+      const rRatio =
+        candidate.radius / Math.max(mem.size, 1e-6);
+      if (centerDist < 0.1 && rRatio > 0.55 && rRatio < 1.8) return true;
+      continue;
+    }
+
+    if (
+      (candidate.kind === "line" || candidate.kind === "arrow") &&
+      mem.a &&
+      mem.b
+    ) {
+      const a = candidate.kind === "line" ? candidate.a : candidate.tail;
+      const b = candidate.kind === "line" ? candidate.b : candidate.tip;
+      if (endpointsMatch(a, b, mem.a, mem.b, 0.08)) return true;
+      const midDist = Math.hypot(
+        (a.x + b.x) / 2 - mem.cx,
+        (a.y + b.y) / 2 - mem.cy
+      );
+      const len = dist(a, b);
+      const lenRatio = len / Math.max(mem.size * 2, 1e-6);
+      if (midDist < 0.09 && lenRatio > 0.55 && lenRatio < 1.8) return true;
+    }
+  }
+  return false;
+}
+
+/** Prefer freehand when a snap would recreate a shape the user just erased. */
+export function avoidResnapToErased(
+  recognized: PhotoAnnotation,
+  rawStroke: NormPoint[],
+  erased: ErasedShapeMemory[]
+): PhotoAnnotation {
+  if (!matchesErasedShape(recognized, erased)) return recognized;
+  return {
+    id: recognized.id,
+    kind: "freehand",
+    points: smoothFreehand(rawStroke)
   };
 }
 

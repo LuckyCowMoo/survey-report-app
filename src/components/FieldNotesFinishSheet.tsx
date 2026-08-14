@@ -4,27 +4,26 @@ type Props = {
   onClose: () => void;
   shotCount: number;
   busy: boolean;
-  onSaveAndLeave: () => void;
-  onContinueToReport: () => void;
+  onSaveInApp: () => void;
   onExportDocx: () => void;
 };
 
+/** Save options — both paths persist an in-app draft; export also downloads .docx. */
 export default function FieldNotesFinishSheet({
   onClose,
   shotCount,
   busy,
-  onSaveAndLeave,
-  onContinueToReport,
+  onSaveInApp,
   onExportDocx
 }: Props) {
   const empty = shotCount === 0;
 
   return (
-    <SheetShell onClose={onClose} aria-labelledby="field-notes-finish-title">
+    <SheetShell onClose={onClose} aria-labelledby="field-notes-save-title">
       {({ requestClose }: SheetExitApi) => (
         <>
           <div className="sheet-header">
-            <h2 id="field-notes-finish-title">Finish field notes</h2>
+            <h2 id="field-notes-save-title">Save & leave</h2>
             <button
               type="button"
               className="btn small"
@@ -36,25 +35,17 @@ export default function FieldNotesFinishSheet({
           </div>
           <p className="muted field-notes-finish-summary">
             {empty
-              ? "Take at least one photo before finishing."
-              : `${shotCount} photo${shotCount === 1 ? "" : "s"} ready.`}
+              ? "Take at least one photo before saving."
+              : `${shotCount} photo${shotCount === 1 ? "" : "s"} will be saved in the app.`}
           </p>
           <div className="field-notes-finish-actions">
             <button
               type="button"
               className="btn primary big"
               disabled={busy || empty}
-              onClick={onContinueToReport}
+              onClick={onSaveInApp}
             >
-              Continue to report
-            </button>
-            <button
-              type="button"
-              className="btn big"
-              disabled={busy || empty}
-              onClick={onSaveAndLeave}
-            >
-              Save and leave
+              Save in app & leave
             </button>
             <button
               type="button"
@@ -62,7 +53,7 @@ export default function FieldNotesFinishSheet({
               disabled={busy || empty}
               onClick={onExportDocx}
             >
-              Export shorthand .docx
+              Export .docx & leave
             </button>
           </div>
         </>

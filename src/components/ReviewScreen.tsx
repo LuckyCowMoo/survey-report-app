@@ -9,6 +9,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import EntryCard from "./EntryCard";
+import AnnotationOverlay from "./AnnotationOverlay";
+import { getImageDims } from "../lib/imageUtils";
 import { rotate, spinFromDelta, stepUpright, unrotate } from "../lib/dragSpin";
 import {
   applyLiftScrollLock,
@@ -24,7 +26,7 @@ import {
   slotToRemovalIndex
 } from "../lib/sectionLift";
 import { getScrollRoot, isProgrammaticScroll, readScrollTop } from "../lib/scrollRoot";
-import type { SectionState } from "../types";
+import type { PhotoAnnotation, SectionState } from "../types";
 
 interface Props {
   sections: SectionState[];
@@ -41,6 +43,14 @@ interface Props {
   aiBatchRunning: boolean;
   onDismissAiError: (index: number) => void;
   onContinue: () => void;
+  onAddMoreNotes: () => void;
+  onDeleteSection: (index: number) => void;
+  onAnnotateSection: (
+    index: number,
+    annotations: PhotoAnnotation[]
+  ) => void | Promise<void>;
+  /** Prefer raw field-note bytes when annotating (avoids double-burning). */
+  annotateBaseImage?: (index: number) => Uint8Array | null;
   onFocusSection: (index: number) => void;
   focusedSectionIndex: number | null;
   /** Section index currently running the review dwell fill, if any. */
@@ -134,6 +144,10 @@ export default function ReviewScreen({
   aiBatchRunning,
   onDismissAiError,
   onContinue,
+  onAddMoreNotes,
+  onDeleteSection,
+  onAnnotateSection,
+  annotateBaseImage,
   onFocusSection,
   focusedSectionIndex,
   dwellSectionIndex,
@@ -143,6 +157,13 @@ export default function ReviewScreen({
   const [holdArm, setHoldArm] = useState<HoldArm | null>(null);
   const [holdProgress, setHoldProgress] = useState(0);
   const [drag, setDrag] = useState<LiftDrag | null>(null);
+  const [annotate, setAnnotate] = useState<{
+    index: number;
+    url: string;
+    width: number;
+    height: number;
+    initial: PhotoAnnotation[];
+  } | null>(null);
   const holdTimerRef = useRef(0);
   const holdRafRef = useRef(0);
   const dragRef = useRef<LiftDrag | null>(null);
@@ -160,6 +181,56 @@ export default function ReviewScreen({
     () => sections.map((s) => s.entry.number),
     [sections]
   );
+
+  const closeAnnotate = useCallback(() => {
+    setAnnotate((cur) => {
+      if (cur?.url) URL.revokeObjectURL(cur.url);
+      return null;
+    });
+  }, []);
+
+  const openAnnotate = useCallback(
+    (index: number) => {
+      const section = sections[index];
+      if (!section) return;
+      const raw = annotateBaseImage?.(index) ?? null;
+      const base = raw ?? section.entry.images[0] ?? null;
+      if (!base || base.length === 0) return;
+      const dims = getImageDims(base) ?? { width: 1600, height: 1200 };
+      const copy = new Uint8Array(base.byteLength);
+      copy.set(base);
+      const url = URL.createObjectURL(
+        new Blob([copy], { type: "image/jpeg" })
+      );
+      setAnnotate((cur) => {
+        if (cur?.url) URL.revokeObjectURL(cur.url);
+        return {
+          index,
+          url,
+          width: dims.width,
+          height: dims.height,
+          // Only reload vectors when editing the unburned field-note original.
+          initial: raw ? section.entry.annotations ?? [] : []
+        };
+      });
+    },
+    [annotateBaseImage, sections]
+  );
+
+  const finishAnnotate = useCallback(
+    (annotations: PhotoAnnotation[]) => {
+      if (!annotate) return;
+      const index = annotate.index;
+      closeAnnotate();
+      void onAnnotateSection(index, annotations);
+    },
+    [annotate, closeAnnotate, onAnnotateSection]
+  );
+
+  useEffect(() => () => {
+    if (annotate?.url) URL.revokeObjectURL(annotate.url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- revoke only on unmount
+  }, []);
 
   const clearHoldTimer = useCallback(() => {
     if (holdTimerRef.current) {
@@ -837,6 +908,8 @@ export default function ReviewScreen({
                 onAskAi={onAskAi}
                 onDismissAiError={onDismissAiError}
                 onActivate={onFocusSection}
+                onAnnotate={openAnnotate}
+                onDelete={onDeleteSection}
               />
             </div>
           </div>
@@ -845,6 +918,17 @@ export default function ReviewScreen({
       {drag && dropBeforeIndex === sections.length && (
         <div className="section-drop-line" aria-hidden />
       )}
+
+      <div className="review-add-notes">
+        <button
+          type="button"
+          className="btn big review-add-notes-btn"
+          disabled={busy || !!drag}
+          onClick={onAddMoreNotes}
+        >
+          Add more notes
+        </button>
+      </div>
 
       {drag &&
         ghostSection &&
@@ -881,12 +965,22 @@ export default function ReviewScreen({
         <button
           type="button"
           className="btn primary big"
-          disabled={busy || !!drag}
+          disabled={busy || !!drag || !!annotate}
           onClick={onContinue}
         >
           Continue to report details
         </button>
       </div>
+
+      {annotate && (
+        <AnnotationOverlay
+          imageUrl={annotate.url}
+          imageWidth={annotate.width}
+          imageHeight={annotate.height}
+          initial={annotate.initial}
+          onFinished={finishAnnotate}
+        />
+      )}
     </div>
   );
 }

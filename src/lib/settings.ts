@@ -42,6 +42,11 @@ export interface AppSettings {
    */
   autoSuggestDetailsExtras: boolean;
   /**
+   * When true, “Start new report” morphs into Import / Create.
+   * When false, both actions are shown as stationary buttons.
+   */
+  homeCtaMorph: boolean;
+  /**
    * Surveyor name shown as "Contact:" in the report page header.
    * Blank by default — required before generating a document.
    */
@@ -216,6 +221,7 @@ export function loadSettings(): AppSettings {
     pipJumpOnHover: true,
     studioPhotoPassThrough: false,
     autoSuggestDetailsExtras: false,
+    homeCtaMorph: true,
     surveyorName: ""
   };
   try {
@@ -321,6 +327,10 @@ export function loadSettings(): AppSettings {
         typeof parsed.autoSuggestDetailsExtras === "boolean"
           ? parsed.autoSuggestDetailsExtras
           : defaults.autoSuggestDetailsExtras,
+      homeCtaMorph:
+        typeof parsed.homeCtaMorph === "boolean"
+          ? parsed.homeCtaMorph
+          : defaults.homeCtaMorph,
       surveyorName:
         typeof parsed.surveyorName === "string"
           ? parsed.surveyorName
@@ -343,6 +353,7 @@ export function saveSettings(settings: AppSettings): void {
     pipJumpOnHover: fixed.pipJumpOnHover,
     studioPhotoPassThrough: fixed.studioPhotoPassThrough,
     autoSuggestDetailsExtras: fixed.autoSuggestDetailsExtras,
+    homeCtaMorph: fixed.homeCtaMorph,
     surveyorName: fixed.surveyorName
   };
   localStorage.setItem(KEY, JSON.stringify(clean));

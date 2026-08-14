@@ -323,6 +323,20 @@ export default function SettingsSheet({
           </span>
         </div>
 
+        <div className="pip-jump-row">
+          <button
+            type="button"
+            className={`pill-switch${draft.homeCtaMorph ? " is-on" : ""}`}
+            role="switch"
+            aria-checked={draft.homeCtaMorph}
+            aria-label="animate Start new report"
+            onClick={() => set("homeCtaMorph", !draft.homeCtaMorph)}
+          >
+            <span className="pill-switch-thumb" aria-hidden />
+          </button>
+          <span className="pip-jump-label">animate Start new report</span>
+        </div>
+
         <div className="library-settings">
           <span className="library-settings-label">Report library</span>
           {folderCapable ? (

@@ -64,25 +64,34 @@ import {
 } from "./lib/scrollRoot";
 import { startOrientationGuard } from "./lib/orientationGuard";
 import { reorderArray } from "./lib/sectionLift";
-import { fieldNotesToShorthand } from "./lib/fieldNotes";
+import { fieldNotesForReviewReturn, fieldNotesToShorthand, renumberFieldNotes } from "./lib/fieldNotes";
 import {
   generateShorthandDocx,
   shorthandDocxFileName
 } from "./lib/shorthandDocxGenerator";
+import { compositeAnnotationsOntoJpeg } from "./lib/annotationComposite";
 import type {
   FieldNoteShot,
+  PhotoAnnotation,
   ReportExtras,
   ReportMetadata,
   SectionState
 } from "./types";
 
 type Step = AppStep;
+type DesignStep = "review" | "details";
 
 type PendingSourceMatch = {
   sections: SectionState[];
   warnings: string[];
   match: LibraryReportMeta;
 };
+
+function designStepForPersist(step: Step): DesignStep | null {
+  if (step === "review") return "review";
+  if (step === "details" || step === "generate") return "details";
+  return null;
+}
 
 function libraryDisplayTitle(report: LibraryReportMeta): string {
   return (
@@ -172,6 +181,8 @@ export default function App() {
   const [step, setStep] = useState<Step>("home");
   const [fieldNotes, setFieldNotes] = useState<FieldNoteShot[]>([]);
   const fieldNotesSessionKeyRef = useRef(`fieldnotes:${crypto.randomUUID()}`);
+  /** Stable upsert key for mid-flow .dmsr drafts (survives AI text edits). */
+  const draftFingerprintRef = useRef<string | null>(null);
   const [sections, setSections] = useState<SectionState[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [metadata, setMetadata] = useState<ReportMetadata>(() =>
@@ -188,8 +199,22 @@ export default function App() {
   const aiBatchFollowRef = useRef(false);
   const aiBatchRunningRef = useRef(false);
   const busySectionIndexRef = useRef<number | null>(null);
+  const stepRef = useRef(step);
+  const sectionsRef = useRef(sections);
+  const fieldNotesRef = useRef(fieldNotes);
+  const metadataRef = useRef(metadata);
+  const extrasRef = useRef(extras);
+  const warningsRef = useRef(warnings);
+  const settingsRef = useRef(settings);
   aiBatchRunningRef.current = aiBatchRunning;
   busySectionIndexRef.current = busySectionIndex;
+  stepRef.current = step;
+  sectionsRef.current = sections;
+  fieldNotesRef.current = fieldNotes;
+  metadataRef.current = metadata;
+  extrasRef.current = extras;
+  warningsRef.current = warnings;
+  settingsRef.current = settings;
   const importTriggerRef = useRef<(() => void) | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] =
     useState<PendingSourceMatch | null>(null);
@@ -221,9 +246,6 @@ export default function App() {
     }
     return nums;
   }, [aiErrors, sections]);
-
-  const stepRef = useRef(step);
-  stepRef.current = step;
 
   const navigateTo = useCallback((next: Step) => {
     setStep(next);
@@ -427,9 +449,6 @@ export default function App() {
     setReviewDwellIndex(index);
   }, []);
 
-  const sectionsRef = useRef(sections);
-  sectionsRef.current = sections;
-
   // Follow each section as batch AI works it; stop only on intentional user scroll.
   useEffect(() => {
     if (!aiBatchRunning) {
@@ -532,6 +551,10 @@ export default function App() {
       detailsSuggestRanRef.current = false;
       setDetailsSuggestError(null);
       setFieldNotes([]);
+      draftFingerprintRef.current = null;
+      void fingerprintSourceSections(nextSections).then((fp) => {
+        draftFingerprintRef.current = fp;
+      });
       navigateTo("review");
     },
     [navigateTo]
@@ -544,21 +567,93 @@ export default function App() {
     navigateTo("fieldNotes");
   }, [navigateTo]);
 
+  const openFieldNotesFromReview = useCallback(() => {
+    setError(null);
+    setFieldNotes((prev) => fieldNotesForReviewReturn(sections, prev));
+    navigateTo("fieldNotes");
+  }, [navigateTo, sections]);
+
+  /** Quiet .dmsr upsert — no busy UI, no reset, does not abort AI. */
+  const persistReportDraftQuiet = useCallback(
+    async (opts?: {
+      sections?: SectionState[];
+      metadata?: ReportMetadata;
+      extras?: ReportExtras;
+      warnings?: string[];
+      designStep?: DesignStep;
+    }) => {
+      const secs = opts?.sections ?? sectionsRef.current;
+      if (secs.length === 0) return;
+      const meta = opts?.metadata ?? metadataRef.current;
+      const nextExtras = opts?.extras ?? extrasRef.current;
+      const nextWarnings = opts?.warnings ?? warningsRef.current;
+      const designStep =
+        opts?.designStep ??
+        designStepForPersist(stepRef.current) ??
+        "review";
+      let sourceFingerprint = draftFingerprintRef.current;
+      if (!sourceFingerprint) {
+        sourceFingerprint = await fingerprintSourceSections(secs);
+        draftFingerprintRef.current = sourceFingerprint;
+      }
+      const fileName = reportFileName(meta);
+      const coverThumb = await coverThumbnailBlob(secs);
+      const projectBlob = encodeReportProject(
+        buildReportProject({
+          sections: secs,
+          metadata: meta,
+          extras: nextExtras,
+          warnings: nextWarnings,
+          fileName,
+          step: designStep,
+          sourceFingerprint
+        })
+      );
+      await saveProjectDraftToLibrary({
+        projectBlob,
+        fileName,
+        propertyAddress: meta.propertyAddress,
+        houseName: houseNameFromAddress(meta.propertyAddress),
+        clientName: meta.clientName,
+        surveyDate: meta.surveyDate,
+        coverThumb,
+        sourceFingerprint,
+        step: designStep
+      });
+    },
+    []
+  );
+
+  const persistQueueRef = useRef(Promise.resolve());
+  const enqueuePersistReport = useCallback(
+    (opts?: Parameters<typeof persistReportDraftQuiet>[0]) => {
+      persistQueueRef.current = persistQueueRef.current
+        .then(() => persistReportDraftQuiet(opts))
+        .catch(() => {});
+    },
+    [persistReportDraftQuiet]
+  );
+  const enqueuePersistReportRef = useRef(enqueuePersistReport);
+  enqueuePersistReportRef.current = enqueuePersistReport;
+
   const saveFieldNotesDraft = useCallback(
-    async (leaveHome: boolean) => {
-      if (fieldNotes.length === 0) {
+    async (leaveHome: boolean, announce = leaveHome) => {
+      const notes = fieldNotesRef.current;
+      if (notes.length === 0) {
         if (leaveHome) {
           setFieldNotes([]);
           navigateTo("home");
         }
         return;
       }
-      if (leaveHome) setBusy("Saving field notes…");
+      if (announce) {
+        setBusy(leaveHome ? "Saving field notes…" : "Saving…");
+      }
       setError(null);
       try {
-        const entries = await fieldNotesToShorthand(fieldNotes);
+        const entries = await fieldNotesToShorthand(notes);
         const nextSections = matchEntries(entries);
-        const meta = defaultMetadata(settings);
+        const meta = defaultMetadata(settingsRef.current);
         const fileName = reportFileName(meta).replace(/\.docx$/i, "") + ".dmsr";
         const coverThumb = await coverThumbnailBlob(nextSections);
         // Stable session key while capturing so autosave upserts one draft row.
@@ -566,6 +661,9 @@ export default function App() {
         const sourceFingerprint = leaveHome
           ? await fingerprintSourceEntries(entries)
           : fieldNotesSessionKeyRef.current;
+        if (!leaveHome) {
+          draftFingerprintRef.current = sourceFingerprint;
+        }
         const projectBlob = encodeReportProject(
           buildReportProject({
             sections: nextSections,
@@ -589,6 +687,7 @@ export default function App() {
           step: "review"
         });
         if (leaveHome) {
+          draftFingerprintRef.current = null;
           setFieldNotes([]);
           setStep("home");
           replaceAppHist({ app: 1, step: "home" });
@@ -596,11 +695,13 @@ export default function App() {
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
-        if (leaveHome) setBusy(null);
+        if (announce) setBusy(null);
       }
     },
-    [fieldNotes, navigateTo, settings]
+    [navigateTo]
   );
+  const saveFieldNotesDraftRef = useRef(saveFieldNotesDraft);
+  saveFieldNotesDraftRef.current = saveFieldNotesDraft;
 
   const continueFieldNotesToReport = useCallback(() => {
     if (fieldNotes.length === 0) return;
@@ -610,20 +711,34 @@ export default function App() {
       try {
         const entries = await fieldNotesToShorthand(fieldNotes);
         const nextSections = matchEntries(entries);
-        beginFreshImport(nextSections, []);
+        // Keep fieldNotes so Add more notes can return without re-burning photos.
+        setSections(nextSections);
+        setWarnings([]);
+        setFocusedSectionIndex(null);
+        setReviewDwellIndex(null);
+        detailsSuggestRanRef.current = false;
+        setDetailsSuggestError(null);
+        draftFingerprintRef.current = fieldNotesSessionKeyRef.current;
+        await saveFieldNotesDraft(false);
+        navigateTo("review");
+        enqueuePersistReport({
+          sections: nextSections,
+          designStep: "review"
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setBusy(null);
       }
     })();
-  }, [fieldNotes, beginFreshImport]);
+  }, [fieldNotes, navigateTo, saveFieldNotesDraft, enqueuePersistReport]);
 
-  const exportFieldNotesDocx = useCallback(async () => {
+  const exportFieldNotesDocx = useCallback(async (leaveHome = false) => {
     if (fieldNotes.length === 0) return;
-    setBusy("Exporting shorthand…");
+    setBusy(leaveHome ? "Saving & exporting…" : "Saving & exporting…");
     setError(null);
     try {
+      await saveFieldNotesDraft(false);
       const entries = await fieldNotesToShorthand(fieldNotes);
       const blob = await generateShorthandDocx(entries);
       const name = shorthandDocxFileName();
@@ -633,12 +748,17 @@ export default function App() {
       a.download = name;
       a.click();
       URL.revokeObjectURL(url);
+      if (leaveHome) {
+        setFieldNotes([]);
+        setStep("home");
+        replaceAppHist({ app: 1, step: "home" });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(null);
     }
-  }, [fieldNotes]);
+  }, [fieldNotes, saveFieldNotesDraft]);
 
   // Autosave field-notes draft while capturing.
   useEffect(() => {
@@ -700,6 +820,7 @@ export default function App() {
       setReviewDwellIndex(null);
       detailsSuggestRanRef.current = false;
       setDetailsSuggestError(null);
+      draftFingerprintRef.current = project.sourceFingerprint ?? null;
       // Stack review under details so Back from details returns to section review.
       navigateTo("review");
       if (project.step === "details") {
@@ -746,7 +867,85 @@ export default function App() {
 
   const updateSection = useCallback((index: number, next: SectionState) => {
     setSections((prev) => prev.map((s, i) => (i === index ? next : s)));
+    setFieldNotes((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      const shot = prev[index];
+      if (!shot || shot.note === next.entry.note) return prev;
+      return prev.map((s, i) =>
+        i === index ? { ...s, note: next.entry.note } : s
+      );
+    });
   }, []);
+
+  const deleteSection = useCallback((index: number) => {
+    setSections((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      return prev
+        .filter((_, i) => i !== index)
+        .map((s, i) => ({
+          ...s,
+          entry: { ...s.entry, number: i + 1 }
+        }));
+    });
+    setFieldNotes((prev) =>
+      prev.length === 0
+        ? prev
+        : renumberFieldNotes(prev.filter((_, i) => i !== index))
+    );
+    setFocusedSectionIndex((i) => {
+      if (i === null) return null;
+      if (i === index) return null;
+      return i > index ? i - 1 : i;
+    });
+    setReviewDwellIndex((i) => {
+      if (i === null) return null;
+      if (i === index) return null;
+      return i > index ? i - 1 : i;
+    });
+    setAiErrors((errs) => {
+      const out: Record<number, string> = {};
+      for (const [k, v] of Object.entries(errs)) {
+        const oldIdx = Number(k);
+        if (!Number.isFinite(oldIdx) || oldIdx === index) continue;
+        out[oldIdx > index ? oldIdx - 1 : oldIdx] = v;
+      }
+      return out;
+    });
+  }, []);
+
+  const annotateSection = useCallback(
+    async (index: number, annotations: PhotoAnnotation[]) => {
+      const section = sections[index];
+      if (!section?.entry.images[0]) return;
+      const raw = fieldNotes[index]?.image ?? section.entry.images[0];
+      const burned = annotations.length
+        ? await compositeAnnotationsOntoJpeg(raw, annotations)
+        : new Uint8Array(raw);
+      const ann = annotations.length ? annotations : undefined;
+      setFieldNotes((prev) => {
+        if (index < 0 || index >= prev.length) return prev;
+        return prev.map((s, i) =>
+          i === index ? { ...s, annotations: ann } : s
+        );
+      });
+      setSections((prev) =>
+        prev.map((s, i) => {
+          if (i !== index) return s;
+          const images = s.entry.images.slice();
+          images[0] = burned;
+          return {
+            ...s,
+            entry: {
+              ...s.entry,
+              images,
+              ...(ann ? { annotations: ann } : { annotations: undefined })
+            }
+          };
+        })
+      );
+    },
+    [fieldNotes, sections]
+  );
 
   const reorderSections = useCallback((from: number, to: number) => {
     setSections((prev) => {
@@ -756,6 +955,10 @@ export default function App() {
         (s, i) => s.entry.number === prev[i]?.entry.number
       );
       if (unchanged) return prev;
+
+      setFieldNotes((shots) =>
+        shots.length === prev.length ? reorderArray(shots, from, to) : shots
+      );
 
       const remap = (idx: number | null): number | null => {
         if (idx === null) return null;
@@ -805,7 +1008,14 @@ export default function App() {
       });
       try {
         const resolved = await resolveSectionWithAi(sections, index, ai);
+        const nextSections = sections.map((s, i) =>
+          i === index ? resolved : s
+        );
         updateSection(index, resolved);
+        enqueuePersistReport({
+          sections: nextSections,
+          designStep: designStepForPersist(stepRef.current) ?? "review"
+        });
       } catch (err) {
         setAiErrors((prev) => ({
           ...prev,
@@ -816,7 +1026,7 @@ export default function App() {
         setBusySectionIndex(null);
       }
     },
-    [sections, settings, updateSection, openSettings]
+    [sections, settings, updateSection, openSettings, enqueuePersistReport]
   );
 
   const requestAiForAllFlagged = useCallback(() => {
@@ -878,6 +1088,10 @@ export default function App() {
             );
             current = current.map((s, i) => (i === index ? resolved : s));
             setSections(current);
+            enqueuePersistReport({
+              sections: current,
+              designStep: designStepForPersist(stepRef.current) ?? "review"
+            });
           } catch (err) {
             if (
               ac.signal.aborted ||
@@ -899,7 +1113,7 @@ export default function App() {
         setBusySectionIndex(null);
       }
     },
-    [sections, settings, openSettings]
+    [sections, settings, openSettings, enqueuePersistReport]
   );
 
   const stopAiBatch = useCallback(() => {
@@ -940,14 +1154,22 @@ export default function App() {
           ac.signal
         );
         if (ac.signal.aborted) return;
-        setExtras((prev) => applyDetailsSuggestions(prev, suggestion, scope));
+        setExtras((prev) => {
+          const next = applyDetailsSuggestions(prev, suggestion, scope);
+          enqueuePersistReport({ extras: next, designStep: "details" });
+          return next;
+        });
         detailsSuggestRanRef.current = true;
       } catch (err) {
         if (ac.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
           return;
         }
         if (err instanceof PartialDetailsSuggestError) {
-          setExtras((prev) => applyDetailsSuggestions(prev, err.result, scope));
+          setExtras((prev) => {
+            const next = applyDetailsSuggestions(prev, err.result, scope);
+            enqueuePersistReport({ extras: next, designStep: "details" });
+            return next;
+          });
           detailsSuggestRanRef.current = true;
         }
         setDetailsSuggestError({
@@ -961,7 +1183,7 @@ export default function App() {
         setDetailsSuggestBusy(null);
       }
     },
-    [sections, settings, openSettings]
+    [sections, settings, openSettings, enqueuePersistReport]
   );
 
   // Auto-suggest once ~5s after opening details (when enabled and not yet run).
@@ -1005,44 +1227,22 @@ export default function App() {
     setSettingsFocusIdentity(false);
     setShowBatchGuidancePrompt(false);
     setBatchGuidanceDraft("");
+    draftFingerprintRef.current = null;
     setStep("home");
     replaceAppHist({ app: 1, step: "home" });
   }, [settings]);
 
   const saveMidFlowDraft = useCallback(
-    async (designStep: "review" | "details") => {
-      if (sections.length === 0 || saveAndLeaveBusy) return;
+    async (designStep: DesignStep) => {
+      if (sectionsRef.current.length === 0 || saveAndLeaveBusy) return;
       setSaveAndLeaveBusy(true);
       setError(null);
       aiBatchAbortRef.current?.abort();
       detailsSuggestAbortRef.current?.abort();
       try {
         setBusy("Saving draft…");
-        const fileName = reportFileName(metadata);
-        const coverThumb = await coverThumbnailBlob(sections);
-        const sourceFingerprint = await fingerprintSourceSections(sections);
-        const projectBlob = encodeReportProject(
-          buildReportProject({
-            sections,
-            metadata,
-            extras,
-            warnings,
-            fileName,
-            step: designStep,
-            sourceFingerprint
-          })
-        );
-        await saveProjectDraftToLibrary({
-          projectBlob,
-          fileName,
-          propertyAddress: metadata.propertyAddress,
-          houseName: houseNameFromAddress(metadata.propertyAddress),
-          clientName: metadata.clientName,
-          surveyDate: metadata.surveyDate,
-          coverThumb,
-          sourceFingerprint,
-          step: designStep
-        });
+        await persistReportDraftQuiet({ designStep });
+        draftFingerprintRef.current = null;
         reset();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -1051,40 +1251,85 @@ export default function App() {
         setBusy(null);
       }
     },
-    [
-      sections,
-      saveAndLeaveBusy,
-      metadata,
-      extras,
-      warnings,
-      reset
-    ]
+    [saveAndLeaveBusy, persistReportDraftQuiet, reset]
   );
 
-  // Leaving review/details/generate back to home auto-saves a Past reports draft.
-  // Leaving field notes also persists a draft when shots exist.
+  // Persist on every screen change; leaving to home also resets the session.
   const prevStepRef = useRef(step);
   useEffect(() => {
     const prev = prevStepRef.current;
     prevStepRef.current = step;
-    if (step !== "home") return;
-    if (prev === "fieldNotes") {
-      if (fieldNotes.length > 0) void saveFieldNotesDraft(false);
-      setFieldNotes([]);
+    if (prev === step) return;
+
+    const isReport = (s: Step) =>
+      s === "review" || s === "details" || s === "generate";
+
+    if (prev === "fieldNotes" && fieldNotesRef.current.length > 0) {
+      void saveFieldNotesDraft(false);
+      if (step === "home") setFieldNotes([]);
       return;
     }
-    if (prev !== "review" && prev !== "details" && prev !== "generate") return;
-    if (sections.length === 0 || saveAndLeaveBusy) return;
-    const designStep = prev === "review" ? "review" : "details";
-    void saveMidFlowDraft(designStep);
+
+    if (step === "home" && isReport(prev)) {
+      if (sectionsRef.current.length === 0 || saveAndLeaveBusy) return;
+      const designStep: DesignStep = prev === "review" ? "review" : "details";
+      void saveMidFlowDraft(designStep);
+      return;
+    }
+
+    if (isReport(prev) && isReport(step) && sectionsRef.current.length > 0) {
+      enqueuePersistReport({
+        designStep: step === "review" ? "review" : "details"
+      });
+      return;
+    }
+
+    if (
+      prev === "review" &&
+      step === "fieldNotes" &&
+      sectionsRef.current.length > 0
+    ) {
+      enqueuePersistReport({ designStep: "review" });
+    }
   }, [
     step,
-    sections.length,
     saveAndLeaveBusy,
     saveMidFlowDraft,
-    fieldNotes.length,
-    saveFieldNotesDraft
+    saveFieldNotesDraft,
+    enqueuePersistReport
   ]);
+
+  // Best-effort save when the tab hides, unloads, or the app is backgrounded.
+  useEffect(() => {
+    const flushDraft = () => {
+      const s = stepRef.current;
+      if (s === "fieldNotes" && fieldNotesRef.current.length > 0) {
+        void saveFieldNotesDraftRef.current(false, false);
+        return;
+      }
+      if (
+        (s === "review" || s === "details" || s === "generate") &&
+        sectionsRef.current.length > 0
+      ) {
+        enqueuePersistReportRef.current({
+          designStep: designStepForPersist(s) ?? "review"
+        });
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flushDraft();
+    };
+    window.addEventListener("pagehide", flushDraft);
+    window.addEventListener("beforeunload", flushDraft);
+    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("freeze", flushDraft);
+    return () => {
+      window.removeEventListener("pagehide", flushDraft);
+      window.removeEventListener("beforeunload", flushDraft);
+      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("freeze", flushDraft);
+    };
+  }, []);
 
   return (
     <div
@@ -1144,13 +1389,14 @@ export default function App() {
 
       <main className="content">
         {step === "home" && (
-          <HomeScreen
+          <            HomeScreen
             onFile={handleFile}
             onCreateFieldNotes={startFieldNotes}
             busy={busy !== null}
             onShowGuide={openGuide}
             onShowSettings={openSettings}
             onShowPastReports={() => navigateTo("past")}
+            ctaMorph={settings.homeCtaMorph}
             importTriggerRef={importTriggerRef}
           />
         )}
@@ -1162,9 +1408,10 @@ export default function App() {
             shots={fieldNotes}
             onChange={setFieldNotes}
             busy={busy !== null}
-            onSaveAndLeave={() => void saveFieldNotesDraft(true)}
+            onSaveInApp={() => void saveFieldNotesDraft(true)}
             onContinueToReport={continueFieldNotesToReport}
-            onExportDocx={() => void exportFieldNotesDocx()}
+            onExportDocx={() => void exportFieldNotesDocx(true)}
+            photoPassThrough={settings.studioPhotoPassThrough}
           />
         )}
         {step === "review" && (
@@ -1183,6 +1430,10 @@ export default function App() {
             aiErrors={aiErrors}
             onDismissAiError={dismissAiError}
             onContinue={() => navigateTo("details")}
+            onAddMoreNotes={openFieldNotesFromReview}
+            onDeleteSection={deleteSection}
+            onAnnotateSection={annotateSection}
+            annotateBaseImage={(index) => fieldNotes[index]?.image ?? null}
             onFocusSection={focusSection}
             focusedSectionIndex={focusedSectionIndex}
             dwellSectionIndex={reviewDwellIndex}

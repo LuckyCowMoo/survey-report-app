@@ -23,6 +23,7 @@ import {
 import {
   countMatchedShorthandNotes,
   createFieldNoteShot,
+  fieldNotePipTones,
   formatFieldNoteCreated,
   missingFieldNoteChecklist,
   renumberFieldNotes
@@ -38,9 +39,11 @@ type Props = {
   shots: FieldNoteShot[];
   onChange: (next: FieldNoteShot[]) => void;
   busy: boolean;
-  onSaveAndLeave: () => void;
+  onSaveInApp: () => void;
   onContinueToReport: () => void;
   onExportDocx: () => void;
+  /** When true, pip jumps animate through every in-between photo. */
+  photoPassThrough?: boolean;
 };
 
 type Mode = "live" | "review" | "retake";
@@ -50,9 +53,11 @@ let pendingPictureTarget: "new" | number = "new";
 
 const SWIPE_MIN_PX = 56;
 const SLIDE_MS = 320;
+const PIP_PASS_STEP_MS = 140;
+const PIP_PASS_MAX_MS = 900;
 const RETAKE_HOLD_MS = 2000;
 const POST_CAPTURE_SOLID_MS = 1000;
-const DELETE_HOLD_MS = 5000;
+const DELETE_HOLD_MS = 3000;
 const ANNOTATE_HOLD_MS = 500;
 const ANNOTATE_HOLD_MOVE_PX = 14;
 const ZOOM_CSS_MIN = 1;
@@ -122,16 +127,17 @@ export default function FieldNotesScreen({
   shots,
   onChange,
   busy,
-  onSaveAndLeave,
+  onSaveInApp,
   onContinueToReport,
-  onExportDocx
+  onExportDocx,
+  photoPassThrough = false
 }: Props) {
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => shots.length);
   const [mode, setMode] = useState<Mode>("live");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraLoading, setCameraLoading] = useState(true);
   const [capturing, setCapturing] = useState(false);
-  const [showFinish, setShowFinish] = useState(false);
+  const [showSave, setShowSave] = useState(false);
   const [cameras, setCameras] = useState<CameraDeviceInfo[]>([]);
   const [cameraId, setCameraId] = useState<string | null>(() =>
     loadPreferredCameraId()
@@ -141,6 +147,7 @@ export default function FieldNotesScreen({
   );
   const [dragX, setDragX] = useState(0);
   const [sliding, setSliding] = useState(false);
+  const [slideMs, setSlideMs] = useState(SLIDE_MS);
   const [zoom, setZoom] = useState(1);
   const [zoomMin, setZoomMin] = useState(ZOOM_CSS_MIN);
   const [zoomMax, setZoomMax] = useState(ZOOM_CSS_MAX);
@@ -236,6 +243,9 @@ export default function FieldNotesScreen({
     () => missingFieldNoteChecklist(shots),
     [shots]
   );
+  const pipTones = useMemo(() => fieldNotePipTones(shots), [shots]);
+  const photoPassThroughRef = useRef(photoPassThrough);
+  photoPassThroughRef.current = photoPassThrough;
 
   const stopStream = useCallback(() => {
     cameraGenRef.current += 1;
@@ -438,7 +448,7 @@ export default function FieldNotesScreen({
     setFlashKey((k) => k + 1);
   }, []);
 
-  const settleTo = useCallback((nextIndex: number) => {
+  const settleTo = useCallback((nextIndex: number, durationMs = SLIDE_MS) => {
     const clamped = Math.max(0, Math.min(shotsLenRef.current, nextIndex));
     setDragX(0);
     setIndex(clamped);
@@ -450,18 +460,70 @@ export default function FieldNotesScreen({
       setSliding(false);
       return;
     }
+    setSlideMs(durationMs);
     setSliding(true);
     if (slideTimerRef.current) window.clearTimeout(slideTimerRef.current);
     slideTimerRef.current = window.setTimeout(() => {
       setSliding(false);
       slideTimerRef.current = 0;
-    }, SLIDE_MS);
+    }, durationMs);
   }, []);
 
-  const goTo = (i: number) => {
-    if (busy || capturing || sliding || holdingRetake) return;
-    settleTo(i);
-  };
+  const jumpToPip = useCallback(
+    (target: number) => {
+      if (busy || capturing || sliding || holdingRetake || annotating) return;
+      const from = indexRef.current;
+      const max = shotsLenRef.current;
+      const clamped = Math.max(0, Math.min(max, target));
+      if (clamped === from) return;
+
+      const span = Math.abs(clamped - from);
+      const passThrough = photoPassThroughRef.current;
+
+      if (passThrough || span <= 1 || prefersReducedMotion()) {
+        const ms =
+          passThrough && span > 1
+            ? Math.min(
+                PIP_PASS_MAX_MS,
+                Math.max(SLIDE_MS, PIP_PASS_STEP_MS * span)
+              )
+            : SLIDE_MS;
+        settleTo(clamped, ms);
+        return;
+      }
+
+      // Direct jump: target slides in from the side, skipping in-betweens.
+      const dir = clamped > from ? 1 : -1;
+      const panel =
+        shutterWrapRef.current?.parentElement?.querySelector(
+          ".field-notes-media-viewport"
+        ) as HTMLElement | null;
+      const width = panel?.clientWidth || window.innerWidth;
+
+      if (slideTimerRef.current) window.clearTimeout(slideTimerRef.current);
+      setSliding(false);
+      setSlideMs(SLIDE_MS);
+      setDragX(0);
+      setIndex(clamped);
+      if (clamped >= max) setMode("live");
+      else setMode("review");
+      setHoldingRetake(false);
+      setShutterSolid(false);
+
+      requestAnimationFrame(() => {
+        setDragX(dir * width);
+        requestAnimationFrame(() => {
+          setSliding(true);
+          setDragX(0);
+          slideTimerRef.current = window.setTimeout(() => {
+            setSliding(false);
+            slideTimerRef.current = 0;
+          }, SLIDE_MS);
+        });
+      });
+    },
+    [annotating, busy, capturing, holdingRetake, settleTo, sliding]
+  );
 
   const cycleCamera = async () => {
     if (busy || capturing) return;
@@ -818,7 +880,7 @@ export default function FieldNotesScreen({
     if (
       t instanceof Element &&
       t.closest(
-        "button,a,label,select,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-arrow,.field-notes-notes-footer"
+        "button,a,label,select,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-notes-footer"
       )
     ) {
       swipeRef.current = null;
@@ -940,10 +1002,9 @@ export default function FieldNotesScreen({
 
   const trackStyle: CSSProperties = {
     transform: `translate3d(calc(${-safeIndex * 100}% + ${dragX}px), 0, 0)`,
-    transition:
-      dragX !== 0 || !sliding
-        ? "none"
-        : `transform ${SLIDE_MS}ms cubic-bezier(0.33, 1, 0.32, 1)`
+    transition: sliding
+      ? `transform ${slideMs}ms cubic-bezier(0.33, 1, 0.32, 1)`
+      : "none"
   };
 
   const cssZoom = hwZoom ? 1 : zoom;
@@ -1089,74 +1150,7 @@ export default function FieldNotesScreen({
             )}
           </div>
 
-          <div className="field-notes-cam-float field-notes-cam-float-top">
-            <div className="field-notes-cam-float-top-meta">
-              <span className="field-notes-index-chip">{indexLabel}</span>
-            </div>
-            <div className="field-notes-cam-float-top-actions">
-              <label
-                htmlFor="field-notes-gallery"
-                className={`field-notes-float-btn field-notes-pictures-btn-top${
-                  capturing || importingPictures ? " is-disabled" : ""
-                }`}
-                onPointerDown={() => {
-                  const len = shotsRef.current.length;
-                  const at = Math.max(0, Math.min(indexRef.current, len));
-                  pendingPictureTarget = at < len ? at : "new";
-                }}
-              >
-                {importingPictures ? "Adding…" : "Add from pictures"}
-              </label>
-              {cameras.length > 1 ? (
-                <label className="field-notes-camera-pick">
-                  <select
-                    value={cameraId ?? cameras[0]?.deviceId ?? ""}
-                    disabled={busy || capturing}
-                    aria-label="Choose camera"
-                    onChange={(e) => onPickCamera(e.target.value)}
-                  >
-                    {cameras.map((c) => (
-                      <option key={c.deviceId} value={c.deviceId}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : (
-                <button
-                  type="button"
-                  className="field-notes-float-btn"
-                  disabled={busy || capturing}
-                  title={activeCameraLabel}
-                  aria-label={`Refresh cameras (current: ${activeCameraLabel})`}
-                  onClick={() => void cycleCamera()}
-                >
-                  Camera
-                </button>
-              )}
-            </div>
-          </div>
-
           <div className="field-notes-cam-float field-notes-cam-float-bottom">
-            <button
-              type="button"
-              className="field-notes-arrow field-notes-arrow-prev"
-              aria-label="Previous photo"
-              disabled={safeIndex <= 0 || busy || sliding}
-              onClick={() => goTo(safeIndex - 1)}
-            >
-              ◀
-            </button>
-            <button
-              type="button"
-              className="field-notes-arrow field-notes-arrow-next"
-              aria-label="Next photo"
-              disabled={safeIndex >= shots.length || busy || sliding}
-              onClick={() => goTo(safeIndex + 1)}
-            >
-              ▶
-            </button>
-
             <div className="field-notes-cam-float-lens">
               <label
                 htmlFor="field-notes-gallery"
@@ -1328,6 +1322,45 @@ export default function FieldNotesScreen({
         </div>
 
         <div className="field-notes-notes-panel">
+          <div
+            className="field-notes-pips"
+            role="tablist"
+            aria-label="Field note sections"
+          >
+            {shots.map((shot, i) => {
+              const tone = pipTones[i] ?? "empty";
+              const current = safeIndex === i;
+              return (
+                <button
+                  key={shot.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={current}
+                  aria-label={`Go to photo ${shot.number}`}
+                  className={`studio-pip field-notes-pip tone-${tone}${
+                    current ? " is-current" : ""
+                  }`}
+                  disabled={busy || capturing || sliding}
+                  onClick={() => jumpToPip(i)}
+                >
+                  <span className="studio-pip-face" aria-hidden />
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isEmptySlot}
+              aria-label="Go to new note"
+              className={`studio-pip field-notes-pip tone-empty${
+                isEmptySlot ? " is-current" : ""
+              }`}
+              disabled={busy || capturing || sliding}
+              onClick={() => jumpToPip(shots.length)}
+            >
+              <span className="studio-pip-face" aria-hidden />
+            </button>
+          </div>
           <div className="field-notes-notes-viewport">
             <div className="field-notes-notes-track" style={trackStyle}>
               {shots.map((shot, i) => (
@@ -1366,14 +1399,24 @@ export default function FieldNotesScreen({
                           <span>matched shorthand</span>
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        className="btn primary big field-notes-finish-inline"
-                        disabled={busy}
-                        onClick={() => setShowFinish(true)}
-                      >
-                        Finish
-                      </button>
+                      <div className="field-notes-summary-actions">
+                        <button
+                          type="button"
+                          className="btn big field-notes-finish-inline"
+                          disabled={busy || shots.length === 0}
+                          onClick={() => setShowSave(true)}
+                        >
+                          Save & leave
+                        </button>
+                        <button
+                          type="button"
+                          className="btn primary big field-notes-finish-inline"
+                          disabled={busy || shots.length === 0}
+                          onClick={onContinueToReport}
+                        >
+                          Continue to document
+                        </button>
+                      </div>
                     </div>
                     <div className="field-notes-summary-missing">
                       <h2 className="field-notes-summary-missing-title">
@@ -1426,20 +1469,17 @@ export default function FieldNotesScreen({
         </div>
       </div>
 
-      {showFinish && (
+      {showSave && (
         <FieldNotesFinishSheet
           shotCount={shots.length}
           busy={busy}
-          onClose={() => setShowFinish(false)}
-          onSaveAndLeave={() => {
-            setShowFinish(false);
-            onSaveAndLeave();
-          }}
-          onContinueToReport={() => {
-            setShowFinish(false);
-            onContinueToReport();
+          onClose={() => setShowSave(false)}
+          onSaveInApp={() => {
+            setShowSave(false);
+            onSaveInApp();
           }}
           onExportDocx={() => {
+            setShowSave(false);
             onExportDocx();
           }}
         />

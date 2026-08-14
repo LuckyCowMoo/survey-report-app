@@ -4,6 +4,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
   type TransitionEvent as ReactTransitionEvent
 } from "react";
 import { createPortal } from "react-dom";
@@ -30,6 +32,7 @@ import type { LibraryParagraph, SectionState } from "../types";
 
 /** Hover must dwell this long before mouse highlights a section. */
 const HOVER_ACTIVATE_MS = 500;
+const SECTION_DELETE_HOLD_MS = 3000;
 
 interface Props {
   section: SectionState;
@@ -52,6 +55,8 @@ interface Props {
   onAskAi: (index: number) => void;
   onDismissAiError?: (index: number) => void;
   onActivate?: (index: number) => void;
+  onAnnotate?: (index: number) => void;
+  onDelete?: (index: number) => void;
 }
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -325,12 +330,20 @@ export default function EntryCard({
   onChange,
   onAskAi,
   onDismissAiError,
-  onActivate
+  onActivate,
+  onAnnotate,
+  onDelete
 }: Props) {
   const [showPicker, setShowPicker] = useState(false);
   /** Progressive text shown while a large paste types in; null = show section.text. */
   const [revealDisplay, setRevealDisplay] = useState<string | null>(null);
   const [noteExpanded, setNoteExpanded] = useState(false);
+  const [deleteHolding, setDeleteHolding] = useState(false);
+  const [deleteHoldProgress, setDeleteHoldProgress] = useState(0);
+  const [showDeleteHint, setShowDeleteHint] = useState(false);
+  const deleteHoldRafRef = useRef(0);
+  const deleteHoldArmedRef = useRef(false);
+  const deleteHintTimerRef = useRef(0);
   const wasAiWorkingRef = useRef(false);
   const textRevealTimerRef = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -374,9 +387,67 @@ export default function EntryCard({
       if (chipFlashTimerRef.current) {
         window.clearTimeout(chipFlashTimerRef.current);
       }
+      if (deleteHoldRafRef.current) {
+        cancelAnimationFrame(deleteHoldRafRef.current);
+      }
+      if (deleteHintTimerRef.current) {
+        window.clearTimeout(deleteHintTimerRef.current);
+      }
     },
     []
   );
+
+  const cancelDeleteHold = (showHint: boolean) => {
+    deleteHoldArmedRef.current = false;
+    setDeleteHolding(false);
+    setDeleteHoldProgress(0);
+    if (deleteHoldRafRef.current) {
+      cancelAnimationFrame(deleteHoldRafRef.current);
+      deleteHoldRafRef.current = 0;
+    }
+    if (showHint) {
+      setShowDeleteHint(true);
+      if (deleteHintTimerRef.current) {
+        window.clearTimeout(deleteHintTimerRef.current);
+      }
+      deleteHintTimerRef.current = window.setTimeout(() => {
+        setShowDeleteHint(false);
+        deleteHintTimerRef.current = 0;
+      }, 2200);
+    }
+  };
+
+  const onDeletePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (dragPreview || !onDelete || aiWorking || busy) return;
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    deleteHoldArmedRef.current = true;
+    setDeleteHolding(true);
+    setShowDeleteHint(false);
+    setDeleteHoldProgress(0);
+    const start = performance.now();
+    const tick = (now: number) => {
+      if (!deleteHoldArmedRef.current) return;
+      const p = Math.min(1, (now - start) / SECTION_DELETE_HOLD_MS);
+      setDeleteHoldProgress(p);
+      if (p >= 1) {
+        deleteHoldArmedRef.current = false;
+        setDeleteHolding(false);
+        setDeleteHoldProgress(0);
+        onDelete(index);
+        return;
+      }
+      deleteHoldRafRef.current = requestAnimationFrame(tick);
+    };
+    deleteHoldRafRef.current = requestAnimationFrame(tick);
+  };
+
+  const onDeletePointerUp = () => {
+    if (!deleteHoldArmedRef.current) return;
+    cancelDeleteHold(true);
+  };
 
   const chipPending =
     section.pendingNoteConfirm || section.pendingReview;
@@ -1063,6 +1134,19 @@ export default function EntryCard({
             "Ask AI"
           )}
         </button>
+        {section.entry.images[0] && onAnnotate && (
+          <button
+            type="button"
+            className="btn small card-annotate-btn"
+            disabled={aiWorking || busy || dragPreview}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAnnotate(index);
+            }}
+          >
+            Annotate
+          </button>
+        )}
         <select
           className="crossref-select"
           value={section.crossrefSection ?? ""}
@@ -1080,6 +1164,35 @@ export default function EntryCard({
           <button className="btn small" onClick={() => editText(section.entry.note)}>
             Use note text
           </button>
+        )}
+        {onDelete && !dragPreview && (
+          <span className="card-delete-wrap">
+            {showDeleteHint && (
+              <span className="card-delete-hint" role="status">
+                Hold to delete
+              </span>
+            )}
+            <button
+              type="button"
+              className={`btn small danger card-delete-btn${
+                deleteHolding ? " is-delete-holding" : ""
+              }`}
+              style={
+                {
+                  "--delete-hold": deleteHoldProgress
+                } as CSSProperties
+              }
+              disabled={aiWorking || busy}
+              aria-label="Hold to delete section"
+              onPointerDown={onDeletePointerDown}
+              onPointerUp={onDeletePointerUp}
+              onPointerCancel={() => cancelDeleteHold(false)}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <span className="card-delete-fill" aria-hidden />
+              <span className="card-delete-label">Delete</span>
+            </button>
+          </span>
         )}
       </div>
 

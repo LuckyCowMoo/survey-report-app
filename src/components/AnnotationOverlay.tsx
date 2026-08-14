@@ -6,7 +6,13 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { NormPoint, PhotoAnnotation } from "../types";
-import { hitTestAnnotation, recognizeStroke } from "../lib/shapeRecognize";
+import {
+  avoidResnapToErased,
+  erasedShapeMemory,
+  hitTestAnnotation,
+  recognizeStroke,
+  type ErasedShapeMemory
+} from "../lib/shapeRecognize";
 import { buildEdgeField, type EdgeField } from "../lib/edgeField";
 import { calloutAttachPoint, calloutMetrics } from "../lib/callout";
 
@@ -131,6 +137,8 @@ export default function AnnotationOverlay({
   const liveRafRef = useRef(0);
   const eraseIdsRef = useRef<Set<string>>(new Set());
   const eraseSnapshotRef = useRef<PhotoAnnotation[] | null>(null);
+  /** Shapes recently erased — redrawing nearby won't snap to the same kind. */
+  const erasedShapesRef = useRef<ErasedShapeMemory[]>([]);
   const handleDragRef = useRef<{
     id: string;
     handle: string;
@@ -484,6 +492,17 @@ export default function AnnotationOverlay({
       eraseSnapshotRef.current = null;
       eraseIdsRef.current = new Set();
       if (snapshot && removed.size > 0) {
+        const now = Date.now();
+        const remembered = snapshot
+          .filter((a) => removed.has(a.id))
+          .map((a) => erasedShapeMemory(a, now))
+          .filter((m): m is ErasedShapeMemory => m != null);
+        if (remembered.length) {
+          erasedShapesRef.current = [
+            ...erasedShapesRef.current,
+            ...remembered
+          ].slice(-12);
+        }
         const next = snapshot.filter((a) => !removed.has(a.id));
         requestAnimationFrame(() => {
           setPast((p) => {
@@ -525,8 +544,13 @@ export default function AnnotationOverlay({
       detectShapes: shapeDetectRef.current
     });
     if (!recognized) return;
-    pushHistory([...annotationsRef.current, recognized]);
-    setSelectedId(recognized.id);
+    const kept = avoidResnapToErased(
+      recognized,
+      stroke,
+      erasedShapesRef.current
+    );
+    pushHistory([...annotationsRef.current, kept]);
+    setSelectedId(kept.id);
   };
 
   const maybeDoubleTap = (clientX: number, clientY: number): boolean => {

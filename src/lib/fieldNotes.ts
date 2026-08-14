@@ -1,6 +1,39 @@
-import type { FieldNoteShot, ShorthandEntry } from "../types";
+import type { FieldNoteShot, SectionState, ShorthandEntry, TextSource } from "../types";
 import { matchEntries } from "./matcher";
 import { compositeAnnotationsOntoJpeg } from "./annotationComposite";
+
+/** Same tones as review / studio status pips. */
+export type FieldNotePipTone =
+  | "attention"
+  | "noteConfirm"
+  | "review"
+  | "ai"
+  | "library"
+  | "manual"
+  | "empty";
+
+export function pipToneFromSection(s: SectionState): FieldNotePipTone {
+  if (s.pendingNoteConfirm) return "noteConfirm";
+  if (s.needsAttention) return "attention";
+  if (s.pendingReview) return "review";
+  switch (s.source as TextSource) {
+    case "ai":
+      return "ai";
+    case "library":
+      return "library";
+    case "manual":
+    case "crossref":
+      return "manual";
+    default:
+      return "empty";
+  }
+}
+
+/** Status pip colour for each field-note shot (matched like review sections). */
+export function fieldNotePipTones(shots: FieldNoteShot[]): FieldNotePipTone[] {
+  if (shots.length === 0) return [];
+  return matchFieldNoteShots(shots).map(pipToneFromSection);
+}
 
 /** Report-and-Run style Created line, e.g. "Thu, 8/6/2026". */
 export function formatFieldNoteCreated(date = new Date()): string {
@@ -140,6 +173,58 @@ export function createFieldNoteShot(
     imageName: partial?.imageName ?? "image.jpeg",
     image
   };
+}
+
+/** Rebuild field-note shots from review sections (photo + shorthand note). */
+export function sectionsToFieldNotes(sections: SectionState[]): FieldNoteShot[] {
+  const shots: FieldNoteShot[] = [];
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i]!;
+    const image = s.entry.images[0];
+    if (!image || image.length === 0) continue;
+    const name =
+      s.entry.imageNames[0]?.replace(/^word\/media\//i, "") ||
+      `image${shots.length + 1}.jpeg`;
+    shots.push({
+      id: newFieldNoteId(),
+      number: shots.length + 1,
+      note: s.entry.note,
+      created: s.entry.created || formatFieldNoteCreated(),
+      imageName: name,
+      image,
+      ...(s.entry.annotations?.length
+        ? { annotations: s.entry.annotations }
+        : {})
+    });
+  }
+  return renumberFieldNotes(shots);
+}
+
+/**
+ * Prefer in-memory field notes when returning from review (keeps unburned
+ * photos + annotations). Falls back to rebuilding from section images.
+ */
+export function fieldNotesForReviewReturn(
+  sections: SectionState[],
+  previous: FieldNoteShot[]
+): FieldNoteShot[] {
+  if (
+    previous.length > 0 &&
+    previous.length === sections.length &&
+    previous.every((shot, i) => shot.image.length > 0 && sections[i])
+  ) {
+    return renumberFieldNotes(
+      previous.map((shot, i) => {
+        const s = sections[i]!;
+        return {
+          ...shot,
+          note: s.entry.note,
+          created: s.entry.created || shot.created
+        };
+      })
+    );
+  }
+  return sectionsToFieldNotes(sections);
 }
 
 export function moveFieldNote(
