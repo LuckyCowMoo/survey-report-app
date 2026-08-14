@@ -7763,13 +7763,20 @@ html[data-theme="dark"] .field-notes-annotate-btn {
 }
 
 .tutorial-build-stamp {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  z-index: 6;
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #ffe08a;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
 }
 
 .tutorial-live-sub {

@@ -142,7 +142,7 @@ export default function HomeScreen({
             className="home-tutorial-link"
             onClick={onStartTutorial}
           >
-            Try the camera tutorial test
+            Try the camera tutorial — test cam
           </button>
         )}
       </div>

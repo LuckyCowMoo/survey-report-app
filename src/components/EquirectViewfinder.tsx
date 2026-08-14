@@ -37,6 +37,8 @@ varying vec2 vUv;
 void main() {
   vec2 ndc = vec2(vUv.x * 2.0 - 1.0, vUv.y * 2.0 - 1.0);
   ndc.x *= uRes.x / max(uRes.y, 1.0);
+  /* 90° anticlockwise in the viewfinder to match the phone IMU. */
+  ndc = vec2(-ndc.y, ndc.x);
   float t = tan(uFov * 0.5);
   vec3 dir = normalize(vec3(ndc.x * t, ndc.y * t, -1.0));
   float cp = cos(uPitch);
@@ -124,7 +126,15 @@ function drawSoftware(
   w: number,
   h: number
 ) {
-  const aspect = w / Math.max(1, h);
+  ctx.fillStyle = "#c9d6e2";
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.translate(-h / 2, -w / 2);
+  const rw = h;
+  const rh = w;
+  const aspect = rw / Math.max(1, rh);
   const vfov = 2 * Math.atan(Math.tan(fov / 2) / aspect);
   const spanX = (fov / (Math.PI * 2)) * img.naturalWidth;
   const spanY = (vfov / Math.PI) * img.naturalHeight;
@@ -137,16 +147,15 @@ function drawSoftware(
       (0.5 - pitch / Math.PI) * img.naturalHeight - spanY / 2
     )
   );
-  ctx.fillStyle = "#c9d6e2";
-  ctx.fillRect(0, 0, w, h);
   if (sx + spanX <= img.naturalWidth) {
-    ctx.drawImage(img, sx, sy, spanX, spanY, 0, 0, w, h);
+    ctx.drawImage(img, sx, sy, spanX, spanY, 0, 0, rw, rh);
   } else {
     const first = img.naturalWidth - sx;
     const t = first / spanX;
-    ctx.drawImage(img, sx, sy, first, spanY, 0, 0, w * t, h);
-    ctx.drawImage(img, 0, sy, spanX - first, spanY, w * t, 0, w * (1 - t), h);
+    ctx.drawImage(img, sx, sy, first, spanY, 0, 0, rw * t, rh);
+    ctx.drawImage(img, 0, sy, spanX - first, spanY, rw * t, 0, rw * (1 - t), rh);
   }
+  ctx.restore();
 }
 
 const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
@@ -469,8 +478,8 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       const h = canvas?.clientHeight || 1;
       const dx = (e.clientX - d.x) / w;
       const dy = (e.clientY - d.y) / h;
-      const yaw = d.yaw - dx * fovRef.current * 1.6;
-      const pitch = d.pitch + dy * fovRef.current * 1.2;
+      const yaw = d.yaw + dy * fovRef.current * 1.6;
+      const pitch = d.pitch + dx * fovRef.current * 1.2;
       dragRef.current = { yaw, pitch: clampPitch(pitch) };
       resetLookTracker(trackerRef.current);
       applyLook(dragRef.current.yaw, dragRef.current.pitch);
