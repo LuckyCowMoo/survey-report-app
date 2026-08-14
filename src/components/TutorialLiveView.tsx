@@ -288,7 +288,7 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
 
         <div className="tutorial-aim-frame" data-ok={aligned && walkMode === "off"} />
 
-        <p className="tutorial-build-stamp">test cam</p>
+        <p className="tutorial-build-stamp">test cam 360</p>
         <div className="tutorial-live-hud">
           <p className="tutorial-live-hint">{hint}</p>
           {needGyroTap && !locked && (

@@ -5883,9 +5883,11 @@ html[data-theme="dark"] .chip.kw {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  max-width: none;
-  width: 100%;
-  margin: 0;
+  /* 19.5:9 portrait phone. On a real phone this is ~full width; on a wide
+     window (already past the 720/1040 app cap) it pillarboxes to that ratio. */
+  width: min(100%, calc(100dvh * 9 / 19.5));
+  max-width: min(100%, calc(100dvh * 9 / 19.5));
+  margin-inline: auto;
 }
 
 html:has(.app-field-notes),
