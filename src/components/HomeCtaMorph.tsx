@@ -22,7 +22,6 @@ export default function HomeCtaMorph({
   merging,
   radius,
   gap,
-  blob,
   importFill,
   createFill
 }: Props) {
@@ -55,10 +54,8 @@ export default function HomeCtaMorph({
       frame: CtaMorphFrame,
       w: number,
       h: number,
-      blobC: string,
       importC: string,
-      createC: string,
-      rad: number
+      createC: string
     ) => {
       const peanut = peanutRef.current;
       const left = leftRef.current;
@@ -170,9 +167,6 @@ export default function HomeCtaMorph({
       const rad =
         parseFloat(cs.getPropertyValue("--cta-radius")) || radius;
       const gp = parseFloat(cs.getPropertyValue("--cta-gap")) || gap;
-      const blobC = (cs.getPropertyValue("--cta-blob").trim().startsWith("#")
-        ? cs.getPropertyValue("--cta-blob").trim()
-        : blob);
       const importC = (cs.getPropertyValue("--cta-import").trim().startsWith("#")
         ? cs.getPropertyValue("--cta-import").trim()
         : importFill);
@@ -189,13 +183,13 @@ export default function HomeCtaMorph({
         rad,
         gp
       );
-      paint(frame, w, h, blobC, importC, createC, rad);
+      paint(frame, w, h, importC, createC);
       raf = window.requestAnimationFrame(tick);
     };
 
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [blob, importFill, createFill, radius, gap]);
+  }, [importFill, createFill, radius, gap]);
 
   return (
     <div ref={wrapRef} className="home-cta-morph">

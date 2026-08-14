@@ -513,25 +513,6 @@ function snapWallOffset(u: number): number {
   return raw >= 0 ? raw : raw * 2.35;
 }
 
-function splitCubic(
-  p0: Pt,
-  c1: Pt,
-  c2: Pt,
-  p3: Pt,
-  t = 0.5
-): { left: { p0: Pt; c1: Pt; c2: Pt; p3: Pt }; right: { p0: Pt; c1: Pt; c2: Pt; p3: Pt } } {
-  const a = lerpPt(p0, c1, t);
-  const b = lerpPt(c1, c2, t);
-  const c = lerpPt(c2, p3, t);
-  const d = lerpPt(a, b, t);
-  const e = lerpPt(b, c, t);
-  const m = lerpPt(d, e, t);
-  return {
-    left: { p0, c1: a, c2: d, p3: m },
-    right: { p0: m, c1: e, c2: c, p3 }
-  };
-}
-
 function tileWorldToLocal(tile: CtaTile, pt: Pt): Pt {
   const cx = tile.w / 2;
   const cy = tile.h / 2;
