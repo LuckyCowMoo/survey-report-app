@@ -42,8 +42,8 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
     const videoRef = useRef<HTMLVideoElement>(null);
     const walkDoneRef = useRef(false);
     const [phase, setPhase] = useState<TutorialPhase>("loading");
-    const [spawnPano, setSpawnPano] = useState<HTMLCanvasElement | null>(null);
-    const [gutterPano, setGutterPano] = useState<HTMLCanvasElement | null>(
+    const [spawnPano, setSpawnPano] = useState<HTMLImageElement | null>(null);
+    const [gutterPano, setGutterPano] = useState<HTMLImageElement | null>(
       null
     );
     const [panoKind, setPanoKind] = useState<"spawn" | "gutter">("spawn");
@@ -71,13 +71,17 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
     useEffect(() => {
       let cancelled = false;
       void (async () => {
-        const [spawn, gutter] = await Promise.all([
-          loadTutorialPano("spawn"),
-          loadTutorialPano("gutter")
-        ]);
-        if (cancelled) return;
-        setSpawnPano(spawn);
-        setGutterPano(gutter);
+        try {
+          const [spawn, gutter] = await Promise.all([
+            loadTutorialPano("spawn"),
+            loadTutorialPano("gutter")
+          ]);
+          if (cancelled) return;
+          setSpawnPano(spawn);
+          setGutterPano(gutter);
+        } catch {
+          /* viewfinder stays empty until a retry / reload */
+        }
       })();
       setNeedGyroTap(orientationNeedsPermission());
       return () => {

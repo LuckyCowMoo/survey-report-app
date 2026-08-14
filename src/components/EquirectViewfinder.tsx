@@ -23,7 +23,7 @@ void main() {
 `;
 
 const FRAG = `
-precision highp float;
+precision mediump float;
 uniform sampler2D uTex;
 uniform vec2 uRes;
 uniform float uYaw;
@@ -59,7 +59,7 @@ export type EquirectHandle = {
 };
 
 type Props = {
-  pano: HTMLCanvasElement | null;
+  pano: HTMLImageElement | null;
   fov?: number;
   locked?: boolean;
   className?: string;
@@ -83,6 +83,69 @@ function clampPitch(p: number) {
   return Math.max(-1.2, Math.min(1.2, p));
 }
 
+function getGl(canvas: HTMLCanvasElement): WebGLRenderingContext | null {
+  const opts: WebGLContextAttributes = {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    preserveDrawingBuffer: true,
+    powerPreference: "default"
+  };
+  return (
+    canvas.getContext("webgl", opts) ||
+    canvas.getContext("experimental-webgl", opts)
+  ) as WebGLRenderingContext | null;
+}
+
+function viewSize(canvas: HTMLCanvasElement) {
+  const parent = canvas.parentElement;
+  const rect = (parent ?? canvas).getBoundingClientRect();
+  const cssW = rect.width || canvas.clientWidth || window.innerWidth || 1;
+  const cssH = rect.height || canvas.clientHeight || window.innerHeight || 1;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  return {
+    cssW,
+    cssH,
+    w: Math.max(2, Math.floor(cssW * dpr)),
+    h: Math.max(2, Math.floor(cssH * dpr))
+  };
+}
+
+function drawSoftware(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  yaw: number,
+  pitch: number,
+  fov: number,
+  w: number,
+  h: number
+) {
+  const aspect = w / Math.max(1, h);
+  const vfov = 2 * Math.atan(Math.tan(fov / 2) / aspect);
+  const spanX = (fov / (Math.PI * 2)) * img.naturalWidth;
+  const spanY = (vfov / Math.PI) * img.naturalHeight;
+  let sx = ((yaw / (Math.PI * 2) + 0.5) % 1) * img.naturalWidth - spanX / 2;
+  if (sx < 0) sx += img.naturalWidth;
+  const sy = Math.max(
+    0,
+    Math.min(
+      img.naturalHeight - spanY,
+      (0.5 - pitch / Math.PI) * img.naturalHeight - spanY / 2
+    )
+  );
+  ctx.fillStyle = "#c9d6e2";
+  ctx.fillRect(0, 0, w, h);
+  if (sx + spanX <= img.naturalWidth) {
+    ctx.drawImage(img, sx, sy, spanX, spanY, 0, 0, w, h);
+  } else {
+    const first = img.naturalWidth - sx;
+    const t = first / spanX;
+    ctx.drawImage(img, sx, sy, first, spanY, 0, 0, w * t, h);
+    ctx.drawImage(img, 0, sy, spanX - first, spanY, w * t, 0, w * (1 - t), h);
+  }
+}
+
 const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
   function EquirectViewfinder(
     { pano, fov = 1.15, locked = false, className, onLook },
@@ -90,6 +153,7 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
   ) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const glRef = useRef<WebGLRenderingContext | null>(null);
+    const ctx2dRef = useRef<CanvasRenderingContext2D | null>(null);
     const progRef = useRef<WebGLProgram | null>(null);
     const texRef = useRef<WebGLTexture | null>(null);
     const uniformsRef = useRef<{
@@ -99,9 +163,10 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       pitch: WebGLUniformLocation | null;
       fov: WebGLUniformLocation | null;
     } | null>(null);
+    const panoRef = useRef<HTMLImageElement | null>(null);
+    const texDirtyRef = useRef(true);
     const lookRef = useRef({ yaw: 0, pitch: 0 });
     const dragRef = useRef({ yaw: 0, pitch: 0 });
-    const gyroRef = useRef({ yaw: 0, pitch: 0 });
     const calibRef = useRef<DevicePose | null>(null);
     const lockedRef = useRef(locked);
     const draggingRef = useRef<{
@@ -118,101 +183,44 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     fovRef.current = fov;
 
     lockedRef.current = locked;
+    if (panoRef.current !== pano) {
+      panoRef.current = pano;
+      texDirtyRef.current = true;
+    }
 
     const applyLook = (yaw: number, pitch: number) => {
       lookRef.current = { yaw, pitch: clampPitch(pitch) };
       onLookRef.current?.(lookRef.current);
     };
 
-    useImperativeHandle(ref, () => ({
-      getLook: () => ({ ...lookRef.current }),
-      setLook: (yaw, pitch) => {
-        dragRef.current = { yaw, pitch: clampPitch(pitch) };
-        gyroRef.current = { yaw: 0, pitch: 0 };
-        applyLook(yaw, clampPitch(pitch));
-      },
-      animateTo: (yaw, pitch, ms) =>
-        new Promise((resolve) => {
-          const from = { ...lookRef.current };
-          const toYaw = from.yaw + angleDelta(yaw, from.yaw);
-          const toPitch = clampPitch(pitch);
-          const start = performance.now();
-          const dur = Math.max(1, ms);
-          const tick = (now: number) => {
-            const t = Math.min(1, (now - start) / dur);
-            const e = t * t * (3 - 2 * t);
-            const ny = from.yaw + (toYaw - from.yaw) * e;
-            const np = from.pitch + (toPitch - from.pitch) * e;
-            dragRef.current = { yaw: ny, pitch: np };
-            gyroRef.current = { yaw: 0, pitch: 0 };
-            applyLook(ny, np);
-            if (t < 1) animRef.current = requestAnimationFrame(tick);
-            else resolve();
-          };
-          if (animRef.current) cancelAnimationFrame(animRef.current);
-          animRef.current = requestAnimationFrame(tick);
-        }),
-      setLocked: (next) => {
-        lockedRef.current = next;
-        if (!next) {
-          dragRef.current = { ...lookRef.current };
-          gyroRef.current = { yaw: 0, pitch: 0 };
-          calibRef.current = null;
-        }
-      },
-      recalibrate: () => {
-        calibRef.current = null;
-        dragRef.current = { ...lookRef.current };
-        gyroRef.current = { yaw: 0, pitch: 0 };
-      },
-      captureJpeg: async () => {
-        const canvas = canvasRef.current;
-        if (!canvas) throw new Error("Viewfinder is not ready yet.");
-        draw();
-        return captureJpegFromCanvas(canvas);
-      }
-    }));
-
-    const draw = () => {
-      const canvas = canvasRef.current;
+    const uploadTex = () => {
       const gl = glRef.current;
-      const prog = progRef.current;
-      const uniforms = uniformsRef.current;
-      if (!canvas || !gl || !prog || !uniforms) return;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
-      const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-      }
-      gl.viewport(0, 0, w, h);
-      gl.useProgram(prog);
-      gl.uniform2f(uniforms.res, w, h);
-      gl.uniform1f(uniforms.yaw, lookRef.current.yaw);
-      gl.uniform1f(uniforms.pitch, lookRef.current.pitch);
-      gl.uniform1f(uniforms.fov, fovRef.current);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      const tex = texRef.current;
+      const img = panoRef.current;
+      if (!gl || !tex || !img || !img.naturalWidth) return false;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      texDirtyRef.current = false;
+      return true;
     };
 
-    useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const gl = canvas.getContext("webgl", {
-        alpha: false,
-        antialias: false,
-        preserveDrawingBuffer: true
-      });
-      if (!gl) return;
-      glRef.current = gl;
+    const initGl = (canvas: HTMLCanvasElement, gl: WebGLRenderingContext) => {
       const vs = compile(gl, gl.VERTEX_SHADER, VERT);
       const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
       const prog = gl.createProgram();
-      if (!prog) return;
+      if (!prog) throw new Error("program");
       gl.attachShader(prog, vs);
       gl.attachShader(prog, fs);
       gl.linkProgram(prog);
-      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        throw new Error(gl.getProgramInfoLog(prog) || "link");
+      }
       progRef.current = prog;
       const buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -238,8 +246,139 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.useProgram(prog);
-      gl.uniform1i(uniformsRef.current.tex, 0);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        1,
+        1,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        new Uint8Array([201, 214, 226, 255])
+      );
+      texDirtyRef.current = true;
+      void canvas;
+    };
+
+    const applySize = (canvas: HTMLCanvasElement) => {
+      const { w, h, cssW, cssH } = viewSize(canvas);
+      const resized = canvas.width !== w || canvas.height !== h;
+      if (resized) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
+      return { w, h, resized };
+    };
+
+    const draw = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const { w, h, resized } = applySize(canvas);
+      const gl = glRef.current;
+      if (resized && gl) {
+        try {
+          initGl(canvas, gl);
+        } catch {
+          glRef.current = null;
+        }
+      }
+
+      const prog = progRef.current;
+      const uniforms = uniformsRef.current;
+      if (gl && prog && uniforms && glRef.current) {
+        if (texDirtyRef.current) uploadTex();
+        gl.viewport(0, 0, w, h);
+        gl.useProgram(prog);
+        gl.activeTexture(gl.TEXTURE0);
+        if (texRef.current) gl.bindTexture(gl.TEXTURE_2D, texRef.current);
+        gl.uniform1i(uniforms.tex, 0);
+        gl.uniform2f(uniforms.res, w, h);
+        gl.uniform1f(uniforms.yaw, lookRef.current.yaw);
+        gl.uniform1f(uniforms.pitch, lookRef.current.pitch);
+        gl.uniform1f(uniforms.fov, fovRef.current);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        return;
+      }
+
+      const ctx = ctx2dRef.current;
+      const img = panoRef.current;
+      if (!ctx || !img) return;
+      drawSoftware(
+        ctx,
+        img,
+        lookRef.current.yaw,
+        lookRef.current.pitch,
+        fovRef.current,
+        w,
+        h
+      );
+    };
+
+    useImperativeHandle(ref, () => ({
+      getLook: () => ({ ...lookRef.current }),
+      setLook: (yaw, pitch) => {
+        dragRef.current = { yaw, pitch: clampPitch(pitch) };
+        applyLook(yaw, clampPitch(pitch));
+      },
+      animateTo: (yaw, pitch, ms) =>
+        new Promise((resolve) => {
+          const from = { ...lookRef.current };
+          const toYaw = from.yaw + angleDelta(yaw, from.yaw);
+          const toPitch = clampPitch(pitch);
+          const start = performance.now();
+          const dur = Math.max(1, ms);
+          const tick = (now: number) => {
+            const t = Math.min(1, (now - start) / dur);
+            const e = t * t * (3 - 2 * t);
+            const ny = from.yaw + (toYaw - from.yaw) * e;
+            const np = from.pitch + (toPitch - from.pitch) * e;
+            dragRef.current = { yaw: ny, pitch: np };
+            applyLook(ny, np);
+            if (t < 1) animRef.current = requestAnimationFrame(tick);
+            else resolve();
+          };
+          if (animRef.current) cancelAnimationFrame(animRef.current);
+          animRef.current = requestAnimationFrame(tick);
+        }),
+      setLocked: (next) => {
+        lockedRef.current = next;
+        if (!next) {
+          dragRef.current = { ...lookRef.current };
+          calibRef.current = null;
+        }
+      },
+      recalibrate: () => {
+        calibRef.current = null;
+        dragRef.current = { ...lookRef.current };
+      },
+      captureJpeg: async () => {
+        const canvas = canvasRef.current;
+        if (!canvas) throw new Error("Viewfinder is not ready yet.");
+        draw();
+        return captureJpegFromCanvas(canvas);
+      }
+    }));
+
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      applySize(canvas);
+
+      const gl = getGl(canvas);
+      if (gl) {
+        glRef.current = gl;
+        try {
+          initGl(canvas, gl);
+        } catch {
+          glRef.current = null;
+        }
+      }
+      if (!glRef.current) {
+        ctx2dRef.current = canvas.getContext("2d");
+      }
 
       let raf = 0;
       const loop = () => {
@@ -249,6 +388,7 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       raf = requestAnimationFrame(loop);
 
       const ro = new ResizeObserver(() => draw());
+      if (canvas.parentElement) ro.observe(canvas.parentElement);
       ro.observe(canvas);
       return () => {
         cancelAnimationFrame(raf);
@@ -259,29 +399,17 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
     }, []);
 
     useEffect(() => {
-      const gl = glRef.current;
-      const tex = texRef.current;
-      if (!gl || !tex || !pano) return;
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, pano);
-    }, [pano]);
-
-    useEffect(() => {
       const onOrient = (ev: DeviceOrientationEvent) => {
         if (lockedRef.current || draggingRef.current) return;
         const pose = readPose(ev);
         if (!pose) return;
         if (!calibRef.current) calibRef.current = pose;
         const g = poseToLook(pose, calibRef.current);
-        gyroRef.current = g;
-        applyLook(
-          dragRef.current.yaw + g.yaw,
-          dragRef.current.pitch + g.pitch
-        );
+        applyLook(dragRef.current.yaw + g.yaw, dragRef.current.pitch + g.pitch);
       };
-      window.addEventListener("deviceorientation", onOrient);
-      return () => window.removeEventListener("deviceorientation", onOrient);
+      window.addEventListener("deviceorientation", onOrient, true);
+      return () =>
+        window.removeEventListener("deviceorientation", onOrient, true);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -311,7 +439,6 @@ const EquirectViewfinder = forwardRef<EquirectHandle, Props>(
       const yaw = d.yaw - dx * fovRef.current * 1.6;
       const pitch = d.pitch + dy * fovRef.current * 1.2;
       dragRef.current = { yaw, pitch: clampPitch(pitch) };
-      gyroRef.current = { yaw: 0, pitch: 0 };
       calibRef.current = null;
       applyLook(dragRef.current.yaw, dragRef.current.pitch);
     };

@@ -21,7 +21,18 @@ async function tryLoad(src: string): Promise<HTMLImageElement | null> {
   }
 }
 
-/** Vertical fog / sky so torn photogrammetry edges read as atmosphere. */
+async function canvasToImage(canvas: HTMLCanvasElement): Promise<HTMLImageElement> {
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Could not encode panorama."))),
+      "image/jpeg",
+      0.9
+    );
+  });
+  const url = URL.createObjectURL(blob);
+  return loadImage(url);
+}
+
 function paintAtmosphere(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const sky = ctx.createLinearGradient(0, 0, 0, h);
   sky.addColorStop(0, "#c9d6e2");
@@ -47,10 +58,6 @@ function paintAtmosphere(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillRect(0, 0, w, h);
 }
 
-/**
- * Stick a perspective still into the centre of an equirectangular canvas and
- * feather it into fog. Used until Blender writes real `spawn.jpg` / `gutter.jpg`.
- */
 function embedPhoto(
   ctx: CanvasRenderingContext2D,
   photo: HTMLImageElement,
@@ -66,35 +73,33 @@ function embedPhoto(
   const y = h * opts.vCenter - destH / 2;
 
   const layer = document.createElement("canvas");
-  layer.width = w;
-  layer.height = h;
+  layer.width = Math.max(1, Math.ceil(destW));
+  layer.height = Math.max(1, Math.ceil(destH));
   const lx = layer.getContext("2d");
   if (!lx) return;
-  lx.drawImage(photo, x, y, destW, destH);
-  const midX = x + destW / 2;
-  const midY = y + destH / 2;
+  lx.drawImage(photo, 0, 0, layer.width, layer.height);
   lx.globalCompositeOperation = "destination-in";
   const mask = lx.createRadialGradient(
-    midX,
-    midY,
-    Math.min(destW, destH) * 0.32,
-    midX,
-    midY,
-    Math.max(destW, destH) * 0.58
+    layer.width / 2,
+    layer.height / 2,
+    Math.min(layer.width, layer.height) * 0.32,
+    layer.width / 2,
+    layer.height / 2,
+    Math.max(layer.width, layer.height) * 0.58
   );
   mask.addColorStop(0, "rgba(0,0,0,1)");
   mask.addColorStop(0.7, "rgba(0,0,0,0.9)");
   mask.addColorStop(1, "rgba(0,0,0,0)");
   lx.fillStyle = mask;
-  lx.fillRect(0, 0, w, h);
-  ctx.drawImage(layer, 0, 0);
+  lx.fillRect(0, 0, layer.width, layer.height);
+  ctx.drawImage(layer, x, y, destW, destH);
 }
 
 export type TutorialPanoKind = "spawn" | "gutter";
 
-const cache = new Map<TutorialPanoKind, Promise<HTMLCanvasElement>>();
+const cache = new Map<TutorialPanoKind, Promise<HTMLImageElement>>();
 
-export function loadTutorialPano(kind: TutorialPanoKind): Promise<HTMLCanvasElement> {
+export function loadTutorialPano(kind: TutorialPanoKind): Promise<HTMLImageElement> {
   const hit = cache.get(kind);
   if (hit) return hit;
   const pending = buildPano(kind);
@@ -102,23 +107,16 @@ export function loadTutorialPano(kind: TutorialPanoKind): Promise<HTMLCanvasElem
   return pending;
 }
 
-async function buildPano(kind: TutorialPanoKind): Promise<HTMLCanvasElement> {
+async function buildPano(kind: TutorialPanoKind): Promise<HTMLImageElement> {
   const bakedSrc =
     kind === "spawn" ? TUTORIAL_ASSETS.spawnPano : TUTORIAL_ASSETS.gutterPano;
   const baked = await tryLoad(bakedSrc);
-  const canvas = document.createElement("canvas");
-  if (baked && baked.naturalWidth >= 1024) {
-    canvas.width = baked.naturalWidth;
-    canvas.height = baked.naturalHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Could not create panorama canvas.");
-    ctx.drawImage(baked, 0, 0);
-    return canvas;
-  }
+  if (baked && baked.naturalWidth >= 1024) return baked;
 
+  const canvas = document.createElement("canvas");
   canvas.width = PANO_W;
   canvas.height = PANO_H;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { willReadFrequently: false });
   if (!ctx) throw new Error("Could not create panorama canvas.");
   paintAtmosphere(ctx, PANO_W, PANO_H);
 
@@ -129,5 +127,5 @@ async function buildPano(kind: TutorialPanoKind): Promise<HTMLCanvasElement> {
     yawSpan: kind === "spawn" ? 0.34 : 0.28,
     vCenter: kind === "spawn" ? 0.52 : 0.46
   });
-  return canvas;
+  return canvasToImage(canvas);
 }

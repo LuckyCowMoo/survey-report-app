@@ -2,12 +2,18 @@
 
 export type Look = { yaw: number; pitch: number };
 
+function tutorialUrl(file: string) {
+  const base = import.meta.env.BASE_URL || "/";
+  const root = base.endsWith("/") ? base : `${base}/`;
+  return `${root}tutorial/${file}`;
+}
+
 export const TUTORIAL_ASSETS = {
-  frontPhoto: "/tutorial/front.png",
-  gutterPhoto: "/tutorial/gutter.png",
-  spawnPano: "/tutorial/spawn.jpg",
-  gutterPano: "/tutorial/gutter.jpg",
-  walkVideo: "/tutorial/walk.mp4"
+  frontPhoto: tutorialUrl("front.png"),
+  gutterPhoto: tutorialUrl("gutter.png"),
+  spawnPano: tutorialUrl("spawn.jpg"),
+  gutterPano: tutorialUrl("gutter.jpg"),
+  walkVideo: tutorialUrl("walk.mp4")
 } as const;
 
 export const TUTORIAL_LOOK = {
