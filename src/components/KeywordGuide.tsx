@@ -7,7 +7,7 @@ import { usePointerInputModeValue } from "../lib/pointerInput";
 import HomeScreenGuide from "./HomeScreenGuide";
 import ProviderKeyGuide from "./ProviderKeyGuide";
 import SheetShell from "./SheetShell";
-import type { LibraryParagraph } from "../types";
+import { REVIEW_PIP_LEGEND } from "../lib/pipLegend";
 
 /**
  * Compass abbreviations accepted by specialRules() but omitted from library
@@ -111,55 +111,6 @@ const TIPS: string[] = [
   "If standard wording needs a meter reading (e.g. relative humidity) and it isn't in the note, Ask AI first tries to read it from the photo; if it cannot, it writes a generic paragraph instead of inventing a number."
 ];
 
-/** Status pip colours on the review screen (right-hand column). */
-const PIP_LEGEND: Array<{ tone: string; label: string; meaning: string }> = [
-  {
-    tone: "attention",
-    label: "Orange",
-    meaning:
-      "Needs attention — empty, missing readings, or no confident match"
-  },
-  {
-    tone: "noteConfirm",
-    label: "Yellow / blue stripes",
-    meaning:
-      "Long field note — kept as written. Review this section to confirm accuracy and the pip will become blue"
-  },
-  {
-    tone: "manual",
-    label: "Blue",
-    meaning: "Your wording — confirmed field note, edited text, or a cross-reference"
-  },
-  {
-    tone: "review",
-    label: "Yellow / green stripes",
-    meaning:
-      "Standard text is filled in but confidence is low. Review this section to confirm accuracy and the pip will become green"
-  },
-  {
-    tone: "library",
-    label: "Green",
-    meaning: "Standard wording — confident library match, or a soft match you've already reviewed"
-  },
-  {
-    tone: "ai",
-    label: "Purple",
-    meaning:
-      "AI written — wording generated using ask AI feature based on picture and notes"
-  },
-  {
-    tone: "error",
-    label: "Red",
-    meaning:
-      "AI error — Ask AI failed on this section; open the card overlay to read the message, dismiss it, or try again"
-  },
-  {
-    tone: "empty",
-    label: "Grey",
-    meaning: "Empty — no text yet and not otherwise flagged"
-  }
-];
-
 const PURPOSE_COPY = [
   "What this tool is for",
   "This app helps a damp and timber surveyor turn numbered photo field notes into a polished, client-ready report. Start a new report to create field notes with the device camera, or import a Report and Run .docx. Everything stays on this device.",
@@ -182,6 +133,7 @@ const API_COPY = [
       info.keyPrefix,
       guide.brand.shortName,
       guide.brand.company,
+      guide.whyChoose,
       ...guide.steps.map((s) => s.text + (s.linkLabel ?? ""))
     ];
   })
@@ -268,7 +220,7 @@ export default function KeywordGuide({
     "jump-on-hover",
     "coloured column"
   );
-  const pipHits = PIP_LEGEND.filter((p) =>
+  const pipHits = REVIEW_PIP_LEGEND.filter((p) =>
     matchesQuery(q, p.tone, p.label, p.meaning)
   );
   const showPips = q === "" || pipsSectionHit || pipHits.length > 0;
@@ -295,7 +247,7 @@ export default function KeywordGuide({
     q === "" || topicsSectionHit || visibleGroups.length > 0;
 
   const tipsToShow = q === "" || matchingSectionHit ? TIPS : tipHits;
-  const pipsToShow = q === "" || pipsSectionHit ? PIP_LEGEND : pipHits;
+  const pipsToShow = q === "" || pipsSectionHit ? REVIEW_PIP_LEGEND : pipHits;
   const smartToShow = q === "" || smartSectionHit ? SMART_PHRASES : smartHits;
 
   const viewingParagraph = viewingId

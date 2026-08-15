@@ -585,7 +585,7 @@ export function annotationHitDistance(
     return Math.abs(d - r);
   }
   if (ann.kind === "callout") {
-    const m = calloutMetrics(ann.text, 360, aspect);
+    const m = calloutMetrics(ann.text, aspect);
     const attach = calloutAttachPoint(ann.anchor, ann.label, m.tw, m.thY);
     const ax = ann.anchor.x;
     const ay = ann.anchor.y * sy;

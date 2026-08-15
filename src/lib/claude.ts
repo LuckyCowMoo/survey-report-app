@@ -565,6 +565,8 @@ export interface AiConfig {
 export interface ResolveSectionOptions {
   /** Optional batch-wide guidance; may not apply to every section. */
   guidance?: string;
+  /** Photo bytes to send (already annotated when available). */
+  imageBytes?: Uint8Array;
 }
 
 /** Field note + current body text (+ optional batch guidance) for the model. */
@@ -690,8 +692,9 @@ export async function resolveSectionWithAi(
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
   let imageB64: string | null = null;
-  if (entry.images.length > 0) {
-    imageB64 = await imageToAiBase64(entry.images[0], entry.imageNames[0]);
+  const photo = options?.imageBytes ?? (entry.images.length > 0 ? entry.images[0] : null);
+  if (photo && photo.length > 0) {
+    imageB64 = await imageToAiBase64(photo, entry.imageNames[0] ?? "photo.jpg");
   }
 
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError");

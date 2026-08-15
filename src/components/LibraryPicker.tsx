@@ -3,9 +3,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
-  type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent
+  useState
 } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -16,6 +14,7 @@ import {
 import { library } from "../lib/matcher";
 import { usePointerInputModeValue } from "../lib/pointerInput";
 import type { LibraryParagraph } from "../types";
+import { DirectionCompass } from "./DirectionCompass";
 import SheetShell from "./SheetShell";
 
 interface Props {
@@ -150,7 +149,6 @@ function tokenMatchesHay(hay: string, token: string): boolean {
     }
   }
 
-  // Allow fuzzy match against short joined chunks (e.g. "subfloor").
   if (budget > 0 && token.length >= 4) {
     for (let i = 0; i + token.length - budget <= hay.length; i++) {
       const slice = hay.slice(i, i + token.length + budget);
@@ -206,7 +204,6 @@ function searchScore(p: LibraryParagraph, q: string): number {
     if (tokenMatchesHay(hay, token)) s += 4;
   }
 
-  // Prefer topics that cover every token.
   if (toks.every((t) => tokenMatchesHay(topic, t))) s += 140;
 
   return s;
@@ -239,241 +236,6 @@ function bestSearchMatch(query: string): LibraryParagraph | null {
   return best;
 }
 
-type DirDef = {
-  id: string;
-  label: string;
-  /** Degrees clockwise from north */
-  angle: number;
-  kind: "cardinal" | "ordinal";
-};
-
-const DIRECTIONS: DirDef[] = [
-  { id: "weather-north", label: "N", angle: 0, kind: "cardinal" },
-  { id: "weather-northeast", label: "NE", angle: 45, kind: "ordinal" },
-  { id: "weather-east", label: "E", angle: 90, kind: "cardinal" },
-  { id: "weather-southeast", label: "SE", angle: 135, kind: "ordinal" },
-  { id: "weather-south", label: "S", angle: 180, kind: "cardinal" },
-  { id: "weather-southwest", label: "SW", angle: 225, kind: "ordinal" },
-  { id: "weather-west", label: "W", angle: 270, kind: "cardinal" },
-  { id: "weather-northwest", label: "NW", angle: 315, kind: "ordinal" }
-];
-
-const CX = 100;
-const CY = 100;
-/** Hit disk is 25% larger than the visible compass (layout stays tight). */
-const HIT_SCALE = 1.25;
-const DEAD_ZONE_FRAC = 0.05;
-
-function polar(angleDeg: number, radius: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return {
-    x: CX + radius * Math.cos(rad),
-    y: CY + radius * Math.sin(rad)
-  };
-}
-
-/** Tip + two base points near the hub for a compass petal. */
-function petal(
-  angle: number,
-  tipR: number,
-  baseR: number,
-  spreadDeg: number,
-  labelR: number
-) {
-  return {
-    tip: polar(angle, tipR),
-    left: polar(angle - spreadDeg, baseR),
-    right: polar(angle + spreadDeg, baseR),
-    label: polar(angle, labelR)
-  };
-}
-
-function angleDiff(a: number, b: number) {
-  let d = Math.abs(a - b) % 360;
-  if (d > 180) d = 360 - d;
-  return d;
-}
-
-/** Bearing clockwise from north in degrees [0, 360). */
-function bearingFromNorth(dx: number, dy: number) {
-  let deg = (Math.atan2(dx, -dy) * 180) / Math.PI;
-  if (deg < 0) deg += 360;
-  return deg;
-}
-
-function onActivate(e: KeyboardEvent<SVGGElement>, pick: () => void) {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    pick();
-  }
-}
-
-function DirectionCompass({
-  paragraphs,
-  onPick
-}: {
-  paragraphs: LibraryParagraph[];
-  onPick: (paragraph: LibraryParagraph) => void;
-}) {
-  const padRef = useRef<HTMLDivElement>(null);
-  const [hotId, setHotId] = useState<string | null>(null);
-
-  const byId = useMemo(() => {
-    const map = new Map<string, LibraryParagraph>();
-    for (const p of paragraphs) map.set(p.id, p);
-    return map;
-  }, [paragraphs]);
-
-  const available = useMemo(
-    () => DIRECTIONS.filter((d) => byId.has(d.id)),
-    [byId]
-  );
-
-  const nearestFromPointer = (e: ReactPointerEvent) => {
-    const pad = padRef.current;
-    if (!pad || available.length === 0) return null;
-    const rect = pad.getBoundingClientRect();
-    const dx = e.clientX - (rect.left + rect.width / 2);
-    const dy = e.clientY - (rect.top + rect.height / 2);
-    const dist = Math.hypot(dx, dy);
-    const maxR = rect.width / 2;
-    if (dist < maxR * DEAD_ZONE_FRAC || dist > maxR) return null;
-    const bearing = bearingFromNorth(dx, dy);
-    let best = available[0];
-    let bestDiff = Infinity;
-    for (const d of available) {
-      const diff = angleDiff(d.angle, bearing);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        best = d;
-      }
-    }
-    return best;
-  };
-
-  const onPadMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const nearest = nearestFromPointer(e);
-    setHotId(nearest?.id ?? null);
-  };
-
-  const onPadLeave = () => setHotId(null);
-
-  const onPadClick = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const nearest = nearestFromPointer(e);
-    if (!nearest) return;
-    const paragraph = byId.get(nearest.id);
-    if (paragraph) onPick(paragraph);
-  };
-
-  if (available.length === 0) return null;
-
-  const hotTopic = hotId ? byId.get(hotId)?.topic : undefined;
-
-  return (
-    <div className="direction-compass" role="group" aria-label="Property orientation">
-      <div className="direction-compass-frame">
-      <svg className="direction-compass-svg" viewBox="-24 -24 248 248">
-        <circle className="compass-ring" cx={CX} cy={CY} r={74} />
-        <circle className="compass-ring" cx={CX} cy={CY} r={60} />
-
-        {/* Ordinal points — shorter solid diamonds behind the cardinals */}
-        {available
-          .filter((d) => d.kind === "ordinal")
-          .map((d) => {
-            const paragraph = byId.get(d.id)!;
-            const { tip, left, right, label } = petal(d.angle, 46, 16, 28, 98);
-            const pick = () => onPick(paragraph);
-            const hot = hotId === d.id;
-            return (
-              <g
-                key={d.id}
-                className={`compass-point ordinal${hot ? " is-hot" : ""}`}
-                role="button"
-                tabIndex={0}
-                aria-label={paragraph.topic}
-                aria-current={hot ? "true" : undefined}
-                onKeyDown={(e) => onActivate(e, pick)}
-              >
-                <polygon
-                  className="compass-petal solid"
-                  points={`${tip.x},${tip.y} ${left.x},${left.y} ${CX},${CY} ${right.x},${right.y}`}
-                />
-                <text
-                  className="compass-letter ordinal"
-                  x={label.x}
-                  y={label.y}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                >
-                  {d.label}
-                </text>
-                <title>{paragraph.topic}</title>
-              </g>
-            );
-          })}
-
-        {/* Cardinal points — longer, split light/dark */}
-        {available
-          .filter((d) => d.kind === "cardinal")
-          .map((d) => {
-            const paragraph = byId.get(d.id)!;
-            const { tip, left, right, label } = petal(d.angle, 64, 14, 32, 102);
-            const pick = () => onPick(paragraph);
-            const hot = hotId === d.id;
-            return (
-              <g
-                key={d.id}
-                className={`compass-point cardinal${hot ? " is-hot" : ""}`}
-                role="button"
-                tabIndex={0}
-                aria-label={paragraph.topic}
-                aria-current={hot ? "true" : undefined}
-                onKeyDown={(e) => onActivate(e, pick)}
-              >
-                <polygon
-                  className="compass-petal dark"
-                  points={`${tip.x},${tip.y} ${left.x},${left.y} ${CX},${CY}`}
-                />
-                <polygon
-                  className="compass-petal light"
-                  points={`${tip.x},${tip.y} ${CX},${CY} ${right.x},${right.y}`}
-                />
-                <text
-                  className="compass-letter cardinal"
-                  x={label.x}
-                  y={label.y}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                >
-                  {d.label}
-                </text>
-                <title>{paragraph.topic}</title>
-              </g>
-            );
-          })}
-
-        <circle className="compass-hub" cx={CX} cy={CY} r={4.5} />
-      </svg>
-      {/* Larger hit disk overlays the rose without adding list spacing */}
-      <div
-        ref={padRef}
-        className="compass-pad"
-        style={{ ["--hit-scale" as string]: String(HIT_SCALE) }}
-        onPointerMove={onPadMove}
-        onPointerLeave={onPadLeave}
-        onClick={onPadClick}
-        title={
-          hotTopic
-            ? `${hotTopic} — click to select`
-            : "Move toward a direction, then click to select"
-        }
-      />
-      </div>
-      {hotTopic && <p className="direction-compass-hint">{hotTopic}</p>}
-    </div>
-  );
-}
-
 export default function LibraryPicker({ onPick, onClose }: Props) {
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -486,7 +248,6 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
     searchRef.current?.focus({ preventScroll: true });
   }, [pointerMode]);
 
-  // Push a history entry so Escape / browser back dismisses this sheet first.
   useEffect(() => {
     const base = currentAppHist();
     pushAppHist({ ...base, overlay: "library" });

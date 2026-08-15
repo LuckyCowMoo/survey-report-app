@@ -1,32 +1,33 @@
 import type { NormPoint } from "../types";
 
-const FONT_PX = 16;
-const PAD_X_PX = 4;
-const PAD_Y_PX = 2;
-const BORDER_PX = 0;
+/** Type size as a fraction of the picture's longer side. */
+export const CALLOUT_FONT_FRAC = 0.042;
+const PAD_X_EM = 0.28;
+const PAD_Y_EM = 0.14;
+const MEASURE_PX = 64;
 
-function measureTextWidthPx(text: string): number {
+function measureTextWidthPx(text: string, fontPx: number): number {
   if (typeof document === "undefined") {
-    return text.length * FONT_PX * 0.52;
+    return text.length * fontPx * 0.52;
   }
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) return text.length * FONT_PX * 0.52;
-  ctx.font = `650 ${FONT_PX}px system-ui, -apple-system, Segoe UI, sans-serif`;
+  if (!ctx) return text.length * fontPx * 0.52;
+  ctx.font = `650 ${fontPx}px system-ui, -apple-system, Segoe UI, sans-serif`;
   return ctx.measureText(text).width;
 }
 
 /**
  * Callout box size in normalized image coords.
- * `tw` is fraction of image width; `thY` is fraction of image height
- * (so the leader attaches to the real box edges).
+ * Font scales with max(width, height) so a phone preview and a 4000px JPEG
+ * keep the same relative type size.
  */
 export function calloutMetrics(
   text: string,
-  imageWidthPx = 360,
   aspect = 1
 ): {
   display: string;
+  /** Fraction of image width. */
   fontSize: number;
   padX: number;
   padY: number;
@@ -37,22 +38,28 @@ export function calloutMetrics(
   thW: number;
 } {
   const display = text.trim() || "Note";
-  const wPx = Math.max(120, imageWidthPx);
-  const textW = measureTextWidthPx(display);
-  const boxWpx = textW + PAD_X_PX * 2 + BORDER_PX * 2;
-  const boxHpx = FONT_PX + PAD_Y_PX * 2 + BORDER_PX * 2;
-  const tw = Math.min(0.72, Math.max(0.04, boxWpx / wPx));
-  const thW = boxHpx / wPx;
-  const thY = boxHpx / (wPx * Math.max(aspect, 1e-6));
+  const longerOverWidth = Math.max(1, aspect);
+  const fontW = CALLOUT_FONT_FRAC * longerOverWidth;
+  const padX = fontW * PAD_X_EM;
+  const padY = fontW * PAD_Y_EM;
+  const textW =
+    (measureTextWidthPx(display, MEASURE_PX) / MEASURE_PX) * fontW;
+  const tw = Math.min(0.92, Math.max(fontW * 1.4, textW + padX * 2));
+  const thW = fontW + padY * 2;
+  const thY = thW / Math.max(aspect, 1e-6);
   return {
     display,
-    fontSize: FONT_PX / wPx,
-    padX: PAD_X_PX / wPx,
-    padY: PAD_Y_PX / wPx,
+    fontSize: fontW,
+    padX,
+    padY,
     tw,
     thY,
     thW
   };
+}
+
+export function calloutFontPx(imageWidthPx: number, imageHeightPx: number) {
+  return CALLOUT_FONT_FRAC * Math.max(imageWidthPx, imageHeightPx);
 }
 
 /** Where the leader line meets the text box (label = top-left). */

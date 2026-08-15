@@ -218,3 +218,55 @@ export async function jpegBytesFromImageFile(
 export function imagePreviewUrl(bytes: Uint8Array, name: string): string {
   return URL.createObjectURL(bytesToBlob(bytes, mimeFromName(name)));
 }
+
+/** Rasterise an on-screen SVG (with computed fills) to a JPEG. */
+export async function jpegFromSvgElement(
+  svg: SVGSVGElement,
+  size = 1200,
+  background = "#f7f5f1"
+): Promise<Uint8Array> {
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const origEls = svg.querySelectorAll("*");
+  const cloneEls = clone.querySelectorAll("*");
+  origEls.forEach((el, i) => {
+    const dest = cloneEls[i];
+    if (!(el instanceof SVGElement) || !(dest instanceof SVGElement)) return;
+    const cs = getComputedStyle(el);
+    if (cs.fill && cs.fill !== "none") dest.setAttribute("fill", cs.fill);
+    if (cs.stroke && cs.stroke !== "none") dest.setAttribute("stroke", cs.stroke);
+    if (cs.strokeWidth) dest.setAttribute("stroke-width", cs.strokeWidth);
+    if (cs.fontSize) dest.setAttribute("font-size", cs.fontSize);
+    if (cs.fontWeight) dest.setAttribute("font-weight", cs.fontWeight);
+    if (cs.fontFamily) dest.setAttribute("font-family", cs.fontFamily);
+  });
+  const rotate = /rotate\(([-\d.]+)deg\)/.exec(svg.style.transform || "");
+  if (rotate) {
+    clone.setAttribute("transform", `rotate(${rotate[1]} 100 100)`);
+  }
+  const xml = new XMLSerializer().serializeToString(clone);
+  const url = URL.createObjectURL(
+    new Blob([xml], { type: "image/svg+xml;charset=utf-8" })
+  );
+  try {
+    const img = await loadHtmlImage(url);
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not capture the compass.");
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(img, 0, 0, size, size);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (out) => (out ? resolve(out) : reject(new Error("JPEG encode failed"))),
+        "image/jpeg",
+        0.92
+      );
+    });
+    return new Uint8Array(await blob.arrayBuffer());
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}

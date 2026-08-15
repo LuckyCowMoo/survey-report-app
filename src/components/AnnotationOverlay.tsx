@@ -1,11 +1,13 @@
 import {
   useEffect,
+  useId,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
 } from "react";
 import { createPortal } from "react-dom";
-import type { NormPoint, PhotoAnnotation } from "../types";
+import type { NormPoint, PhotoAnnotation, PhotoCrop } from "../types";
 import {
   avoidResnapToErased,
   erasedShapeMemory,
@@ -14,7 +16,14 @@ import {
   type ErasedShapeMemory
 } from "../lib/shapeRecognize";
 import { buildEdgeField, type EdgeField } from "../lib/edgeField";
-import { calloutAttachPoint, calloutMetrics } from "../lib/callout";
+import { calloutAttachPoint, calloutFontPx, calloutMetrics } from "../lib/callout";
+import {
+  clampCrop,
+  cropInsetCss,
+  FULL_CROP,
+  isFullCrop,
+  MIN_CROP_SPAN
+} from "../lib/photoCrop";
 
 type Tool = "draw" | "erase";
 
@@ -23,7 +32,13 @@ type Props = {
   imageWidth: number;
   imageHeight: number;
   initial: PhotoAnnotation[];
-  onFinished: (annotations: PhotoAnnotation[]) => void;
+  initialCrop?: PhotoCrop;
+  onFinished: (annotations: PhotoAnnotation[], crop?: PhotoCrop) => void;
+  tutorialGhost?: "circle" | "arrow" | null;
+  onRecognizedKind?: (kind: string) => void;
+  onTutorialShapeMoved?: () => void;
+  lockFinished?: boolean;
+  coach?: ReactNode;
 };
 
 const HISTORY_CAP = 50;
@@ -36,6 +51,46 @@ const LONG_PRESS_MOVE_PX = 12;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 5;
 const INK = "#e11d2e";
+
+function tutorialArrowGhostPath(): string {
+  const tail = { x: 0.22, y: 0.58 };
+  const tip = { x: 0.74, y: 0.36 };
+  const { left, right } = arrowHeadPoints(tip, tail);
+  return `M ${tail.x} ${tail.y} L ${tip.x} ${tip.y} L ${left.x} ${left.y} L ${tip.x} ${tip.y} L ${right.x} ${right.y}`;
+}
+
+function TutorialFingerDot({ pt }: { pt: NormPoint }) {
+  return (
+    <circle
+      className="tutorial-ghost-finger"
+      cx={pt.x}
+      cy={pt.y}
+      r={0.018}
+    />
+  );
+}
+
+function TutorialGhostTrail({ pathId, d }: { pathId: string; d: string }) {
+  return (
+    <g className="tutorial-shape-ghost" aria-hidden>
+      <path
+        id={pathId}
+        d={d}
+        fill="none"
+        stroke={INK}
+        strokeWidth="0.008"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="0.04 0.03"
+      />
+      <circle className="tutorial-ghost-finger" r={0.018}>
+        <animateMotion dur="2.6s" repeatCount="indefinite" rotate="auto">
+          <mpath href={`#${pathId}`} xlinkHref={`#${pathId}`} />
+        </animateMotion>
+      </circle>
+    </g>
+  );
+}
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
@@ -101,7 +156,13 @@ export default function AnnotationOverlay({
   imageWidth,
   imageHeight,
   initial,
-  onFinished
+  initialCrop,
+  onFinished,
+  tutorialGhost = null,
+  onRecognizedKind,
+  onTutorialShapeMoved,
+  lockFinished = false,
+  coach
 }: Props) {
   const [enterClass, setEnterClass] = useState(false);
   const [tool, setTool] = useState<Tool>("draw");
@@ -119,6 +180,11 @@ export default function AnnotationOverlay({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [baseW, setBaseW] = useState(0);
+  const [crop, setCrop] = useState<PhotoCrop>(() =>
+    clampCrop(initialCrop ?? FULL_CROP)
+  );
+  const cropRef = useRef(crop);
+  cropRef.current = crop;
 
   const imgBoxRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -131,6 +197,9 @@ export default function AnnotationOverlay({
   toolRef.current = tool;
   const annotationsRef = useRef(annotations);
   annotationsRef.current = annotations;
+  const onTutorialShapeMovedRef = useRef(onTutorialShapeMoved);
+  onTutorialShapeMovedRef.current = onTutorialShapeMoved;
+  const ghostPathId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const selectedIdRef = useRef(selectedId);
   selectedIdRef.current = selectedId;
   const liveStrokeRef = useRef<NormPoint[]>([]);
@@ -144,6 +213,11 @@ export default function AnnotationOverlay({
     handle: string;
     snapshot: PhotoAnnotation;
     committed: boolean;
+  } | null>(null);
+  const cropDragRef = useRef<{
+    side: "left" | "right" | "top" | "bottom";
+    start: PhotoCrop;
+    pointerId: number;
   } | null>(null);
   const lastTapRef = useRef<{ t: number; x: number; y: number } | null>(null);
   const suppressTapRef = useRef(false);
@@ -380,6 +454,14 @@ export default function AnnotationOverlay({
     setAnnotations(next);
   };
 
+  useEffect(() => {
+    if (tutorialGhost !== "arrow") return;
+    const next = annotationsRef.current.filter((a) => a.kind !== "circle");
+    if (next.length === annotationsRef.current.length) return;
+    pushHistory(next);
+    setSelectedId(null);
+  }, [tutorialGhost]);
+
   const undo = () => {
     setPast((p) => {
       if (p.length === 0) return p;
@@ -551,6 +633,7 @@ export default function AnnotationOverlay({
     );
     pushHistory([...annotationsRef.current, kept]);
     setSelectedId(kept.id);
+    onRecognizedKind?.(kept.kind);
   };
 
   const maybeDoubleTap = (clientX: number, clientY: number): boolean => {
@@ -981,7 +1064,14 @@ export default function AnnotationOverlay({
             if (drag.handle === "label") return { ...snap, label: p };
           }
           if (snap.kind === "circle") {
-            if (drag.handle === "center") return { ...snap, center: p };
+            if (drag.handle === "center") {
+              if (
+                Math.hypot(p.x - snap.center.x, p.y - snap.center.y) > 0.025
+              ) {
+                onTutorialShapeMovedRef.current?.();
+              }
+              return { ...snap, center: p };
+            }
             if (drag.handle === "rim") {
               const dx = p.x - snap.center.x;
               const dy = (p.y - snap.center.y) * aspectRef.current;
@@ -1116,6 +1206,48 @@ export default function AnnotationOverlay({
     }
   };
 
+  const onCropPointerDown = (
+    e: ReactPointerEvent<HTMLButtonElement>,
+    side: "left" | "right" | "top" | "bottom"
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    cropDragRef.current = {
+      side,
+      start: { ...cropRef.current },
+      pointerId: e.pointerId
+    };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onCropPointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = cropDragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    const p = clientToNorm(e.clientX, e.clientY);
+    if (!p) return;
+    const next = { ...drag.start };
+    if (drag.side === "left") {
+      next.left = Math.max(0, Math.min(p.x, drag.start.right - MIN_CROP_SPAN));
+    } else if (drag.side === "right") {
+      next.right = Math.min(1, Math.max(p.x, drag.start.left + MIN_CROP_SPAN));
+    } else if (drag.side === "top") {
+      next.top = Math.max(0, Math.min(p.y, drag.start.bottom - MIN_CROP_SPAN));
+    } else {
+      next.bottom = Math.min(1, Math.max(p.y, drag.start.top + MIN_CROP_SPAN));
+    }
+    setCrop(clampCrop(next));
+  };
+
+  const onCropPointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (cropDragRef.current?.pointerId === e.pointerId) {
+      cropDragRef.current = null;
+    }
+  };
+
   const selected = annotations.find((a) => a.id === selectedId) ?? null;
   const toPct = (p: NormPoint) => ({
     left: `${p.x * 100}%`,
@@ -1131,6 +1263,7 @@ export default function AnnotationOverlay({
       onContextMenu={(e) => e.preventDefault()}
       style={{ ["--ann-zoom" as string]: String(zoom) }}
     >
+      {coach}
       <div className="annotation-overlay-scrim" aria-hidden />
       {ctxMenu && (
         <div
@@ -1269,56 +1402,154 @@ export default function AnnotationOverlay({
             className={`annotation-overlay-photo${enterClass ? " is-entering" : ""}${baseW > 0 ? " is-sized" : ""}`}
             ref={imgBoxRef}
           >
-            <img src={imageUrl} alt="" draggable={false} />
-            <svg
-              ref={svgRef}
-              className="annotation-overlay-svg"
-              viewBox="0 0 1 1"
-              preserveAspectRatio="none"
-              aria-hidden
+            <img
+              className="annotation-photo-under"
+              src={imageUrl}
+              alt=""
+              draggable={false}
+            />
+            <div
+              className="annotation-crop-clip"
+              style={{ clipPath: cropInsetCss(crop) }}
             >
-              {annotations.map((ann) => (
-                <g key={ann.id} data-ann-id={ann.id}>
-                  <AnnotationPath
+              <img src={imageUrl} alt="" draggable={false} />
+              <svg
+                ref={svgRef}
+                className="annotation-overlay-svg"
+                viewBox="0 0 1 1"
+                preserveAspectRatio="none"
+                aria-hidden
+              >
+                {annotations.map((ann) => (
+                  <g key={ann.id} data-ann-id={ann.id}>
+                    <AnnotationPath
+                      ann={ann}
+                      aspect={aspect}
+                      selected={ann.id === selectedId}
+                    />
+                  </g>
+                ))}
+                {liveStroke && liveStroke.length > 1 && (
+                  <polyline
+                    fill="none"
+                    stroke={INK}
+                    strokeWidth={0.006}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={liveStroke.map((p) => `${p.x},${p.y}`).join(" ")}
+                  />
+                )}
+                {liveStroke && liveStroke.length > 0 && (
+                  <TutorialFingerDot pt={liveStroke[liveStroke.length - 1]!} />
+                )}
+                {!liveStroke && tutorialGhost === "circle" && (
+                  <TutorialGhostTrail
+                    pathId={`ghost-circle-${ghostPathId}`}
+                    d="M 0.3 0.28 a 0.2 0.16 0 1 1 0.4 0 a 0.2 0.16 0 1 1 -0.4 0"
+                  />
+                )}
+                {!liveStroke && tutorialGhost === "arrow" && (
+                  <TutorialGhostTrail
+                    pathId={`ghost-arrow-${ghostPathId}`}
+                    d={tutorialArrowGhostPath()}
+                  />
+                )}
+              </svg>
+
+              <div
+                ref={hitRef}
+                className="annotation-overlay-hit"
+                onPointerDown={onHitPointerDown}
+                onPointerMove={onHitPointerMove}
+                onPointerUp={onHitPointerUp}
+                onPointerCancel={onHitPointerUp}
+              />
+
+              {annotations.map((ann) =>
+                ann.kind === "callout" ? (
+                  <CalloutLabel
+                    key={`label-${ann.id}`}
                     ann={ann}
                     aspect={aspect}
                     photoWidth={photoWidth}
-                    selected={ann.id === selectedId}
+                    photoHeight={photoWidth * aspect}
+                    editing={ann.id === selectedId && tool === "draw"}
+                    onLiveChange={(text) => updateCalloutText(ann.id, text)}
+                    onCommit={(from, to) => commitCalloutText(ann.id, from, to)}
                   />
-                </g>
-              ))}
-              {liveStroke && liveStroke.length > 1 && (
-                <polyline
-                  fill="none"
-                  stroke={INK}
-                  strokeWidth={0.006}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  points={liveStroke.map((p) => `${p.x},${p.y}`).join(" ")}
-                />
+                ) : null
               )}
-            </svg>
+            </div>
 
             <div
-              ref={hitRef}
-              className="annotation-overlay-hit"
-              onPointerDown={onHitPointerDown}
-              onPointerMove={onHitPointerMove}
-              onPointerUp={onHitPointerUp}
-              onPointerCancel={onHitPointerUp}
+              className="annotation-crop-veil annotation-crop-veil-top"
+              style={{ height: `${crop.top * 100}%` }}
+              aria-hidden
+            />
+            <div
+              className="annotation-crop-veil annotation-crop-veil-bottom"
+              style={{ height: `${(1 - crop.bottom) * 100}%` }}
+              aria-hidden
+            />
+            <div
+              className="annotation-crop-veil annotation-crop-veil-left"
+              style={{
+                top: `${crop.top * 100}%`,
+                height: `${(crop.bottom - crop.top) * 100}%`,
+                width: `${crop.left * 100}%`
+              }}
+              aria-hidden
+            />
+            <div
+              className="annotation-crop-veil annotation-crop-veil-right"
+              style={{
+                top: `${crop.top * 100}%`,
+                height: `${(crop.bottom - crop.top) * 100}%`,
+                width: `${(1 - crop.right) * 100}%`
+              }}
+              aria-hidden
             />
 
-            {annotations.map((ann) =>
-              ann.kind === "callout" ? (
-                <CalloutLabel
-                  key={`label-${ann.id}`}
-                  ann={ann}
-                  editing={ann.id === selectedId && tool === "draw"}
-                  onLiveChange={(text) => updateCalloutText(ann.id, text)}
-                  onCommit={(from, to) => commitCalloutText(ann.id, from, to)}
-                />
-              ) : null
-            )}
+            <button
+              type="button"
+              className="annotation-crop-handle is-left"
+              style={{ left: `${crop.left * 100}%`, top: `${((crop.top + crop.bottom) / 2) * 100}%` }}
+              aria-label="Crop left edge"
+              onPointerDown={(ev) => onCropPointerDown(ev, "left")}
+              onPointerMove={onCropPointerMove}
+              onPointerUp={onCropPointerUp}
+              onPointerCancel={onCropPointerUp}
+            />
+            <button
+              type="button"
+              className="annotation-crop-handle is-right"
+              style={{ left: `${crop.right * 100}%`, top: `${((crop.top + crop.bottom) / 2) * 100}%` }}
+              aria-label="Crop right edge"
+              onPointerDown={(ev) => onCropPointerDown(ev, "right")}
+              onPointerMove={onCropPointerMove}
+              onPointerUp={onCropPointerUp}
+              onPointerCancel={onCropPointerUp}
+            />
+            <button
+              type="button"
+              className="annotation-crop-handle is-top"
+              style={{ left: `${((crop.left + crop.right) / 2) * 100}%`, top: `${crop.top * 100}%` }}
+              aria-label="Crop top edge"
+              onPointerDown={(ev) => onCropPointerDown(ev, "top")}
+              onPointerMove={onCropPointerMove}
+              onPointerUp={onCropPointerUp}
+              onPointerCancel={onCropPointerUp}
+            />
+            <button
+              type="button"
+              className="annotation-crop-handle is-bottom"
+              style={{ left: `${((crop.left + crop.right) / 2) * 100}%`, top: `${crop.bottom * 100}%` }}
+              aria-label="Crop bottom edge"
+              onPointerDown={(ev) => onCropPointerDown(ev, "bottom")}
+              onPointerMove={onCropPointerMove}
+              onPointerUp={onCropPointerUp}
+              onPointerCancel={onCropPointerUp}
+            />
 
             {brushCursor && (
               <div
@@ -1460,7 +1691,14 @@ export default function AnnotationOverlay({
           <button
             type="button"
             className="annotation-chrome-btn annotation-chrome-btn-primary"
-            onClick={() => onFinished(annotations)}
+            disabled={lockFinished}
+            onClick={() => {
+              if (lockFinished) return;
+              onFinished(
+                annotations,
+                isFullCrop(crop) ? undefined : crop
+              );
+            }}
           >
             Finished
           </button>
@@ -1552,12 +1790,10 @@ function Handle({
 function AnnotationPath({
   ann,
   aspect,
-  photoWidth,
   selected
 }: {
   ann: PhotoAnnotation;
   aspect: number;
-  photoWidth: number;
   selected: boolean;
 }) {
   const sw = selected ? 0.0075 : 0.006;
@@ -1618,7 +1854,7 @@ function AnnotationPath({
     );
   }
   if (ann.kind === "callout") {
-    const m = calloutMetrics(ann.text, photoWidth, aspect);
+    const m = calloutMetrics(ann.text, aspect);
     const attach = calloutAttachPoint(ann.anchor, ann.label, m.tw, m.thY);
     // Text/box are HTML overlays — SVG text stretches under preserveAspectRatio=none.
     return (
@@ -1646,19 +1882,29 @@ function AnnotationPath({
 
 function CalloutLabel({
   ann,
+  aspect,
+  photoWidth,
+  photoHeight,
   editing,
   onLiveChange,
   onCommit
 }: {
   ann: Extract<PhotoAnnotation, { kind: "callout" }>;
+  aspect: number;
+  photoWidth: number;
+  photoHeight: number;
   editing: boolean;
   onLiveChange: (text: string) => void;
   onCommit: (from: string, to: string) => void;
 }) {
   const originRef = useRef(ann.text);
+  const m = calloutMetrics(ann.text, aspect);
+  const fontPx = calloutFontPx(photoWidth, photoHeight);
   const style = {
     left: `${ann.label.x * 100}%`,
-    top: `${ann.label.y * 100}%`
+    top: `${ann.label.y * 100}%`,
+    fontSize: `${fontPx}px`,
+    padding: `${m.padY * photoWidth}px ${m.padX * photoWidth}px`
   };
 
   if (editing) {

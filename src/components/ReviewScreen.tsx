@@ -26,7 +26,7 @@ import {
   slotToRemovalIndex
 } from "../lib/sectionLift";
 import { getScrollRoot, isProgrammaticScroll, readScrollTop } from "../lib/scrollRoot";
-import type { PhotoAnnotation, SectionState } from "../types";
+import type { PhotoAnnotation, PhotoCrop, SectionState } from "../types";
 
 interface Props {
   sections: SectionState[];
@@ -47,7 +47,8 @@ interface Props {
   onDeleteSection: (index: number) => void;
   onAnnotateSection: (
     index: number,
-    annotations: PhotoAnnotation[]
+    annotations: PhotoAnnotation[],
+    crop?: PhotoCrop
   ) => void | Promise<void>;
   /** Prefer raw field-note bytes when annotating (avoids double-burning). */
   annotateBaseImage?: (index: number) => Uint8Array | null;
@@ -56,6 +57,10 @@ interface Props {
   /** Section index currently running the review dwell fill, if any. */
   dwellSectionIndex: number | null;
   onReorderSections: (from: number, to: number) => void;
+  tutorial?: boolean;
+  tutorialAskAiIndex?: number | null;
+  lockContinue?: boolean;
+  lockReorder?: boolean;
 }
 
 /** React-facing drag snapshot (drop index + ghost identity). */
@@ -151,7 +156,11 @@ export default function ReviewScreen({
   onFocusSection,
   focusedSectionIndex,
   dwellSectionIndex,
-  onReorderSections
+  onReorderSections,
+  tutorial = false,
+  tutorialAskAiIndex = null,
+  lockContinue = false,
+  lockReorder = false
 }: Props) {
   const [showWarnings, setShowWarnings] = useState(false);
   const [holdArm, setHoldArm] = useState<HoldArm | null>(null);
@@ -163,6 +172,7 @@ export default function ReviewScreen({
     width: number;
     height: number;
     initial: PhotoAnnotation[];
+    initialCrop?: PhotoCrop;
   } | null>(null);
   const holdTimerRef = useRef(0);
   const holdRafRef = useRef(0);
@@ -210,7 +220,8 @@ export default function ReviewScreen({
           width: dims.width,
           height: dims.height,
           // Only reload vectors when editing the unburned field-note original.
-          initial: raw ? section.entry.annotations ?? [] : []
+          initial: raw ? section.entry.annotations ?? [] : [],
+          initialCrop: section.entry.photoCrop
         };
       });
     },
@@ -218,11 +229,11 @@ export default function ReviewScreen({
   );
 
   const finishAnnotate = useCallback(
-    (annotations: PhotoAnnotation[]) => {
+    (annotations: PhotoAnnotation[], crop?: PhotoCrop) => {
       if (!annotate) return;
       const index = annotate.index;
       closeAnnotate();
-      void onAnnotateSection(index, annotations);
+      void onAnnotateSection(index, annotations, crop);
     },
     [annotate, closeAnnotate, onAnnotateSection]
   );
@@ -678,6 +689,7 @@ export default function ReviewScreen({
     e: ReactPointerEvent<HTMLDivElement>,
     index: number
   ) => {
+    if (lockReorder) return;
     if (busy || aiBatchRunning || drag) return;
     if (e.button !== 0 && e.pointerType === "mouse") return;
     if (isLiftInteractiveTarget(e.target)) return;
@@ -838,7 +850,7 @@ export default function ReviewScreen({
         <p className="muted review-reorder-hint">
           Press and hold a section for 2 seconds, then drag to reorder.
         </p>
-        {flaggedCount > 0 && (
+        {flaggedCount > 0 && !tutorial && (
           aiBatchRunning ? (
             <button type="button" className="btn danger" onClick={onStopAiBatch}>
               Stop AI
@@ -895,7 +907,11 @@ export default function ReviewScreen({
                 section={s}
                 index={i}
                 sectionNumbers={sectionNumbers}
-                aiConfigured={aiConfigured}
+                aiConfigured={
+                  tutorial
+                    ? tutorialAskAiIndex === i
+                    : aiConfigured
+                }
                 busy={busy}
                 aiWorking={busySectionIndex === i}
                 aiError={aiErrors[i] ?? null}
@@ -923,8 +939,11 @@ export default function ReviewScreen({
         <button
           type="button"
           className="btn big review-add-notes-btn"
-          disabled={busy || !!drag}
-          onClick={onAddMoreNotes}
+          disabled={busy || !!drag || tutorial}
+          onClick={() => {
+            if (tutorial) return;
+            onAddMoreNotes();
+          }}
         >
           Add more notes
         </button>
@@ -965,7 +984,7 @@ export default function ReviewScreen({
         <button
           type="button"
           className="btn primary big"
-          disabled={busy || !!drag || !!annotate}
+          disabled={busy || !!drag || !!annotate || lockContinue}
           onClick={onContinue}
         >
           Continue to report details
@@ -978,6 +997,7 @@ export default function ReviewScreen({
           imageWidth={annotate.width}
           imageHeight={annotate.height}
           initial={annotate.initial}
+          initialCrop={annotate.initialCrop}
           onFinished={finishAnnotate}
         />
       )}

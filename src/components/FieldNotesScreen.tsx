@@ -28,15 +28,36 @@ import {
   missingFieldNoteChecklist,
   renumberFieldNotes
 } from "../lib/fieldNotes";
+import {
+  requestHeadingPermission,
+  subscribeDeviceHeading
+} from "../lib/deviceHeading";
+import { library } from "../lib/matcher";
 import { compositeAnnotationsOntoJpeg } from "../lib/annotationComposite";
 import { getImageDims, jpegBytesFromImageFile } from "../lib/imageUtils";
-import type { FieldNoteShot, PhotoAnnotation } from "../types";
+import type { FieldNoteShot, PhotoAnnotation, PhotoCrop } from "../types";
 import AnnotationOverlay from "./AnnotationOverlay";
 import BrandMark from "./BrandMark";
+import {
+  DirectionCompass,
+  WEATHER_DIRECTIONS,
+  weatherNoteForHeading,
+  type DirectionCompassHandle
+} from "./DirectionCompass";
 import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
+import FieldNotesNoteField from "./FieldNotesNoteField";
 import TutorialLiveView, {
   type TutorialLiveHandle
 } from "./TutorialLiveView";
+import TutorialCoach from "./TutorialCoach";
+import {
+  allows,
+  coachFor,
+  TUTORIAL_BASELINE_INDEX,
+  TUTORIAL_RH_INDEX,
+  type TutorialBeat,
+  type TutorialEvent
+} from "../lib/tutorial/flow";
 
 type Props = {
   shots: FieldNoteShot[];
@@ -49,6 +70,8 @@ type Props = {
   photoPassThrough?: boolean;
   /** Replace the live camera with the interactive house tutorial. */
   tutorial?: boolean;
+  tutorialBeat?: TutorialBeat | null;
+  onTutorialEvent?: (event: TutorialEvent) => void;
 };
 
 type Mode = "live" | "review" | "retake";
@@ -102,6 +125,29 @@ function angleToZoomUpper(angleDeg: number, min: number, max: number) {
   return min + (max - min) * clamp(t, 0, 1);
 }
 
+function CompassIcon() {
+  return (
+    <svg
+      className="field-notes-compass-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+      <polygon
+        fill="currentColor"
+        points="12 4 14.2 12 12 11.2 9.8 12"
+      />
+      <polygon
+        fill="currentColor"
+        fillOpacity="0.35"
+        points="12 20 9.8 12 12 12.8 14.2 12"
+      />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 function CameraLensIcon() {
   return (
     <svg
@@ -136,7 +182,9 @@ export default function FieldNotesScreen({
   onContinueToReport,
   onExportDocx,
   photoPassThrough = false,
-  tutorial = false
+  tutorial = false,
+  tutorialBeat = null,
+  onTutorialEvent
 }: Props) {
   const [index, setIndex] = useState(() => shots.length);
   const [mode, setMode] = useState<Mode>("live");
@@ -173,6 +221,15 @@ export default function FieldNotesScreen({
   const [importingPictures, setImportingPictures] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [tutorialCanCapture, setTutorialCanCapture] = useState(false);
+  const [compassOpen, setCompassOpen] = useState(false);
+  const [headingDeg, setHeadingDeg] = useState<number | null>(null);
+  const [headingError, setHeadingError] = useState<string | null>(null);
+  const [gridView, setGridView] = useState(false);
+  const [walkToken, setWalkToken] = useState(0);
+  const [gutterChapter, setGutterChapter] = useState(false);
+  const noteIdleRef = useRef(0);
+  const onTutorialEventRef = useRef(onTutorialEvent);
+  onTutorialEventRef.current = onTutorialEvent;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const retakeVideoRef = useRef<HTMLVideoElement>(null);
@@ -223,6 +280,9 @@ export default function FieldNotesScreen({
   const annotateHoldTimerRef = useRef<number | null>(null);
   const thumbUrlsRef = useRef<string[]>([]);
   const [thumbUrls, setThumbUrls] = useState<string[]>([]);
+  const compassRef = useRef<DirectionCompassHandle>(null);
+  const compassOpenRef = useRef(false);
+  compassOpenRef.current = compassOpen;
 
   const maxIndex = shots.length;
   const safeIndex = Math.max(0, Math.min(index, maxIndex));
@@ -235,14 +295,25 @@ export default function FieldNotesScreen({
     capturing ||
     swipesFromLive <= CAMERA_KEEP_ALIVE_SWIPES;
   shouldRunCameraRef.current = shouldRunCamera;
-  const canCapture = tutorial
-    ? showLive && !busy && !capturing && tutorialCanCapture
-    : showLive && !busy && !capturing && !cameraError && !cameraLoading;
+  const tutorialAllows = (action: Parameters<typeof allows>[1]) =>
+    !tutorial || (tutorialBeat != null && allows(tutorialBeat, action));
+
+  const canCapture = gridView
+    ? false
+    : compassOpen
+    ? !busy && !capturing && tutorialAllows("shutter")
+    : tutorial
+      ? showLive &&
+        !busy &&
+        !capturing &&
+        tutorialCanCapture &&
+        tutorialAllows("shutter")
+      : showLive && !busy && !capturing && !cameraError && !cameraLoading;
   /** Visual translucent retake look — keep during slide so it doesn’t flash opaque. */
   const shutterRetakeLook =
     mode === "review" && !!current && !shutterSolid;
   const canHoldRetake =
-    shutterRetakeLook && !busy && !capturing && !sliding;
+    !tutorial && shutterRetakeLook && !busy && !capturing && !sliding;
 
   const matchedCount = useMemo(
     () => countMatchedShorthandNotes(shots),
@@ -253,6 +324,10 @@ export default function FieldNotesScreen({
     [shots]
   );
   const pipTones = useMemo(() => fieldNotePipTones(shots), [shots]);
+  const weatherParagraphs = useMemo(
+    () => library.photoParagraphs.filter((p) => p.group === "Weather / orientation"),
+    []
+  );
   const photoPassThroughRef = useRef(photoPassThrough);
   photoPassThroughRef.current = photoPassThrough;
 
@@ -383,10 +458,11 @@ export default function FieldNotesScreen({
     void (async () => {
       const next: string[] = [];
       for (const s of shots) {
-        const bytes =
-          s.annotations && s.annotations.length > 0
-            ? await compositeAnnotationsOntoJpeg(s.image, s.annotations)
-            : s.image;
+        const bytes = await compositeAnnotationsOntoJpeg(
+          s.image,
+          s.annotations,
+          s.photoCrop
+        );
         if (cancelled) return;
         const copy = new Uint8Array(bytes.byteLength);
         copy.set(bytes);
@@ -424,6 +500,18 @@ export default function FieldNotesScreen({
   useEffect(() => {
     if (index > shots.length) setIndex(shots.length);
   }, [shots.length, index]);
+
+  useEffect(() => {
+    if (!compassOpen) {
+      setHeadingDeg(null);
+      return;
+    }
+    return subscribeDeviceHeading(setHeadingDeg);
+  }, [compassOpen]);
+
+  useEffect(() => {
+    if (!isEmptySlot && compassOpen) setCompassOpen(false);
+  }, [isEmptySlot, compassOpen]);
 
   useEffect(
     () => () => {
@@ -482,9 +570,37 @@ export default function FieldNotesScreen({
     }, durationMs);
   }, []);
 
+  useEffect(() => {
+    if (!tutorial) return;
+    if (headingDeg == null) setHeadingDeg(0);
+  }, [tutorial, headingDeg]);
+
+  useEffect(() => {
+    if (!tutorial || tutorialBeat !== "walking") return;
+    settleTo(shotsLenRef.current);
+    const t = window.setTimeout(() => setWalkToken((n) => n + 1), SLIDE_MS + 60);
+    return () => window.clearTimeout(t);
+  }, [tutorial, tutorialBeat, settleTo]);
+
+  useEffect(() => {
+    if (!tutorial || !tutorialBeat) return;
+    if (tutorialBeat === "typeRh" && shots.length > TUTORIAL_RH_INDEX) {
+      settleTo(TUTORIAL_RH_INDEX);
+    } else if (
+      tutorialBeat === "typeBaseline" &&
+      shots.length > TUTORIAL_BASELINE_INDEX
+    ) {
+      settleTo(TUTORIAL_BASELINE_INDEX);
+    } else if (tutorialBeat === "summary" || tutorialBeat === "continueDoc") {
+      settleTo(shots.length);
+    }
+  }, [tutorial, tutorialBeat, shots.length, settleTo]);
+
   const jumpToPip = useCallback(
     (target: number) => {
+      if (tutorial) return;
       if (busy || capturing || sliding || holdingRetake || annotating) return;
+      setGridView(false);
       const from = indexRef.current;
       const max = shotsLenRef.current;
       const clamped = Math.max(0, Math.min(max, target));
@@ -535,7 +651,7 @@ export default function FieldNotesScreen({
         });
       });
     },
-    [annotating, busy, capturing, holdingRetake, settleTo, sliding]
+    [annotating, busy, capturing, holdingRetake, settleTo, sliding, tutorial]
   );
 
   const cycleCamera = async () => {
@@ -555,7 +671,17 @@ export default function FieldNotesScreen({
   };
 
   const updateShot = (shotIndex: number, patch: Partial<FieldNoteShot>) => {
+    if (tutorial && patch.note != null && !tutorialAllows("notes")) return;
     onChange(shots.map((s, i) => (i === shotIndex ? { ...s, ...patch } : s)));
+    if (tutorial && patch.note != null) {
+      onTutorialEventRef.current?.({ type: "note", value: patch.note });
+      window.clearTimeout(noteIdleRef.current);
+      noteIdleRef.current = window.setTimeout(() => {
+        if (patch.note && patch.note.trim()) {
+          onTutorialEventRef.current?.({ type: "noteIdle" });
+        }
+      }, 1600);
+    }
   };
 
   const paintHoldFill = (p: number) => {
@@ -574,21 +700,28 @@ export default function FieldNotesScreen({
     setCapturePulse(true);
     window.setTimeout(() => setCapturePulse(false), 450);
     try {
-      const bytes = tutorial
-        ? await (async () => {
-            const view = tutorialViewRef.current;
-            if (!view) throw new Error("Tutorial viewfinder is not ready yet.");
-            return view.captureJpeg();
-          })()
-        : await (async () => {
-            const video = videoRef.current;
-            if (!video || !streamRef.current) {
-              await ensureCamera();
-              throw new Error("Camera is not ready yet — wait a moment and try again.");
-            }
-            return captureJpegFromVideo(video);
-          })();
-      if (mode === "retake" && current) {
+      const hotId = compassRef.current?.hotId();
+      const fromHot = WEATHER_DIRECTIONS.find((d) => d.id === hotId)?.note;
+      const compassNote =
+        fromHot ??
+        (headingDeg != null ? weatherNoteForHeading(headingDeg) : "north facing");
+      const bytes = compassOpen
+        ? await compassRef.current!.captureJpeg()
+        : tutorial
+          ? await (async () => {
+              const view = tutorialViewRef.current;
+              if (!view) throw new Error("Tutorial viewfinder is not ready yet.");
+              return view.captureJpeg();
+            })()
+          : await (async () => {
+              const video = videoRef.current;
+              if (!video || !streamRef.current) {
+                await ensureCamera();
+                throw new Error("Camera is not ready yet — wait a moment and try again.");
+              }
+              return captureJpegFromVideo(video);
+            })();
+      if (mode === "retake" && current && !compassOpen) {
         onChange(
           shots.map((s, i) =>
             i === safeIndex
@@ -606,16 +739,18 @@ export default function FieldNotesScreen({
       } else {
         const shot = createFieldNoteShot(bytes, {
           imageName: `image${shots.length + 1}.jpeg`,
-          created: createdDraft || formatFieldNoteCreated()
+          created: createdDraft || formatFieldNoteCreated(),
+          note: compassOpen ? compassNote : undefined
         });
         const next = renumberFieldNotes([...shots, shot]);
         onChange(next);
         setIndex(next.length - 1);
         setMode("review");
         setDragX(0);
+        setCompassOpen(false);
       }
-      // Stay solid, then fade to the translucent retake look.
       setShutterSolid(true);
+      onTutorialEventRef.current?.({ type: "photo" });
     } catch (err) {
       setCameraError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -761,6 +896,34 @@ export default function FieldNotesScreen({
     }
   };
 
+  const toggleCompass = async () => {
+    if (busy || capturing || !isEmptySlot) return;
+    if (tutorial && !tutorialAllows("compass")) return;
+    if (compassOpen) {
+      setCompassOpen(false);
+      setHeadingError(null);
+      return;
+    }
+    if (!tutorial) {
+      const ok = await requestHeadingPermission();
+      if (!ok) {
+        setHeadingError("Allow compass access to align the rose.");
+      } else {
+        setHeadingError(null);
+      }
+    } else {
+      setHeadingError(null);
+      if (headingDeg == null) setHeadingDeg(0);
+    }
+    setCompassOpen(true);
+    onTutorialEventRef.current?.({ type: "compassOpen" });
+  };
+
+  const openGridNote = (i: number) => {
+    setGridView(false);
+    jumpToPip(i);
+  };
+
   const cancelDeleteHold = (showHint: boolean) => {
     deleteHoldArmedRef.current = false;
     setDeleteHolding(false);
@@ -857,7 +1020,7 @@ export default function FieldNotesScreen({
   };
 
   const onTouchMovePinch = (e: ReactTouchEvent) => {
-    if (annotating) return;
+    if (annotating || compassOpen || gridView) return;
     const pinch = pinchRef.current;
     if (!pinch || e.touches.length !== 2) return;
     const a = e.touches[0];
@@ -867,7 +1030,19 @@ export default function FieldNotesScreen({
     const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
     if (pinch.dist < 1) return;
     const scale = dist / pinch.dist;
-    setZoomClamped(pinch.zoom * scale);
+    const next = pinch.zoom * scale;
+    if (next < zoomMinRef.current * 0.82 && shotsRef.current.length > 0) {
+      if (tutorial) {
+        pinchRef.current = null;
+        setZoomClamped(zoomMinRef.current);
+        return;
+      }
+      pinchRef.current = null;
+      setZoomClamped(zoomMinRef.current);
+      setGridView(true);
+      return;
+    }
+    setZoomClamped(next);
   };
 
   const onTouchEndPinch = () => {
@@ -876,6 +1051,7 @@ export default function FieldNotesScreen({
 
   const openAnnotate = () => {
     if (!current || busy || capturing || annotating) return;
+    if (tutorial && !tutorialAllows("annotate") && !tutorialAllows("draw")) return;
     swipeRef.current = null;
     setDragX(0);
     const copy = new Uint8Array(current.image.byteLength);
@@ -883,6 +1059,7 @@ export default function FieldNotesScreen({
     const url = URL.createObjectURL(new Blob([copy], { type: "image/jpeg" }));
     setAnnotateUrl(url);
     setAnnotating(true);
+    onTutorialEventRef.current?.({ type: "annotateOpen" });
   };
 
   const clearAnnotateHold = () => {
@@ -893,7 +1070,8 @@ export default function FieldNotesScreen({
   };
 
   const onSwipeDown = (e: ReactPointerEvent) => {
-    if (annotating) return;
+    if (tutorial && !tutorialAllows("swipeRight")) return;
+    if (annotating || gridView || compassOpen) return;
     if (e.button !== 0 && e.pointerType === "mouse") return;
     if (sliding || busy || capturing || holdingRetake || dialDragRef.current)
       return;
@@ -901,7 +1079,7 @@ export default function FieldNotesScreen({
     if (
       t instanceof Element &&
       t.closest(
-        "button,a,label,select,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-notes-footer,.tutorial-live-view"
+        "button,a,label,select,textarea,.field-notes-shutter-wrap,.annotation-overlay,.field-notes-lens-btn,.field-notes-float-btn,.field-notes-notes-footer,.tutorial-live-view,.field-notes-shot-grid,.field-notes-compass-live,.field-notes-note-wrap"
       )
     ) {
       swipeRef.current = null;
@@ -985,8 +1163,13 @@ export default function FieldNotesScreen({
       }, SLIDE_MS);
       return;
     }
-    if (dx < 0 && at < max) settleTo(at + 1);
-    else if (dx > 0 && at > 0) settleTo(at - 1);
+    if (dx < 0 && at < max) {
+      settleTo(at + 1);
+      if (tutorial) {
+        onTutorialEventRef.current?.({ type: "swipeRight" });
+        if (at + 1 >= max) onTutorialEventRef.current?.({ type: "onEmptySlot" });
+      }
+    } else if (dx > 0 && at > 0) settleTo(at - 1);
     else {
       setDragX(0);
       setSliding(true);
@@ -1010,11 +1193,17 @@ export default function FieldNotesScreen({
     savePreferredCameraId(id);
   };
 
-  const finishAnnotate = (annotations: PhotoAnnotation[]) => {
-    if (current) updateShot(safeIndex, { annotations });
+  const finishAnnotate = (annotations: PhotoAnnotation[], crop?: PhotoCrop) => {
+    if (current) {
+      updateShot(safeIndex, {
+        annotations: annotations.length ? annotations : undefined,
+        photoCrop: crop
+      });
+    }
     setAnnotating(false);
     if (annotateUrl) URL.revokeObjectURL(annotateUrl);
     setAnnotateUrl(null);
+    onTutorialEventRef.current?.({ type: "annotateFinished" });
   };
 
   const annotateDims = current
@@ -1138,21 +1327,76 @@ export default function FieldNotesScreen({
                 autoPlay
               />
             )}
-            {tutorial && showLive && (
+            {tutorial && (showLive || tutorialBeat === "walking") && (
               <TutorialLiveView
                 ref={tutorialViewRef}
-                shotCount={shots.length}
-                retake={mode === "retake"}
-                retakeIndex={safeIndex}
+                chapter={
+                  tutorialBeat === "summary" || tutorialBeat === "continueDoc"
+                    ? "spawn"
+                    : gutterChapter
+                      ? "gutter"
+                      : "spawn"
+                }
+                walkToken={tutorialBeat === "walking" ? walkToken : 0}
+                freezeLook={
+                  tutorialBeat === "summary" || tutorialBeat === "continueDoc"
+                }
+                hideChrome
+                onWalkFinished={() => {
+                  setGutterChapter(true);
+                  onTutorialEventRef.current?.({ type: "walkDone" });
+                }}
                 onCanCaptureChange={setTutorialCanCapture}
               />
+            )}
+            {compassOpen && isEmptySlot && (
+              <div className="field-notes-compass-live">
+                <div className="field-notes-compass-prompt">
+                  <span className="field-notes-compass-arrow" aria-hidden>
+                    ↑
+                  </span>
+                  <p>Point phone away from building</p>
+                </div>
+                <DirectionCompass
+                  ref={compassRef}
+                  paragraphs={weatherParagraphs}
+                  headingDeg={headingDeg}
+                  interactive={false}
+                  showHint
+                />
+                {headingError ? (
+                  <p className="field-notes-compass-error">{headingError}</p>
+                ) : headingDeg == null ? (
+                  <p className="field-notes-compass-error">
+                    Waiting for compass…
+                  </p>
+                ) : null}
+              </div>
+            )}
+            {gridView && (
+              <div className="field-notes-shot-grid" role="list">
+                {shots.map((shot, i) => (
+                  <button
+                    key={shot.id}
+                    type="button"
+                    role="listitem"
+                    className={`field-notes-shot-grid-item tone-${pipTones[i] ?? "empty"}`}
+                    aria-label={`Open photo ${shot.number}`}
+                    onClick={() => openGridNote(i)}
+                  >
+                    {thumbUrls[i] ? (
+                      <img src={thumbUrls[i]} alt="" draggable={false} />
+                    ) : null}
+                  </button>
+                ))}
+              </div>
             )}
             <div
               key={flashKey || "flash"}
               className={`field-notes-flash${flashKey ? " is-on" : ""}`}
               aria-hidden
             />
-            {showLive && cameraLoading && !cameraError && !tutorial && (
+            {showLive && cameraLoading && !cameraError && !tutorial && !compassOpen && (
               <div
                 className="field-notes-camera-loading"
                 role="status"
@@ -1230,6 +1474,23 @@ export default function FieldNotesScreen({
 
             <div className="field-notes-cam-float-end">
               <div className="field-notes-cam-float-delete">
+                {isEmptySlot && (!tutorial || tutorialAllows("compass")) ? (
+                  <button
+                    type="button"
+                    className={`field-notes-float-btn field-notes-compass-btn${
+                      compassOpen ? " is-on" : ""
+                    }`}
+                    aria-label={
+                      compassOpen ? "Back to camera" : "Compass orientation"
+                    }
+                    aria-pressed={compassOpen}
+                    disabled={busy || capturing}
+                    onClick={() => void toggleCompass()}
+                  >
+                    <CompassIcon />
+                  </button>
+                ) : (
+                  <>
                 {showDeleteHint && (
                   <span className="field-notes-delete-hint" role="status">
                     Hold to delete
@@ -1255,6 +1516,8 @@ export default function FieldNotesScreen({
                   <span className="field-notes-delete-fill" aria-hidden />
                   <span className="field-notes-delete-label">Delete</span>
                 </button>
+                  </>
+                )}
               </div>
               <span className="field-notes-index-readout">{indexLabel}</span>
             </div>
@@ -1372,7 +1635,7 @@ export default function FieldNotesScreen({
                   className={`studio-pip field-notes-pip tone-${tone}${
                     current ? " is-current" : ""
                   }`}
-                  disabled={busy || capturing || sliding}
+                  disabled={busy || capturing || sliding || tutorial}
                   onClick={() => jumpToPip(i)}
                 >
                   <span className="studio-pip-face" aria-hidden />
@@ -1387,7 +1650,7 @@ export default function FieldNotesScreen({
               className={`studio-pip field-notes-pip tone-empty${
                 isEmptySlot ? " is-current" : ""
               }`}
-              disabled={busy || capturing || sliding}
+              disabled={busy || capturing || sliding || tutorial}
               onClick={() => jumpToPip(shots.length)}
             >
               <span className="studio-pip-face" aria-hidden />
@@ -1397,19 +1660,25 @@ export default function FieldNotesScreen({
             <div className="field-notes-notes-track" style={trackStyle}>
               {shots.map((shot, i) => (
                 <div key={shot.id} className="field-notes-notes-slide">
-                  <textarea
-                    className="field-notes-textarea"
+                  <FieldNotesNoteField
+                    note={shot.note}
+                    tone={pipTones[i] ?? "empty"}
+                    disabled={busy || (tutorial && !tutorialAllows("notes"))}
+                    ariaLabel={`Notes for photo ${shot.number}`}
                     placeholder={
                       tutorial
-                        ? i === 0
-                          ? "e.g. front elevation of the house"
-                          : "e.g. vegetation growing in the gutter"
+                        ? tutorialBeat === "typeFront"
+                          ? "Type “front”"
+                          : tutorialBeat === "typeRh"
+                            ? "Type “rh 45”"
+                            : tutorialBeat === "typeBaseline"
+                              ? "Type “baseline kitchen”"
+                              : tutorialBeat === "typeTrees"
+                                ? "Write a short note about the trees"
+                                : "Add a note for this photo…"
                         : "Add a note for this photo…"
                     }
-                    value={shot.note}
-                    disabled={busy}
-                    aria-label={`Notes for photo ${shot.number}`}
-                    onChange={(e) => updateShot(i, { note: e.target.value })}
+                    onChange={(note) => updateShot(i, { note })}
                   />
                 </div>
               ))}
@@ -1422,7 +1691,7 @@ export default function FieldNotesScreen({
                         <input
                           type="text"
                           value={createdDraft}
-                          disabled={busy}
+                          disabled={busy || tutorial}
                           onChange={(e) => setCreatedDraft(e.target.value)}
                           aria-label="Created date for new notes"
                         />
@@ -1441,16 +1710,25 @@ export default function FieldNotesScreen({
                         <button
                           type="button"
                           className="btn big field-notes-finish-inline"
-                          disabled={busy || shots.length === 0}
-                          onClick={() => setShowSave(true)}
+                          disabled={busy || shots.length === 0 || tutorial}
+                          onClick={() => {
+                            if (tutorial) return;
+                            setShowSave(true);
+                          }}
                         >
                           Save & leave
                         </button>
                         <button
                           type="button"
                           className="btn primary big field-notes-finish-inline"
-                          disabled={busy || shots.length === 0}
-                          onClick={onContinueToReport}
+                          disabled={busy || shots.length === 0 || (tutorial && !tutorialAllows("continueDoc"))}
+                          onClick={() => {
+                            if (tutorial) {
+                              onTutorialEventRef.current?.({ type: "continueDoc" });
+                              return;
+                            }
+                            onContinueToReport();
+                          }}
                         >
                           Continue to document
                         </button>
@@ -1495,7 +1773,7 @@ export default function FieldNotesScreen({
                 <button
                   type="button"
                   className="field-notes-annotate-btn field-notes-annotate-footer"
-                  disabled={!current || busy || capturing}
+                  disabled={!current || busy || capturing || (tutorial && !tutorialAllows("annotate"))}
                   aria-label="Annotate photo"
                   onClick={openAnnotate}
                 >
@@ -1529,9 +1807,51 @@ export default function FieldNotesScreen({
           imageWidth={annotateDims.width}
           imageHeight={annotateDims.height}
           initial={current.annotations ?? []}
-          onFinished={finishAnnotate}
+          initialCrop={current.photoCrop}
+          tutorialGhost={
+            tutorialBeat === "drawCircle"
+              ? "circle"
+              : tutorialBeat === "drawArrow"
+                ? "arrow"
+                : null
+          }
+          onRecognizedKind={(kind) =>
+            onTutorialEventRef.current?.({ type: "shape", kind })
+          }
+          onTutorialShapeMoved={() =>
+            onTutorialEventRef.current?.({ type: "shapeMoved" })
+          }
+          lockFinished={Boolean(tutorial && !tutorialAllows("annotateFinish"))}
+          onFinished={(annotations, crop) => {
+            if (tutorial && !tutorialAllows("annotateFinish")) return;
+            finishAnnotate(annotations, crop);
+          }}
+          coach={(() => {
+            if (!tutorial || !tutorialBeat) return null;
+            const spec = coachFor(tutorialBeat);
+            if (!spec) return null;
+            return (
+              <TutorialCoach
+                spec={spec}
+                onNext={() => onTutorialEventRef.current?.({ type: "next" })}
+              />
+            );
+          })()}
         />
       )}
+      {tutorial && tutorialBeat && !annotating && (() => {
+        const spec = coachFor(tutorialBeat);
+        if (!spec || spec.placement === "home" || spec.placement === "center") {
+          return null;
+        }
+        if (spec.placement === "viewport") return null;
+        return (
+          <TutorialCoach
+            spec={spec}
+            onNext={() => onTutorialEventRef.current?.({ type: "next" })}
+          />
+        );
+      })()}
     </div>
   );
 }

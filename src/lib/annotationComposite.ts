@@ -1,9 +1,9 @@
-import type { NormPoint, PhotoAnnotation } from "../types";
+import type { NormPoint, PhotoAnnotation, PhotoCrop } from "../types";
 import { calloutAttachPoint, calloutMetrics } from "./callout";
+import { isFullCrop } from "./photoCrop";
 
 const INK = "#e11d2e";
 const LINE_WIDTH_FRAC = 0.0045; // relative to image width
-const FONT_COMPOSITE = 16;
 
 function bytesToBlob(bytes: Uint8Array, mime: string): Blob {
   const copy = new Uint8Array(bytes);
@@ -108,14 +108,14 @@ export function paintAnnotations(
       continue;
     }
     if (ann.kind === "callout") {
-      const m = calloutMetrics(ann.text, width, height / Math.max(width, 1));
+      const m = calloutMetrics(ann.text, height / Math.max(width, 1));
       const attach = calloutAttachPoint(ann.anchor, ann.label, m.tw, m.thY);
       const anchor = toPx(ann.anchor, width, height);
       const join = toPx(attach, width, height);
       const label = toPx(ann.label, width, height);
       const boxW = m.tw * width;
       const boxH = m.thW * width;
-      const fontPx = FONT_COMPOSITE;
+      const fontPx = m.fontSize * width;
 
       ctx.beginPath();
       ctx.moveTo(anchor.x, anchor.y);
@@ -138,7 +138,7 @@ export function paintAnnotations(
       ctx.fillStyle = INK;
       ctx.font = `650 ${fontPx}px system-ui, sans-serif`;
       ctx.textBaseline = "middle";
-      ctx.fillText(m.display, label.x + 4, label.y + boxH / 2);
+      ctx.fillText(m.display, label.x + m.padX * width, label.y + boxH / 2);
       ctx.strokeStyle = INK;
       ctx.fillStyle = INK;
       ctx.lineWidth = lw;
@@ -149,20 +149,45 @@ export function paintAnnotations(
 /** Draw annotations onto a JPEG copy of the photo (for Word / matcher images). */
 export async function compositeAnnotationsOntoJpeg(
   image: Uint8Array,
-  annotations: PhotoAnnotation[] | undefined
+  annotations: PhotoAnnotation[] | undefined,
+  crop?: PhotoCrop
 ): Promise<Uint8Array> {
-  if (!annotations || annotations.length === 0) return image;
+  const hasAnn = Boolean(annotations && annotations.length > 0);
+  const hasCrop = !isFullCrop(crop);
+  if (!hasAnn && !hasCrop) return image;
   const img = await loadImage(image);
+  const fullW = img.naturalWidth || img.width;
+  const fullH = img.naturalHeight || img.height;
   const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth || img.width;
-  canvas.height = img.naturalHeight || img.height;
+  canvas.width = fullW;
+  canvas.height = fullH;
   const ctx = canvas.getContext("2d");
   if (!ctx) return image;
   ctx.drawImage(img, 0, 0);
-  paintAnnotations(ctx, annotations, canvas.width, canvas.height);
+  if (hasAnn) paintAnnotations(ctx, annotations!, fullW, fullH);
+  if (!hasCrop || !crop) {
+    return canvasToJpeg(canvas, image);
+  }
+  const sx = Math.round(crop.left * fullW);
+  const sy = Math.round(crop.top * fullH);
+  const sw = Math.max(1, Math.round((crop.right - crop.left) * fullW));
+  const sh = Math.max(1, Math.round((crop.bottom - crop.top) * fullH));
+  const out = document.createElement("canvas");
+  out.width = sw;
+  out.height = sh;
+  const ox = out.getContext("2d");
+  if (!ox) return canvasToJpeg(canvas, image);
+  ox.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+  return canvasToJpeg(out, image);
+}
+
+async function canvasToJpeg(
+  canvas: HTMLCanvasElement,
+  fallback: Uint8Array
+): Promise<Uint8Array> {
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92)
   );
-  if (!blob) return image;
+  if (!blob) return fallback;
   return new Uint8Array(await blob.arrayBuffer());
 }

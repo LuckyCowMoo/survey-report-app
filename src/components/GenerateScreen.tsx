@@ -34,6 +34,7 @@ interface Props {
   warnings?: string[];
   flaggedCount: number;
   onRestart: () => void;
+  skipLibrary?: boolean;
 }
 
 const DOCX_MIME =
@@ -57,7 +58,8 @@ export default function GenerateScreen({
   extras,
   warnings = [],
   flaggedCount,
-  onRestart
+  onRestart,
+  skipLibrary = false
 }: Props) {
   const recommendedName = reportFileName(metadata);
   const [fileName, setFileName] = useState(recommendedName);
@@ -178,8 +180,10 @@ export default function GenerateScreen({
         const blob = await generateReportBlob({ sections, metadata, extras, images });
         if (cancelled) return;
         setResult({ blob, name });
-        setProgress("Saving to library...");
-        await persistToLibrary(blob, name);
+        if (!skipLibrary) {
+          setProgress("Saving to library...");
+          await persistToLibrary(blob, name);
+        }
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : String(err));
@@ -222,8 +226,10 @@ export default function GenerateScreen({
       await yieldToUi();
       const blob = await generateReportBlob({ sections, metadata, extras, images });
       setResult({ blob, name });
-      setProgress("Saving to library...");
-      await persistToLibrary(blob, name);
+      if (!skipLibrary) {
+        setProgress("Saving to library...");
+        await persistToLibrary(blob, name);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -406,19 +412,19 @@ export default function GenerateScreen({
               onBlur={() => {
                 const next = resolveFileName(fileName, recommendedName);
                 setFileName(next);
-                void persistToLibrary(result.blob, next);
+                if (!skipLibrary) void persistToLibrary(result.blob, next);
               }}
             />
           </label>
 
-          {statusText && (
+          {statusText && !skipLibrary && (
             <p className={`library-status${libraryError ? " is-error" : ""}`}>
               {statusText}
             </p>
           )}
 
           <div className="result-actions">
-            {folderCapable && !folderName && (
+            {folderCapable && !folderName && !skipLibrary && (
               <button
                 type="button"
                 className="btn big"
@@ -429,7 +435,7 @@ export default function GenerateScreen({
               </button>
             )}
 
-            {folderCapable && !folderName && (
+            {folderCapable && !folderName && !skipLibrary && (
               <p className="library-hint">
                 Recommended on this device: choose one folder for finished
                 reports so the app can keep track of them without downloading

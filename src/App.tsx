@@ -64,7 +64,7 @@ import {
 } from "./lib/scrollRoot";
 import { startOrientationGuard } from "./lib/orientationGuard";
 import { reorderArray } from "./lib/sectionLift";
-import { fieldNotesForReviewReturn, fieldNotesToShorthand, renumberFieldNotes } from "./lib/fieldNotes";
+import { fieldNotesForReviewReturn, fieldNotesToShorthand, renumberFieldNotes, createFieldNoteShot } from "./lib/fieldNotes";
 import {
   generateShorthandDocx,
   shorthandDocxFileName
@@ -73,10 +73,32 @@ import { compositeAnnotationsOntoJpeg } from "./lib/annotationComposite";
 import type {
   FieldNoteShot,
   PhotoAnnotation,
+  PhotoCrop,
   ReportExtras,
   ReportMetadata,
   SectionState
 } from "./types";
+import TutorialOnboarding from "./components/TutorialOnboarding";
+import TutorialHomeIntro from "./components/TutorialHomeIntro";
+import TutorialCoach from "./components/TutorialCoach";
+import {
+  allows,
+  coachFor,
+  isHomeIntroBeat,
+  isOnboardingBeat,
+  reduceTutorial,
+  TUTORIAL_AI_FALLBACK,
+  TUTORIAL_TREES_INDEX,
+  type TutorialBeat,
+  type TutorialEvent
+} from "./lib/tutorial/flow";
+import {
+  isOnboardingComplete,
+  markOnboardingComplete
+} from "./lib/tutorial/progress";
+import { loadTutorialJpeg, TUTORIAL_ASSETS } from "./lib/tutorial/script";
+import { tutorialAiConfig } from "./lib/tutorial/openRouter";
+import { applyTheme } from "./lib/theme";
 
 type Step = AppStep;
 type DesignStep = "review" | "details";
@@ -180,7 +202,12 @@ export default function App() {
   const [reviewDwellIndex, setReviewDwellIndex] = useState<number | null>(null);
   const [step, setStep] = useState<Step>("home");
   const [fieldNotes, setFieldNotes] = useState<FieldNoteShot[]>([]);
-  const [tutorialMode, setTutorialMode] = useState(false);
+  const [tutorialBeat, setTutorialBeat] = useState<TutorialBeat | null>(null);
+  const tutorialBeatRef = useRef<TutorialBeat | null>(null);
+  tutorialBeatRef.current = tutorialBeat;
+  const tutorialMode = Boolean(
+    tutorialBeat && !isOnboardingBeat(tutorialBeat)
+  );
   const fieldNotesSessionKeyRef = useRef(`fieldnotes:${crypto.randomUUID()}`);
   /** Stable upsert key for mid-flow .dmsr drafts (survives AI text edits). */
   const draftFingerprintRef = useRef<string | null>(null);
@@ -266,6 +293,7 @@ export default function App() {
   }, [step]);
 
   const openSettings = useCallback((opts?: { focusIdentity?: boolean }) => {
+    if (tutorialBeatRef.current) return;
     setSettingsFocusIdentity(Boolean(opts?.focusIdentity));
     setShowSettings(true);
     pushAppHist({ app: 1, step: stepRef.current, overlay: "settings" });
@@ -294,12 +322,14 @@ export default function App() {
   }, [showSettings, showGuide, step]);
 
   const goToGenerate = useCallback(() => {
-    const missingName = !settings.surveyorName.trim();
-    const missingCompany = !settings.companyName.trim();
-    const missingWebsite = !settings.website.trim();
-    if (missingName || missingCompany || missingWebsite) {
-      setShowIdentityPrompt(true);
-      return false;
+    if (!tutorialBeatRef.current) {
+      const missingName = !settings.surveyorName.trim();
+      const missingCompany = !settings.companyName.trim();
+      const missingWebsite = !settings.website.trim();
+      if (missingName || missingCompany || missingWebsite) {
+        setShowIdentityPrompt(true);
+        return false;
+      }
     }
     setMetadata((m) => ({
       ...m,
@@ -564,18 +594,117 @@ export default function App() {
   const startFieldNotes = useCallback(() => {
     setError(null);
     setFieldNotes([]);
-    setTutorialMode(false);
+    setTutorialBeat(null);
     fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
     navigateTo("fieldNotes");
   }, [navigateTo]);
 
-  const startTutorial = useCallback(() => {
+  const beginInteractiveTutorial = useCallback(() => {
     setError(null);
     setFieldNotes([]);
-    setTutorialMode(true);
+    setSections([]);
     fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
-    navigateTo("fieldNotes");
-  }, [navigateTo]);
+    setTutorialBeat("newReport");
+    setStep("home");
+    replaceAppHist({ app: 1, step: "home" });
+  }, []);
+
+  const injectTutorialMeterShots = useCallback(async () => {
+    try {
+      const [rh, baseline] = await Promise.all([
+        loadTutorialJpeg(TUTORIAL_ASSETS.rhPhoto),
+        loadTutorialJpeg(TUTORIAL_ASSETS.baselinePhoto)
+      ]);
+      setFieldNotes((prev) => {
+        if (prev.length >= 5) return prev;
+        return renumberFieldNotes([
+          ...prev,
+          createFieldNoteShot(rh, { imageName: "rh.jpeg" }),
+          createFieldNoteShot(baseline, { imageName: "baseline.jpeg" })
+        ]);
+      });
+    } catch {
+      /* stand-ins missing — continue without them */
+    }
+  }, []);
+
+  const finishTutorial = useCallback(() => {
+    markOnboardingComplete();
+    setTutorialBeat(null);
+    setFieldNotes([]);
+    setSections([]);
+    setWarnings([]);
+    setExtras(defaultExtras);
+    setMetadata(defaultMetadata(settings));
+    setError(null);
+    setAiErrors({});
+    setFocusedSectionIndex(null);
+    setReviewDwellIndex(null);
+    setBusy(null);
+    setBusySectionIndex(null);
+    draftFingerprintRef.current = null;
+    setStep("home");
+    replaceAppHist({ app: 1, step: "home" });
+  }, [settings]);
+
+  const handleTutorialEvent = useCallback(
+    (event: TutorialEvent) => {
+      const current = tutorialBeatRef.current;
+      if (!current) return;
+      if (event.type === "annotateFinished") {
+        void injectTutorialMeterShots();
+      }
+      const next = reduceTutorial(current, event);
+      if ("exit" in next) {
+        if (next.exit === "done" || next.exit === "skip") {
+          finishTutorial();
+        } else {
+          setTutorialBeat(null);
+        }
+        return;
+      }
+      if (next.beat === current) return;
+      setTutorialBeat(next.beat);
+      if (next.beat === "lookAround") {
+        setError(null);
+        setFieldNotes([]);
+        fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
+        navigateTo("fieldNotes");
+      }
+      if (next.beat === "reviewIntro") {
+        void (async () => {
+          setBusy("Preparing report…");
+          try {
+            const notes = fieldNotesRef.current;
+            const entries = await fieldNotesToShorthand(notes);
+            const nextSections = matchEntries(entries);
+            setSections(nextSections);
+            setWarnings([]);
+            setFocusedSectionIndex(TUTORIAL_TREES_INDEX);
+            setReviewDwellIndex(null);
+            navigateTo("review");
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+          } finally {
+            setBusy(null);
+          }
+        })();
+      }
+      if (next.beat === "detailsIntro") {
+        navigateTo("details");
+      }
+      if (next.beat === "generateDone") {
+        setMetadata((m) => ({
+          ...m,
+          contactName: settings.surveyorName.trim(),
+          companyName: settings.companyName.trim(),
+          website: settings.website.trim()
+        }));
+        navigateTo("generate");
+      }
+    },
+    [finishTutorial, injectTutorialMeterShots, navigateTo, settings]
+  );
 
   const openFieldNotesFromReview = useCallback(() => {
     setError(null);
@@ -592,6 +721,7 @@ export default function App() {
       warnings?: string[];
       designStep?: DesignStep;
     }) => {
+      if (tutorialBeatRef.current) return;
       const secs = opts?.sections ?? sectionsRef.current;
       if (secs.length === 0) return;
       const meta = opts?.metadata ?? metadataRef.current;
@@ -648,6 +778,10 @@ export default function App() {
 
   const saveFieldNotesDraft = useCallback(
     async (leaveHome: boolean, announce = leaveHome) => {
+      if (tutorialBeatRef.current) {
+        if (leaveHome) finishTutorial();
+        return;
+      }
       const notes = fieldNotesRef.current;
       if (notes.length === 0) {
         if (leaveHome) {
@@ -876,11 +1010,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (showIntro) return;
     const q = new URLSearchParams(window.location.search).get("tutorial");
-    if (q !== "1" && q !== "true") return;
-    startTutorial();
+    if (q === "1" || q === "true") {
+      beginInteractiveTutorial();
+      return;
+    }
+    if (!isOnboardingComplete() && !tutorialBeatRef.current) {
+      applyTheme("dark", { animate: false });
+      setTutorialBeat("welcome");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showIntro]);
 
   const updateSection = useCallback((index: number, next: SectionState) => {
     setSections((prev) => prev.map((s, i) => (i === index ? next : s)));
@@ -930,19 +1071,40 @@ export default function App() {
     });
   }, []);
 
+  const imageBytesForAi = useCallback(
+    async (index: number, section: SectionState) => {
+      const shot = fieldNotes[index];
+      if (shot?.image) {
+        return compositeAnnotationsOntoJpeg(
+          shot.image,
+          shot.annotations ?? section.entry.annotations,
+          shot.photoCrop ?? section.entry.photoCrop
+        );
+      }
+      return section.entry.images[0];
+    },
+    [fieldNotes]
+  );
+
   const annotateSection = useCallback(
-    async (index: number, annotations: PhotoAnnotation[]) => {
+    async (
+      index: number,
+      annotations: PhotoAnnotation[],
+      crop?: PhotoCrop
+    ) => {
       const section = sections[index];
       if (!section?.entry.images[0]) return;
       const raw = fieldNotes[index]?.image ?? section.entry.images[0];
-      const burned = annotations.length
-        ? await compositeAnnotationsOntoJpeg(raw, annotations)
-        : new Uint8Array(raw);
+      const burned = await compositeAnnotationsOntoJpeg(
+        raw,
+        annotations,
+        crop
+      );
       const ann = annotations.length ? annotations : undefined;
       setFieldNotes((prev) => {
         if (index < 0 || index >= prev.length) return prev;
         return prev.map((s, i) =>
-          i === index ? { ...s, annotations: ann } : s
+          i === index ? { ...s, annotations: ann, photoCrop: crop } : s
         );
       });
       setSections((prev) =>
@@ -955,7 +1117,8 @@ export default function App() {
             entry: {
               ...s.entry,
               images,
-              ...(ann ? { annotations: ann } : { annotations: undefined })
+              ...(ann ? { annotations: ann } : { annotations: undefined }),
+              photoCrop: crop
             }
           };
         })
@@ -1007,8 +1170,14 @@ export default function App() {
 
   const runAiForSection = useCallback(
     async (index: number) => {
-      const ai = activeAi(settings);
-      if (!ai.apiKey) {
+      const inTutorial = Boolean(tutorialBeatRef.current);
+      let ai;
+      try {
+        ai = inTutorial ? await tutorialAiConfig() : activeAi(settings);
+      } catch {
+        ai = activeAi(settings);
+      }
+      if (!inTutorial && !ai.apiKey) {
         setError(
           `Add your ${providerLabel(ai.provider)} API key in Settings first.`
         );
@@ -1023,27 +1192,51 @@ export default function App() {
         delete next[index];
         return next;
       });
-      try {
-        const resolved = await resolveSectionWithAi(sections, index, ai);
-        const nextSections = sections.map((s, i) =>
-          i === index ? resolved : s
-        );
+      const applyFallback = () => {
+        const section = sections[index];
+        const resolved: SectionState = {
+          ...section,
+          text: TUTORIAL_AI_FALLBACK,
+          source: "ai",
+          needsAttention: false,
+          pendingReview: false,
+          pendingNoteConfirm: false
+        };
         updateSection(index, resolved);
-        enqueuePersistReport({
-          sections: nextSections,
-          designStep: designStepForPersist(stepRef.current) ?? "review"
+      };
+      try {
+        const section = sections[index];
+        const imageBytes = await imageBytesForAi(index, section);
+        const resolved = await resolveSectionWithAi(sections, index, ai, undefined, {
+          imageBytes
         });
+        updateSection(index, resolved);
+        if (!inTutorial) {
+          const nextSections = sections.map((s, i) =>
+            i === index ? resolved : s
+          );
+          enqueuePersistReport({
+            sections: nextSections,
+            designStep: designStepForPersist(stepRef.current) ?? "review"
+          });
+        }
+        if (inTutorial) handleTutorialEvent({ type: "askAi" });
       } catch (err) {
-        setAiErrors((prev) => ({
-          ...prev,
-          [index]: err instanceof Error ? err.message : String(err)
-        }));
+        if (inTutorial) {
+          applyFallback();
+          handleTutorialEvent({ type: "askAi" });
+        } else {
+          setAiErrors((prev) => ({
+            ...prev,
+            [index]: err instanceof Error ? err.message : String(err)
+          }));
+        }
       } finally {
         setBusy(null);
         setBusySectionIndex(null);
       }
     },
-    [sections, settings, updateSection, openSettings, enqueuePersistReport]
+    [sections, settings, updateSection, openSettings, enqueuePersistReport, imageBytesForAi, handleTutorialEvent]
   );
 
   const requestAiForAllFlagged = useCallback(() => {
@@ -1096,12 +1289,16 @@ export default function App() {
           );
           setBusySectionIndex(index);
           try {
+            const imageBytes = await imageBytesForAi(index, current[index]!);
             const resolved = await resolveSectionWithAi(
               current,
               index,
               ai,
               ac.signal,
-              guidanceTrimmed ? { guidance: guidanceTrimmed } : undefined
+              {
+                imageBytes,
+                ...(guidanceTrimmed ? { guidance: guidanceTrimmed } : {})
+              }
             );
             current = current.map((s, i) => (i === index ? resolved : s));
             setSections(current);
@@ -1130,7 +1327,7 @@ export default function App() {
         setBusySectionIndex(null);
       }
     },
-    [sections, settings, openSettings, enqueuePersistReport]
+    [sections, settings, openSettings, enqueuePersistReport, imageBytesForAi]
   );
 
   const stopAiBatch = useCallback(() => {
@@ -1219,6 +1416,7 @@ export default function App() {
   }, [step, settings, detailsSuggestBusy, runDetailsSuggest]);
 
   const reset = useCallback(() => {
+    setTutorialBeat(null);
     setSections([]);
     setFieldNotes([]);
     setWarnings([]);
@@ -1277,7 +1475,7 @@ export default function App() {
     const prev = prevStepRef.current;
     prevStepRef.current = step;
     if (prev === step) return;
-    if (step === "home") setTutorialMode(false);
+    if (tutorialBeatRef.current) return;
 
     const isReport = (s: Step) =>
       s === "review" || s === "details" || s === "generate";
@@ -1320,6 +1518,7 @@ export default function App() {
   // Best-effort save when the tab hides, unloads, or the app is backgrounded.
   useEffect(() => {
     const flushDraft = () => {
+      if (tutorialBeatRef.current) return;
       const s = stepRef.current;
       if (s === "fieldNotes" && fieldNotesRef.current.length > 0) {
         void saveFieldNotesDraftRef.current(false, false);
@@ -1349,13 +1548,37 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (tutorialBeat === "reviewAi") focusSection(TUTORIAL_TREES_INDEX);
+  }, [tutorialBeat, focusSection]);
+
+  useEffect(() => {
+    if (tutorialBeat !== "detailsIntro" || step !== "details") return;
+    const root = getScrollRoot();
+    const check = () => {
+      const el = document.getElementById("details-plan-costs");
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight * 0.62) {
+        handleTutorialEvent({ type: "planVisible" });
+      }
+    };
+    const target: EventTarget =
+      root instanceof HTMLElement ? root : window;
+    target.addEventListener("scroll", check, { passive: true });
+    check();
+    return () => target.removeEventListener("scroll", check);
+  }, [tutorialBeat, step, handleTutorialEvent]);
+
   return (
     <div
       className={`app${showIntro ? " intro-locked" : ""}${
         step === "home" ? " app-home" : ""
       }${
         step === "review" || step === "details" || step === "generate" ? " app-aside" : ""
-      }${step === "fieldNotes" ? " app-field-notes" : ""}`}
+      }${step === "fieldNotes" ? " app-field-notes" : ""}${
+        tutorialBeat ? " app-tutorial" : ""
+      }`}
     >
       <AmbientGlow />
       {showIntro && <IntroSplash onDone={dismissIntro} />}
@@ -1365,7 +1588,10 @@ export default function App() {
             type="button"
             className="topbar-btn topbar-btn-icon"
             aria-label="Back"
-            onClick={() => goBack()}
+            onClick={() => {
+              if (tutorialBeat) return;
+              goBack();
+            }}
           >
             <span className="topbar-btn-glyph" aria-hidden>
               <IconBack />
@@ -1383,7 +1609,10 @@ export default function App() {
             type="button"
             className="topbar-btn topbar-btn-icon"
             aria-label="Settings"
-            onClick={() => openSettings()}
+            onClick={() => {
+              if (tutorialBeat) return;
+              openSettings();
+            }}
           >
             <span className="topbar-btn-glyph" aria-hidden>
               <IconSettings />
@@ -1406,7 +1635,9 @@ export default function App() {
       )}
 
       <main className="content">
-        {step === "home" && (
+        {step === "home" &&
+          (!tutorialBeat ||
+            (!isOnboardingBeat(tutorialBeat) && !isHomeIntroBeat(tutorialBeat))) && (
           <HomeScreen
             onFile={handleFile}
             onCreateFieldNotes={startFieldNotes}
@@ -1416,6 +1647,25 @@ export default function App() {
             onShowPastReports={() => navigateTo("past")}
             ctaMorph={settings.homeCtaMorph}
             importTriggerRef={importTriggerRef}
+          />
+        )}
+        {tutorialBeat && isOnboardingBeat(tutorialBeat) && (
+          <TutorialOnboarding
+            beat={tutorialBeat}
+            onBack={() => handleTutorialEvent({ type: "back" })}
+            onLanguage={() => handleTutorialEvent({ type: "language" })}
+            onChooseTheme={() => handleTutorialEvent({ type: "chooseTheme" })}
+            onTake={() => handleTutorialEvent({ type: "takeTutorial" })}
+            onSkip={() => handleTutorialEvent({ type: "skip" })}
+          />
+        )}
+        {tutorialBeat && isHomeIntroBeat(tutorialBeat) && (
+          <TutorialHomeIntro
+            beat={tutorialBeat}
+            onNewReport={() => handleTutorialEvent({ type: "newReport" })}
+            onCreateFieldNotes={() =>
+              handleTutorialEvent({ type: "createFieldNotes" })
+            }
           />
         )}
         {step === "past" && (
@@ -1431,6 +1681,8 @@ export default function App() {
             onExportDocx={() => void exportFieldNotesDocx(true)}
             photoPassThrough={settings.studioPhotoPassThrough}
             tutorial={tutorialMode}
+            tutorialBeat={tutorialBeat}
+            onTutorialEvent={handleTutorialEvent}
           />
         )}
         {step === "review" && (
@@ -1438,25 +1690,49 @@ export default function App() {
             sections={sections}
             warnings={warnings}
             flaggedCount={flaggedCount}
-            aiConfigured={activeAi(settings).apiKey.length > 0}
+            aiConfigured={
+              tutorialMode || activeAi(settings).apiKey.length > 0
+            }
             busy={busy !== null}
             busySectionIndex={busySectionIndex}
             onChange={updateSection}
-            onAskAi={runAiForSection}
+            onAskAi={(index) => {
+              if (tutorialBeat && !allows(tutorialBeat, "askAi")) return;
+              void runAiForSection(index);
+            }}
             onAskAiAll={requestAiForAllFlagged}
             onStopAiBatch={stopAiBatch}
             aiBatchRunning={aiBatchRunning}
             aiErrors={aiErrors}
             onDismissAiError={dismissAiError}
-            onContinue={() => navigateTo("details")}
+            onContinue={() => {
+              if (tutorialBeat) {
+                handleTutorialEvent({ type: "continueDetails" });
+                return;
+              }
+              navigateTo("details");
+            }}
             onAddMoreNotes={openFieldNotesFromReview}
-            onDeleteSection={deleteSection}
+            onDeleteSection={tutorialMode ? () => {} : deleteSection}
             onAnnotateSection={annotateSection}
             annotateBaseImage={(index) => fieldNotes[index]?.image ?? null}
             onFocusSection={focusSection}
             focusedSectionIndex={focusedSectionIndex}
             dwellSectionIndex={reviewDwellIndex}
-            onReorderSections={reorderSections}
+            onReorderSections={(from, to) => {
+              reorderSections(from, to);
+              if (tutorialBeat) handleTutorialEvent({ type: "reordered" });
+            }}
+            tutorial={tutorialMode}
+            tutorialAskAiIndex={
+              tutorialBeat === "reviewAi" ? TUTORIAL_TREES_INDEX : null
+            }
+            lockContinue={Boolean(
+              tutorialBeat && !allows(tutorialBeat, "continueReview")
+            )}
+            lockReorder={Boolean(
+              tutorialBeat && !allows(tutorialBeat, "reorder")
+            )}
           />
         )}
         {step === "details" && (
@@ -1465,12 +1741,22 @@ export default function App() {
             extras={extras}
             onMetadata={setMetadata}
             onExtras={setExtras}
-            onContinue={goToGenerate}
+            onContinue={() => {
+              if (tutorialBeat) {
+                handleTutorialEvent({ type: "continueGenerate" });
+                return;
+              }
+              goToGenerate();
+            }}
             aiConfigured={activeDetailsSuggestAi(settings).apiKey.length > 0}
             suggestBusy={detailsSuggestBusy}
             suggestError={detailsSuggestError}
             onAskAi={runDetailsSuggest}
             onDismissSuggestError={() => setDetailsSuggestError(null)}
+            tutorial={tutorialMode}
+            lockContinue={Boolean(
+              tutorialBeat && tutorialBeat !== "detailsPlan"
+            )}
           />
         )}
         {step === "generate" && (
@@ -1481,6 +1767,7 @@ export default function App() {
             warnings={warnings}
             flaggedCount={flaggedCount}
             onRestart={reset}
+            skipLibrary={tutorialMode}
           />
         )}
       </main>
@@ -1499,7 +1786,10 @@ export default function App() {
           onClose={dismissOverlay}
           apiKeys={settings.apiKeys}
           onApiKeyChange={handleGuideApiKey}
-          onStartTutorial={startTutorial}
+          onStartTutorial={() => {
+            setShowGuide(false);
+            beginInteractiveTutorial();
+          }}
         />
       )}
 
@@ -1640,6 +1930,13 @@ export default function App() {
           studioPhotoPassThrough={settings.studioPhotoPassThrough}
           onJumpSection={focusSection}
           onDwellComplete={completeDwellReview}
+        />
+      )}
+      {tutorialBeat && coachFor(tutorialBeat)?.placement === "viewport" && (
+        <TutorialCoach
+          spec={coachFor(tutorialBeat)!}
+          onNext={() => handleTutorialEvent({ type: "next" })}
+          onFinish={() => handleTutorialEvent({ type: "finish" })}
         />
       )}
     </div>

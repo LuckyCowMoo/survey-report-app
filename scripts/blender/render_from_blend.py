@@ -13,6 +13,12 @@ import sys
 
 import bpy
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+import tutorial_style as style
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BLEND = os.path.join(ROOT, "public", "tutorial", "bayard_tutorial.blend")
 OUT = os.path.join(ROOT, "public", "tutorial")
@@ -47,30 +53,6 @@ def enable_gpu() -> str:
             log(f"{dtype} unavailable ({exc})")
     scene.cycles.device = "CPU"
     return "CPU"
-
-
-def retarget_walk_end() -> None:
-    spawn = bpy.data.objects["CameraSpawn"]
-    gutter = bpy.data.objects["CameraGutter"]
-    walk = bpy.data.objects["CameraWalk"]
-    scene = bpy.context.scene
-    f0 = scene.frame_start or 1
-    f2 = scene.frame_end or 168
-    f1 = max(f0 + 1, f2 // 3)
-
-    scene.frame_set(f0)
-    walk.location = spawn.location.copy()
-    walk.rotation_euler = spawn.rotation_euler.copy()
-    walk.keyframe_insert("location", frame=f0)
-    walk.keyframe_insert("rotation_euler", frame=f0)
-
-    scene.frame_set(f2)
-    walk.location = gutter.location.copy()
-    walk.rotation_euler = gutter.rotation_euler.copy()
-    walk.keyframe_insert("location", frame=f2)
-    walk.keyframe_insert("rotation_euler", frame=f2)
-    scene.frame_set(f0)
-    log(f"Walk end retargeted to CameraGutter ({tuple(gutter.location)})")
 
 
 def setup_cycles_pano() -> None:
@@ -121,9 +103,10 @@ def main() -> None:
     if not os.path.isfile(BLEND):
         raise SystemExit(f"Missing {BLEND}")
     bpy.ops.wm.open_mainfile(filepath=BLEND)
+    spawn = bpy.data.objects["CameraSpawn"]
+    style.apply_style_to_scene(spawn)
     device = enable_gpu()
     log(f"Cycles device: {device}")
-    retarget_walk_end()
     setup_cycles_pano()
     render_still("CameraSpawn", "spawn.jpg")
     render_still("CameraGutter", "gutter.jpg")

@@ -72,9 +72,12 @@ export async function fieldNotesToShorthand(
   return Promise.all(
     numbered.map(async (s) => {
       const annotations = s.annotations?.length ? s.annotations : undefined;
-      const image = annotations
-        ? await compositeAnnotationsOntoJpeg(s.image, annotations)
-        : s.image;
+      const photoCrop = s.photoCrop;
+      const image = await compositeAnnotationsOntoJpeg(
+        s.image,
+        annotations,
+        photoCrop
+      );
       return {
         number: s.number,
         note: s.note,
@@ -83,7 +86,8 @@ export async function fieldNotesToShorthand(
           s.imageName.replace(/^word\/media\//i, "") || `image${s.number}.jpeg`
         ],
         images: [image],
-        ...(annotations ? { annotations } : {})
+        ...(annotations ? { annotations } : {}),
+        ...(photoCrop ? { photoCrop } : {})
       };
     })
   );
@@ -98,6 +102,20 @@ function matchFieldNoteShots(shots: FieldNoteShot[]) {
     images: []
   }));
   return matchEntries(entries);
+}
+
+/** Match a single shorthand note the same way review sections do. */
+export function matchOneFieldNote(note: string): SectionState {
+  return matchFieldNoteShots([
+    {
+      id: "preview",
+      number: 1,
+      note,
+      created: "",
+      imageName: "",
+      image: new Uint8Array()
+    }
+  ])[0]!;
 }
 
 /** Notes that the library matcher recognises as valid shorthand keywords. */
@@ -194,7 +212,8 @@ export function sectionsToFieldNotes(sections: SectionState[]): FieldNoteShot[] 
       image,
       ...(s.entry.annotations?.length
         ? { annotations: s.entry.annotations }
-        : {})
+        : {}),
+      ...(s.entry.photoCrop ? { photoCrop: s.entry.photoCrop } : {})
     });
   }
   return renumberFieldNotes(shots);
@@ -219,7 +238,12 @@ export function fieldNotesForReviewReturn(
         return {
           ...shot,
           note: s.entry.note,
-          created: s.entry.created || shot.created
+          created: s.entry.created || shot.created,
+          ...(s.entry.photoCrop
+            ? { photoCrop: s.entry.photoCrop }
+            : shot.photoCrop
+              ? { photoCrop: shot.photoCrop }
+              : {})
         };
       })
     );

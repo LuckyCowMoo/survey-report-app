@@ -34,6 +34,7 @@ export interface ProviderGuideEntry {
   brand: ProviderBrand;
   keyPrefix: string;
   docsUrl: string;
+  whyChoose: string;
   steps: ProviderSetupStep[];
   note?: string;
 }
@@ -159,18 +160,41 @@ function buildGuide(
     keyPrefix.includes("no fixed")
       ? `Then tap ${brand.keyService} under Active AI service → Add other if it isn’t selected.`
       : `Keys like ${keyPrefix} are detected automatically.`
-  }`;
+  } The key stays on this device and is sent only to that provider when you press Ask AI.`;
 
-  const byId: Record<AiProvider, Omit<ProviderGuideEntry, "id" | "brand" | "keyPrefix" | "docsUrl">> = {
+  const why: Record<AiProvider, string> = {
+    claude:
+      "Choose Claude if you want careful, formal British-English drafting that stays close to a surveyor’s notes and is less likely to invent meter readings.",
+    gemini:
+      "Choose Gemini if you want a Google account, a usable free tier for trying Ask AI, and generally fast replies while you are still evaluating the feature.",
+    openai:
+      "Choose OpenAI if you already buy ChatGPT API credit and want a widely supported, high-quality writer for polishing field notes into client paragraphs.",
+    xai:
+      "Choose xAI if you specifically want Grok models; it is a paid console key and is useful when your firm already standardised on that lab.",
+    groq:
+      "Choose Groq if you care most about speed: it hosts Llama and similar open models with very high tokens-per-second, which feels snappy on site.",
+    openrouter:
+      "Choose OpenRouter if you want one key that can reach many labs, including free-tier models, without signing up to each provider separately.",
+    deepseek:
+      "Choose DeepSeek if you want capable open-weight models at a low cost, and you are happy to confirm the key type in Settings when detection is ambiguous.",
+    mistral:
+      "Choose Mistral if you prefer European hosting and Magma/Mistral chat models, with an explicit provider pick in Settings because keys have no fixed prefix.",
+    together:
+      "Choose Together AI if you want a wide catalogue of open models (Llama and others) from one OpenAI-compatible endpoint.",
+    fireworks:
+      "Choose Fireworks if you want fast hosted open models and already use their console; keys are easy to recognise (fw_) in Settings."
+  };
+
+  const byId: Record<AiProvider, Omit<ProviderGuideEntry, "id" | "brand" | "keyPrefix" | "docsUrl" | "whyChoose">> = {
     claude: {
       steps: [
         linkStep("Sign in (or create an account) at ", "https://platform.claude.com/", "platform.claude.com"),
         linkStep("Open ", docsUrl, "Settings → API keys"),
         {
-          text: "Click Create key, give it a name, and copy it immediately (it starts with sk-ant- and is only shown once)."
+          text: "Click Create key, give it a name that you will recognise later (for example “Report studio phone”), and copy it immediately. Anthropic shows the secret only once, and it starts with sk-ant-."
         },
         {
-          text: "In Anthropic’s console, add billing / credits under Plans & Billing — new keys usually will not work until payment is set up."
+          text: "In Anthropic’s console, add billing or credits under Plans & Billing. A brand-new key usually will not run until payment is set up, even if the key looks valid."
         },
         { text: commonPaste }
       ]
@@ -179,10 +203,10 @@ function buildGuide(
       steps: [
         linkStep("Sign in with a Google account at ", docsUrl, "aistudio.google.com/app/apikey"),
         {
-          text: "Click Create API key and choose (or create) a Google Cloud project when asked."
+          text: "Click Create API key and choose (or create) a Google Cloud project when asked. The project is what Google bills against if you leave the free allowance."
         },
         {
-          text: "Copy the key (often starts with AIza) and store it somewhere safe."
+          text: "Copy the key (often starts with AIza) and store it somewhere safe. Anyone with the key can spend your quota."
         },
         { text: commonPaste },
         {
@@ -195,10 +219,10 @@ function buildGuide(
         linkStep("Sign in at ", "https://platform.openai.com/", "platform.openai.com"),
         linkStep("Open ", docsUrl, "API keys"),
         {
-          text: "Create a new secret key (often sk-proj-… or sk-…). Copy it immediately."
+          text: "Create a new secret key (often sk-proj-… or sk-…). Copy it immediately — OpenAI will not show the full key again."
         },
         {
-          text: "Add billing credits if prompted — many new accounts need a payment method before the key works."
+          text: "Add billing credits if prompted. Many new platform accounts need a payment method before any model call succeeds."
         },
         { text: commonPaste }
       ]
@@ -207,10 +231,10 @@ function buildGuide(
       steps: [
         linkStep("Sign in at ", "https://console.x.ai/", "console.x.ai"),
         {
-          text: "Create an API key (starts with xai-) and copy it."
+          text: "Open API keys, create a key (it starts with xai-), and copy it immediately."
         },
         {
-          text: "Ensure the account has API access / credits enabled for Grok models."
+          text: "Check that the team has Grok API access and prepaid credit. A key alone is not enough if the console still shows billing as incomplete."
         },
         { text: commonPaste }
       ]
@@ -220,10 +244,10 @@ function buildGuide(
         linkStep("Sign in at ", "https://console.groq.com/", "console.groq.com"),
         linkStep("Open ", docsUrl, "API Keys"),
         {
-          text: "Create a key (starts with gsk_) and copy it."
+          text: "Create a key (starts with gsk_) and copy it. Store it on the device only — Groq will not show the full secret again."
         },
         {
-          text: "Pick a Llama (or other) chat model in Settings after pasting — Groq is a fast host for Meta Llama and similar open models."
+          text: "After pasting in Settings, pick a Llama (or other) chat model. Groq is a fast host rather than the author of the model, which is why replies feel almost instant on a survey."
         },
         { text: commonPaste }
       ]
@@ -233,10 +257,10 @@ function buildGuide(
         linkStep("Sign in at ", "https://openrouter.ai/", "openrouter.ai"),
         linkStep("Open ", docsUrl, "Keys"),
         {
-          text: "Create a key (starts with sk-or-) and copy it."
+          text: "Create a key (starts with sk-or-) and copy it. You can restrict the key in OpenRouter if you only want certain models."
         },
         {
-          text: "Add credits if needed. OpenRouter can route to many labs through one key."
+          text: "OpenRouter can route to many labs through one key. Free models have daily limits; paid credit on the same account unlocks faster and stronger models when you need them."
         },
         { text: commonPaste }
       ]
@@ -246,11 +270,12 @@ function buildGuide(
         linkStep("Sign in at ", "https://platform.deepseek.com/", "platform.deepseek.com"),
         linkStep("Open ", docsUrl, "API keys"),
         {
-          text: "Create a key (OpenAI-style sk-…) and copy it."
+          text: "Create a key. DeepSeek uses an OpenAI-style sk-… prefix, so this app may first guess OpenAI."
         },
         {
-          text: "Paste into Settings. If detection picks OpenAI, tap DeepSeek under Supported API key types."
-        }
+          text: "Paste into Settings. If the Active AI service shows OpenAI, tap DeepSeek under Supported API key types so requests go to DeepSeek’s endpoint."
+        },
+        { text: commonPaste }
       ]
     },
     mistral: {
@@ -258,10 +283,10 @@ function buildGuide(
         linkStep("Sign in at ", "https://console.mistral.ai/", "console.mistral.ai"),
         linkStep("Open ", docsUrl, "API keys"),
         {
-          text: "Create a key (no fixed prefix) and copy it."
+          text: "Create a key and copy it. Mistral keys have no fixed prefix, so the app cannot detect the provider from the string alone."
         },
         {
-          text: "Paste into Settings, then tap Mistral under Supported API key types so the app sends requests to Mistral."
+          text: "Paste into Settings, then tap Mistral under Supported API key types so the app sends chat requests to Mistral rather than another OpenAI-compatible host."
         }
       ]
     },
@@ -270,10 +295,10 @@ function buildGuide(
         linkStep("Sign in at ", "https://api.together.ai/", "api.together.ai"),
         linkStep("Open ", docsUrl, "API keys"),
         {
-          text: "Create a key and copy it."
+          text: "Create a key and copy it. Together does not use a unique prefix, so you must choose the provider in Settings after pasting."
         },
         {
-          text: "Paste into Settings, then tap Together under Supported API key types. Together hosts Meta Llama and other open models."
+          text: "Paste into Settings, then tap Together under Supported API key types. Together hosts Meta Llama and other open models from one OpenAI-compatible endpoint."
         }
       ]
     },
@@ -282,7 +307,10 @@ function buildGuide(
         linkStep("Sign in at ", "https://fireworks.ai/", "fireworks.ai"),
         linkStep("Open ", docsUrl, "API keys"),
         {
-          text: "Create a key (starts with fw_) and copy it."
+          text: "Create a key (starts with fw_) and copy it. The prefix is detected automatically in Settings."
+        },
+        {
+          text: "Fireworks is aimed at hosted open models with low latency. After pasting, pick the chat model you want for Ask AI."
         },
         { text: commonPaste }
       ]
@@ -294,6 +322,7 @@ function buildGuide(
     brand,
     keyPrefix,
     docsUrl,
+    whyChoose: why[id],
     ...byId[id]
   };
 }

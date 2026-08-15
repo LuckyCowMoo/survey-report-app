@@ -134,15 +134,6 @@ export default function HomeScreen({
           report.
         </h2>
         <p>Turn field notes into a client-ready report.</p>
-        {onShowGuide && (
-          <button
-            type="button"
-            className="home-tutorial-link"
-            onClick={onShowGuide}
-          >
-            Retake the tutorial
-          </button>
-        )}
       </div>
 
       <input

@@ -15,10 +15,23 @@ export interface ShorthandEntry {
    * image coordinates. Persisted in .dmsr; composited into images for Word.
    */
   annotations?: PhotoAnnotation[];
+  /**
+   * Non-destructive crop of the primary photo. Original bytes stay intact;
+   * Word/preview apply this rectangle.
+   */
+  photoCrop?: PhotoCrop;
 }
 
 /** Normalized point in image space (0..1 on each axis). */
 export type NormPoint = { x: number; y: number };
+
+/** Visible rectangle of a photo, in normalized 0–1 image coordinates. */
+export type PhotoCrop = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
 
 /** Red-pen markup stored with a field-note / project photo. */
 export type PhotoAnnotation =
@@ -75,6 +88,8 @@ export interface FieldNoteShot {
   image: Uint8Array;
   /** Editable vector annotations; raw `image` stays unburned. */
   annotations?: PhotoAnnotation[];
+  /** Non-destructive crop; raw `image` stays uncropped. */
+  photoCrop?: PhotoCrop;
 }
 
 /** How a section's final text was decided. */

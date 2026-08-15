@@ -5,9 +5,11 @@ import type {
   ShorthandEntry,
   TextSource,
   PhotoAnnotation,
+  PhotoCrop,
   NormPoint
 } from "../types";
 import { normalizeReportExtras } from "./detailsSuggest";
+import { normalizePhotoCrop } from "./photoCrop";
 
 /** Proprietary DampMaster survey project (pre-generation design state). */
 export const PROJECT_KIND = "dampmaster.survey.project";
@@ -41,6 +43,7 @@ interface SerializedEntry {
   images: string[];
   /** Editable vector annotations for the primary photo (optional). */
   annotations?: PhotoAnnotation[];
+  photoCrop?: PhotoCrop;
 }
 
 interface SerializedSection {
@@ -191,6 +194,7 @@ export function normalizePhotoAnnotations(raw: unknown): PhotoAnnotation[] {
 function serializeSection(section: SectionState): SerializedSection {
   const { entry } = section;
   const annotations = normalizePhotoAnnotations(entry.annotations);
+  const photoCrop = normalizePhotoCrop(entry.photoCrop);
   return {
     entry: {
       number: entry.number,
@@ -198,7 +202,8 @@ function serializeSection(section: SectionState): SerializedSection {
       created: entry.created,
       imageNames: [...entry.imageNames],
       images: entry.images.map((img) => bytesToBase64(img)),
-      ...(annotations.length > 0 ? { annotations } : {})
+      ...(annotations.length > 0 ? { annotations } : {}),
+      ...(photoCrop ? { photoCrop } : {})
     },
     libraryId: section.libraryId,
     placeholderValues: { ...section.placeholderValues },
@@ -221,13 +226,15 @@ function deserializeEntry(raw: SerializedEntry): ShorthandEntry {
   );
   while (images.length < names.length) images.push(new Uint8Array());
   const annotations = normalizePhotoAnnotations(raw.annotations);
+  const photoCrop = normalizePhotoCrop(raw.photoCrop);
   return {
     number: Number(raw.number) || 0,
     note: String(raw.note ?? ""),
     created: String(raw.created ?? ""),
     imageNames: names,
     images: images.slice(0, names.length),
-    ...(annotations.length > 0 ? { annotations } : {})
+    ...(annotations.length > 0 ? { annotations } : {}),
+    ...(photoCrop ? { photoCrop } : {})
   };
 }
 

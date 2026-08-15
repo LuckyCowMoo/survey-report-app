@@ -27,15 +27,17 @@ export type TutorialLiveHandle = {
 };
 
 type Props = {
-  shotCount: number;
-  retake: boolean;
-  retakeIndex: number;
+  chapter: "spawn" | "gutter";
+  walkToken: number;
+  freezeLook?: boolean;
+  onWalkFinished?: () => void;
+  hideChrome?: boolean;
   onCanCaptureChange: (ok: boolean) => void;
 };
 
 const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
   function TutorialLiveView(
-    { shotCount, retake, retakeIndex, onCanCaptureChange },
+    { chapter, walkToken, freezeLook = false, onWalkFinished, hideChrome, onCanCaptureChange },
     ref
   ) {
     const viewRef = useRef<EquirectHandle>(null);
@@ -89,81 +91,59 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
       };
     }, []);
 
+    const onWalkFinishedRef = useRef(onWalkFinished);
+    onWalkFinishedRef.current = onWalkFinished;
+    const lastWalkRef = useRef(0);
+
     useEffect(() => {
       if (!spawnPano) return;
-      if (retake) {
-        walkDoneRef.current = true;
-        const gutter = retakeIndex >= 1;
-        setPanoKind(gutter ? "gutter" : "spawn");
-        setLocked(false);
-        setWalkMode("off");
-        setPhase(gutter ? "shot2" : "shot1");
-        const look = gutter ? TUTORIAL_LOOK.gutter : TUTORIAL_LOOK.spawn;
-        requestAnimationFrame(() => {
-          viewRef.current?.setLook(look.yaw, look.pitch);
-          viewRef.current?.setLocked(false);
-          viewRef.current?.recalibrate();
-        });
-        return;
-      }
-      if (shotCount <= 0) {
-        walkDoneRef.current = false;
-        setPanoKind("spawn");
-        setLocked(false);
-        setWalkMode("off");
-        setPhase("shot1");
-        requestAnimationFrame(() => {
-          viewRef.current?.setLook(
-            TUTORIAL_LOOK.spawn.yaw,
-            TUTORIAL_LOOK.spawn.pitch
-          );
-          viewRef.current?.setLocked(false);
-          viewRef.current?.recalibrate();
-        });
-        return;
-      }
-      if (shotCount === 1 && !walkDoneRef.current) {
-        setPanoKind("spawn");
-        setLocked(false);
-        setWalkMode("off");
-        setPhase("shot2-hold");
-        requestAnimationFrame(() => {
-          viewRef.current?.setLook(
-            TUTORIAL_LOOK.spawn.yaw,
-            TUTORIAL_LOOK.spawn.pitch
-          );
-          viewRef.current?.setLocked(false);
-          viewRef.current?.recalibrate();
-        });
-        return;
-      }
-      setPanoKind("gutter");
-      setLocked(false);
+      if (walkToken > lastWalkRef.current) return;
+      setPanoKind(chapter);
+      setLocked(freezeLook);
       setWalkMode("off");
-      setPhase(shotCount <= 1 ? "shot2" : "free");
+      setPhase(chapter === "gutter" ? "shot2" : "shot1");
+      const look =
+        chapter === "gutter" ? TUTORIAL_LOOK.gutter : TUTORIAL_LOOK.front;
+      requestAnimationFrame(() => {
+        viewRef.current?.setLook(look.yaw, look.pitch);
+        viewRef.current?.setLocked(freezeLook);
+        viewRef.current?.recalibrate();
+      });
+    }, [chapter, spawnPano, walkToken, freezeLook]);
+
+    useEffect(() => {
+      if (!spawnPano || walkToken <= 0 || freezeLook) return;
+      if (walkToken === lastWalkRef.current) return;
+      lastWalkRef.current = walkToken;
+      walkDoneRef.current = false;
+      setPanoKind("spawn");
+      setPhase("shot2-hold");
       requestAnimationFrame(() => {
         viewRef.current?.setLook(
-          TUTORIAL_LOOK.gutter.yaw,
-          TUTORIAL_LOOK.gutter.pitch
+          TUTORIAL_LOOK.spawn.yaw,
+          TUTORIAL_LOOK.spawn.pitch
         );
         viewRef.current?.setLocked(false);
         viewRef.current?.recalibrate();
       });
-    }, [retake, retakeIndex, shotCount, spawnPano]);
+    }, [walkToken, spawnPano, freezeLook]);
 
     useEffect(() => {
-      if (phase !== "shot2-hold" || retake) return;
+      if (phase !== "shot2-hold") return;
       const timer = window.setTimeout(() => {
         setPhase("shot2-slew");
       }, TUTORIAL_TIMING.shot2HoldMs);
       return () => window.clearTimeout(timer);
-    }, [phase, retake]);
+    }, [phase]);
 
     useEffect(() => {
       if (phase !== "shot2-slew") return;
       let cancelled = false;
       setLocked(true);
       viewRef.current?.setLocked(true);
+      const failSafe = window.setTimeout(() => {
+        if (!cancelled) finishWalk();
+      }, TUTORIAL_TIMING.walkMaxMs);
       void (async () => {
         await viewRef.current?.animateTo(
           TUTORIAL_LOOK.walkAlign.yaw,
@@ -171,14 +151,14 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
           TUTORIAL_TIMING.slewMs
         );
         if (cancelled) return;
+        setPhase("shot2-walk");
         const video = videoRef.current;
         if (video) {
           try {
-            video.load();
-            await video.play();
-            if (cancelled) return;
+            video.currentTime = 0;
+            const playing = video.play();
             setWalkMode("video");
-            setPhase("shot2-walk");
+            await playing;
             return;
           } catch {
             /* fall through to the stills walk */
@@ -186,10 +166,10 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
         }
         setFallbackT(0);
         setWalkMode("fallback");
-        setPhase("shot2-walk");
       })();
       return () => {
         cancelled = true;
+        window.clearTimeout(failSafe);
       };
     }, [phase]);
 
@@ -209,18 +189,19 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
     }, [phase, walkMode]);
 
     const finishWalk = () => {
+      if (walkDoneRef.current) return;
       walkDoneRef.current = true;
-      setWalkMode("off");
       setPanoKind("gutter");
       setPhase("shot2");
-      setLocked(false);
       requestAnimationFrame(() => {
-        viewRef.current?.setLook(
-          TUTORIAL_LOOK.gutter.yaw,
-          TUTORIAL_LOOK.gutter.pitch
-        );
-        viewRef.current?.setLocked(false);
-        viewRef.current?.recalibrate();
+        viewRef.current?.setLook(0, 0);
+        window.setTimeout(() => {
+          setWalkMode("off");
+          setLocked(false);
+          viewRef.current?.setLocked(false);
+          viewRef.current?.recalibrate();
+          onWalkFinishedRef.current?.();
+        }, TUTORIAL_TIMING.walkFadeMs);
       });
     };
 
@@ -241,7 +222,7 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
       viewRef.current?.recalibrate();
     };
 
-    const hint = tutorialHint(shotCount, phase);
+    const hint = tutorialHint(chapter === "spawn" ? 0 : 1, phase);
 
     return (
       <div className="tutorial-live-view">
@@ -288,7 +269,7 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
 
         <div className="tutorial-aim-frame" data-ok={aligned && walkMode === "off"}>
           <div className="tutorial-live-hud">
-            <p className="tutorial-live-hint">{hint}</p>
+            {!hideChrome && <p className="tutorial-live-hint">{hint}</p>}
             {needGyroTap && !locked && (
               <button
                 type="button"
@@ -298,15 +279,13 @@ const TutorialLiveView = forwardRef<TutorialLiveHandle, Props>(
                 {hasGyro ? "Motion on" : "Look by turning the phone"}
               </button>
             )}
-            {!needGyroTap && walkMode === "off" && !locked && (
+            {!hideChrome && !needGyroTap && walkMode === "off" && !locked && (
               <p className="tutorial-live-sub">
                 Drag to look · turn the phone if motion is allowed
               </p>
             )}
           </div>
         </div>
-
-        <p className="tutorial-build-stamp">test cam map</p>
       </div>
     );
   }

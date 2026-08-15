@@ -128,23 +128,26 @@ function PipMark({
 
 function SetupSteps({ entry }: { entry: ProviderGuideEntry }) {
   return (
-    <ol className="guide-steps provider-key-steps">
-      {entry.steps.map((step, i) => (
-        <li key={i}>
-          {step.href && step.linkLabel ? (
-            <>
-              {step.text}
-              <a href={step.href} target="_blank" rel="noopener noreferrer">
-                {step.linkLabel}
-              </a>
-              {step.afterLink ?? ""}
-            </>
-          ) : (
-            step.text
-          )}
-        </li>
-      ))}
-    </ol>
+    <>
+      <p className="provider-key-why">{entry.whyChoose}</p>
+      <ol className="guide-steps provider-key-steps">
+        {entry.steps.map((step, i) => (
+          <li key={i}>
+            {step.href && step.linkLabel ? (
+              <>
+                {step.text}
+                <a href={step.href} target="_blank" rel="noopener noreferrer">
+                  {step.linkLabel}
+                </a>
+                {step.afterLink ?? ""}
+              </>
+            ) : (
+              step.text
+            )}
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 

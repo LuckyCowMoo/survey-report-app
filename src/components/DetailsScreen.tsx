@@ -26,6 +26,8 @@ interface Props {
   suggestError: { scope: DetailsSuggestScope; message: string } | null;
   onAskAi: (scope: DetailsSuggestScope) => void;
   onDismissSuggestError: () => void;
+  tutorial?: boolean;
+  lockContinue?: boolean;
 }
 
 const PROPERTY_TYPES = [
@@ -156,7 +158,9 @@ export default function DetailsScreen({
   suggestBusy,
   suggestError,
   onAskAi,
-  onDismissSuggestError
+  onDismissSuggestError,
+  tutorial = false,
+  lockContinue = false
 }: Props) {
   const [recPreview, setRecPreview] = useState<string | null>(null);
   const [costPreview, setCostPreview] = useState<string | null>(null);
@@ -346,7 +350,7 @@ export default function DetailsScreen({
 
   const costsComplete = detailsCostsComplete(extras);
   const costsBlockReason = detailsCostsBlockingReason(extras);
-  const canContinue = !anyBusy && costsComplete;
+  const canContinue = !anyBusy && !lockContinue && (tutorial || costsComplete);
   const excludePlanCosts = extras.excludePlanCosts;
 
   return (
@@ -677,6 +681,7 @@ export default function DetailsScreen({
       </section>
 
       <section
+        id="details-plan-costs"
         className={`panel details-ai-panel${costsBusy ? " ai-working" : ""}${costsError ? " ai-error" : ""}${excludePlanCosts ? " is-plan-excluded" : ""}`}
       >
         {costsError && !excludePlanCosts && (
