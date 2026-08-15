@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { LibraryParagraph } from "../types";
 import { library } from "../lib/matcher";
 import { AI_PROVIDER_ORDER, AI_PROVIDERS, type AiProvider } from "../lib/aiProviders";
 import { PROVIDER_GUIDE } from "../lib/aiProviderGuide";
