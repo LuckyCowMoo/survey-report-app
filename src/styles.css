@@ -5426,6 +5426,11 @@ html[data-theme="dark"] .provider-key-warning {
   gap: 5px;
 }
 
+.guide-tutorial-btn {
+  margin-top: 12px;
+  align-self: flex-start;
+}
+
 /* ---- Export format chooser ---- */
 .export-format-sheet .export-format-list {
   display: flex;
@@ -7182,6 +7187,75 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   max-height: none;
 }
 
+.annotation-photo-under {
+  filter: brightness(0.42);
+}
+
+.annotation-crop-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.annotation-crop-veil {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  background: rgba(12, 10, 9, 0.42);
+}
+
+.annotation-crop-veil-top {
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+.annotation-crop-veil-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.annotation-crop-veil-left {
+  left: 0;
+}
+
+.annotation-crop-veil-right {
+  right: 0;
+}
+
+.annotation-crop-handle {
+  position: absolute;
+  z-index: 6;
+  padding: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.2);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.annotation-crop-handle.is-left,
+.annotation-crop-handle.is-right {
+  width: 18px;
+  height: min(38%, 140px);
+  min-height: 56px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  cursor: ew-resize;
+}
+
+.annotation-crop-handle.is-top,
+.annotation-crop-handle.is-bottom {
+  width: min(38%, 140px);
+  min-width: 56px;
+  height: 18px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  cursor: ns-resize;
+}
+
 .annotation-overlay-svg {
   position: absolute;
   inset: 0;
@@ -7304,9 +7378,9 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   background: rgba(255, 255, 255, 0.55);
   color: #e11d2e;
   font-weight: 650;
-  font-size: 16px;
+  font-size: 4.2vw;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  padding: 1px 4px 2px;
+  padding: 0.14em 0.28em 0.16em;
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
@@ -7701,6 +7775,7 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   opacity: 0;
   pointer-events: none;
   z-index: 3;
+  transition: opacity 0.42s linear;
 }
 
 .tutorial-walk-video.is-on {

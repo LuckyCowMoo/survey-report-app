@@ -1407,10 +1407,9 @@ export default function App() {
 
       <main className="content">
         {step === "home" && (
-          <            HomeScreen
+          <HomeScreen
             onFile={handleFile}
             onCreateFieldNotes={startFieldNotes}
-            onStartTutorial={startTutorial}
             busy={busy !== null}
             onShowGuide={openGuide}
             onShowSettings={openSettings}
@@ -1500,6 +1499,7 @@ export default function App() {
           onClose={dismissOverlay}
           apiKeys={settings.apiKeys}
           onApiKeyChange={handleGuideApiKey}
+          onStartTutorial={startTutorial}
         />
       )}
 

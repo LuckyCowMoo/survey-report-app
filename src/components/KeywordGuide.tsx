@@ -40,6 +40,7 @@ interface Props {
   onClose: () => void;
   apiKeys: Partial<Record<AiProvider, string>>;
   onApiKeyChange: (apiKey: string, provider: AiProvider) => void;
+  onStartTutorial?: () => void;
 }
 
 /**
@@ -214,7 +215,8 @@ function matchesQuery(q: string, ...parts: string[]): boolean {
 export default function KeywordGuide({
   onClose,
   apiKeys,
-  onApiKeyChange
+  onApiKeyChange,
+  onStartTutorial
 }: Props) {
   const [query, setQuery] = useState("");
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -327,6 +329,16 @@ export default function KeywordGuide({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+
+        {onStartTutorial && (
+          <button
+            type="button"
+            className="btn guide-tutorial-btn"
+            onClick={onStartTutorial}
+          >
+            Retake the tutorial
+          </button>
+        )}
 
         {showPurpose && (
           <>

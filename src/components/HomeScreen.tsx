@@ -7,7 +7,6 @@ import { CTA_MERGE_MS } from "../lib/homeCtaMorph";
 interface Props {
   onFile: (file: File) => void;
   onCreateFieldNotes: () => void;
-  onStartTutorial?: () => void;
   busy: boolean;
   onShowGuide: () => void;
   onShowSettings: () => void;
@@ -24,7 +23,6 @@ const AUTO_MERGE_MS = 10_000;
 export default function HomeScreen({
   onFile,
   onCreateFieldNotes,
-  onStartTutorial,
   busy,
   onShowGuide,
   onShowSettings,
@@ -136,13 +134,13 @@ export default function HomeScreen({
           report.
         </h2>
         <p>Turn field notes into a client-ready report.</p>
-        {onStartTutorial && (
+        {onShowGuide && (
           <button
             type="button"
             className="home-tutorial-link"
-            onClick={onStartTutorial}
+            onClick={onShowGuide}
           >
-            Try the camera tutorial — test cam
+            Retake the tutorial
           </button>
         )}
       </div>
