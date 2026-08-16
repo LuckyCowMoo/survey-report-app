@@ -253,7 +253,7 @@
       "id": "steel-pins-doorframe",
       "group": "Steel pin readings",
       "topic": "Pin reading - door frame",
-      "keywords": ["pin door frame", "pindoor frame"],
+      "keywords": ["pin door frame", "door frame"],
       "placeholders": [],
       "text": "Stainless steel pins were used to assess the moisture content of the door frame, with readings generally below 16%, which is deemed acceptable for a domestic property. However, a reading exceeding 20% suggests that decay can occur and may necessitate further investigation or remedial action to address potential underlying issues."
     },
@@ -261,7 +261,7 @@
       "id": "steel-pins-block-floor",
       "group": "Steel pin readings",
       "topic": "Pin reading - wooden block floor",
-      "keywords": ["pin", "pins", "block floor", "wood floor"],
+      "keywords": ["pin block floor", "pin wood floor", "block floor", "wood floor"],
       "placeholders": [],
       "text": "Stainless steel pins were used to measure the moisture content of the wooden block floor, with readings generally below 16%, which is considered acceptable for a domestic dwelling. However, a measurement exceeding 20% indicates a significant concern, which may require further investigation or remedial work to address potential underlying issues."
     },
@@ -269,7 +269,7 @@
       "id": "steel-pins-subfloor",
       "group": "Steel pin readings",
       "topic": "Pin reading - subfloor, elevated",
-      "keywords": ["pin", "subfloor", "flooring tested"],
+      "keywords": ["pin subfloor", "subfloor"],
       "placeholders": [
         { "key": "pin_value", "label": "Moisture content (%)", "default": "22.4" }
       ],
@@ -279,7 +279,7 @@
       "id": "steel-pins-joists",
       "group": "Steel pin readings",
       "topic": "Pin reading - timber joists, elevated",
-      "keywords": ["pin", "joists", "timber joists"],
+      "keywords": ["pin joists", "joists"],
       "placeholders": [
         { "key": "pin_value", "label": "Moisture content (%)", "default": "39" }
       ],
@@ -289,7 +289,7 @@
       "id": "steel-pins-skirting",
       "group": "Steel pin readings",
       "topic": "Pin reading - skirting board, elevated",
-      "keywords": ["pin", "skirting", "skirting board"],
+      "keywords": ["pin skirting", "skirting", "skirting board"],
       "placeholders": [
         { "key": "pin_value", "label": "Moisture content (%)", "default": "24.4" }
       ],
@@ -299,7 +299,7 @@
       "id": "steel-pins-plaster",
       "group": "Steel pin readings",
       "topic": "Pin reading - plaster",
-      "keywords": ["pin", "plaster"],
+      "keywords": ["pin plaster", "plaster"],
       "placeholders": [],
       "text": "Stainless steel pins were used to assess the moisture content of the plaster, with most readings below 16%, which are deemed acceptable for a domestic property. However, a reading exceeding 20% indicates a significant concern that may necessitate further investigation or remedial measures to address potential underlying issues. It is also worth noting that a reading of 100 on the electronic moisture meter represents the maximum level of water or moisture saturation detected in any specific location when using the pins."
     },
@@ -307,7 +307,7 @@
       "id": "infrared-four-walls",
       "group": "Infrared laser",
       "topic": "Infrared - condensation risk on all four walls",
-      "keywords": ["infrared", "infra red", "infa red", "laser", "thermometer"],
+      "keywords": ["infrared four walls"],
       "placeholders": [],
       "text": "The infrared laser thermometer has identified a risk of condensation, as all four walls are approaching the dew point at which condensation occurs. The key variables influencing this are the surface temperature of the walls and the relative humidity within the property, both of which contribute to the potential for internal condensation issues."
     },
@@ -315,7 +315,7 @@
       "id": "infrared-living-area",
       "group": "Infrared laser",
       "topic": "Infrared - condensation risk in living area",
-      "keywords": ["infrared", "infra red", "infa red", "laser", "living area"],
+      "keywords": ["infrare living aread"],
       "placeholders": [],
       "text": "The infrared laser analysis has identified a significant risk of condensation in the living area, which is primarily due to suboptimal surface temperatures and insufficient ventilation. This environmental condition may lead to the accumulation of moisture, potentially resulting in structural damage and promoting the growth of mould."
     },
@@ -323,7 +323,7 @@
       "id": "infrared-detailed",
       "group": "Infrared laser",
       "topic": "Infrared - condensation risk (detailed)",
-      "keywords": ["infrared", "infra red", "infa red", "laser"],
+      "keywords": ["infrared detailed"],
       "placeholders": [],
       "text": "The infrared laser analysis indicates a significant risk of condensation occurring in the affected area, primarily driven by low surface temperatures and inadequate ventilation. When surfaces cool below the dew point, moisture in the air can condense, leading to water accumulation that not only threatens the integrity of building materials but also creates an ideal environment for mould growth. This situation poses serious concerns for structural damage, as prolonged exposure to moisture can weaken materials, lead to rot, and diminish the overall lifespan of the structure. Moreover, the presence of mould can have detrimental effects on indoor air quality and occupant health, making it essential to address these issues through improved insulation, heating measures, and enhanced airflow to mitigate the risk of condensation and its associated consequences."
     },
@@ -331,7 +331,7 @@
       "id": "thermal-ceiling-mould",
       "group": "Thermal camera",
       "topic": "Thermal camera - ceiling cold spots and black mould",
-      "keywords": ["thermal", "thermal camera", "cold spots", "ceiling"],
+      "keywords": ["thermal ceiling", "thermal camera ceiling", "cold spots ceiling"],
       "placeholders": [
         { "key": "temp_diff", "label": "Temperature differential (degrees)", "default": "four" }
       ],
@@ -341,7 +341,7 @@
       "id": "thermal-walls-damp",
       "group": "Thermal camera",
       "topic": "Thermal camera - wall cold spots and damp",
-      "keywords": ["thermal", "thermal camera", "walls"],
+      "keywords": ["thermal wall", "thermal camera wall", "cold spots walls"],
       "placeholders": [
         { "key": "temp_diff", "label": "Temperature differential (degrees)", "default": "three" }
       ],
@@ -351,18 +351,18 @@
       "id": "thermal-heat-loss",
       "group": "Thermal camera",
       "topic": "Thermal camera - heat loss detected",
-      "keywords": ["thermal", "heat loss", "hallway"],
+      "keywords": ["thermal heat loss"],
       "placeholders": [
         { "key": "temp_diff", "label": "Temperature differential (°C)", "default": "five" },
         { "key": "location", "label": "Location", "default": "the hallway" }
       ],
-      "text": "The thermal camera was used to detect variations in temperature and identify cold spots within the property. A temperature difference of approximately {{temp_diff}} degrees Celsius was observed in {{location}}, indicating a potential area of heat loss or thermal inconsistency that may require further investigation."
+      "text": "The thermal camera was used to detect variations in temperature and identify cold spots within the property. A temperature difference of approximately {{temp_diff}} degrees Celsius was observed in {{location}}, indicating a potential area of heat loss or thermal inconsistency that may require further inve/tigation."
     },
     {
       "id": "drainage-benefit",
       "group": "Drainage",
       "topic": "Property would benefit from a drainage system",
-      "keywords": ["drainage", "drain", "rainwater", "surface water"],
+      "keywords": ["drainage", "drain"],
       "placeholders": [],
       "text": "The property would significantly benefit from the installation of an advanced drainage system designed to collect and divert rainwater and excess moisture away from the building. This preventive measure would effectively mitigate the risk of penetrating dampness, thereby preserving the structural integrity of the property and enhancing the overall living conditions. Implementing such a drainage solution ensures long-term protection against moisture-related damage, contributing to the property's durability and value."
     }
