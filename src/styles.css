@@ -8383,3 +8383,23 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   opacity: 0.4;
 }
 
+.tutorial-exit-btn {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 140;
+  pointer-events: auto;
+  appearance: none;
+  border: 1.5px solid #ff5a36;
+  background: color-mix(in srgb, var(--surface) 88%, #0f141c);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(8, 12, 18, 0.28);
+}
+

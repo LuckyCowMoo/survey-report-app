@@ -81,6 +81,7 @@ import type {
 import TutorialOnboarding from "./components/TutorialOnboarding";
 import TutorialHomeIntro from "./components/TutorialHomeIntro";
 import TutorialCoach from "./components/TutorialCoach";
+import TutorialExitButton from "./components/TutorialExitButton";
 import {
   allows,
   coachFor,
@@ -1771,6 +1772,10 @@ export default function App() {
           />
         )}
       </main>
+
+      {tutorialBeat && !showIntro && (
+        <TutorialExitButton onExit={finishTutorial} />
+      )}
 
       {showSettings && (
         <SettingsSheet
