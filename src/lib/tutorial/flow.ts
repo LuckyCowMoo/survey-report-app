@@ -140,7 +140,7 @@ export function coachFor(beat: TutorialBeat): CoachSpec | null {
       };
     case "createFieldNotes":
       return {
-        body: "To import a survey from Report and Run, press share then download the Report and Run document to your device, then press import field notes in this app to start.\n\nAlternatively, this new app can replace Report and Run using the field notes interface. **Press create new field notes to start.**",
+        body: "To import a survey from Report and Run, first press share inside report and run as if you were sending it to a client, then press download to your device, then press import field notes in this app to start.\n\nAlternatively, this app can replace Report and Run using the field notes interface. **Press create new field notes to start.**",
         placement: "home"
       };
     case "lookAround":
@@ -168,12 +168,12 @@ export function coachFor(beat: TutorialBeat): CoachSpec | null {
     case "swipeNew":
       return {
         body: "Great, now we can move on to the next observation. At any point swipe left or right on the screen to move between observations. To new observations, the camera is always located at the rightmost slide. **Swipe the screen to make a new note.**",
-        placement: "bottom",
+        placement: "top",
         showSwipeHint: true
       };
     case "openCompass":
       return {
-        body: "Another standard observation is the cardinal direction the property is facing. **Press the compass button in the bottom right corner of the viewfinder** to enter the compass view.",
+        body: "Another standard observation is the direction the property is facing. **Press the compass button in the bottom right corner of the viewfinder** to enter the compass view.",
         placement: "top"
       };
     case "compassCapture":
@@ -246,7 +246,7 @@ export function coachFor(beat: TutorialBeat): CoachSpec | null {
       };
     case "reviewIntro":
       return {
-        body: "This is the first page of the document process. Here you can organise and word your observations in a client ready format. If you wish to go back and add more notes, you can switch between document and field notes mode freely. On the right you can see the navigation bar. Each segment on this bar represents an image and its associated text. The colour of the segment represents the status of that segment according to these rules:",
+        body: "This is the first page of the document process. Here you can organise and word your observations in a client ready format. If you wish to go back and add more notes, you can switch between document and field notes mode freely. On the right you can see the navigation bar. Each segment on this bar represents an image and its associated text. The colour of the segment represents the status of that segment according to these rules (also viewable in guide):",
         nextLabel: "Next",
         placement: "viewport",
         showPipLegend: true
@@ -274,7 +274,7 @@ export function coachFor(beat: TutorialBeat): CoachSpec | null {
       };
     case "detailsIntro":
       return {
-        body: "Welcome to the report details page. You have finished the part of the document explaining what observations you made at the client property. You can now fill in the details of the property and select which overarching issues you have identified and which recommendations you choose to give the client. The AI agent can help here by making suggestions for which options to pick based on the observations made on the previous page, but you should still always check its answers.",
+        body: "Welcome to the report details page. You have finished the part of the document explaining what observations you made at the client property. You can now fill in the details of the property and select which overarching issues you have identified and which recommendations you choose to give the client. The AI agent can help here by making suggestions for which options to pick based on the observations made on the previous page, but you should still always check its answers. **Scroll down to continue.**",
         placement: "viewport"
       };
     case "detailsPlan":
