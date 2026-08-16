@@ -4,7 +4,7 @@
       "id": "front-elevation",
       "group": "Property photos",
       "topic": "Front elevation photo",
-      "keywords": ["front", "elevation", "front of property", "front photo"],
+      "keywords": ["front", "front of property", "front photo"],
       "placeholders": [],
       "text": "A photo of the property's front elevation, included in the damp survey, is essential for assessing its architectural style, external condition, materials, and any signs of moisture damage. It provides a visual reference for survey findings, helps identify areas prone to damp issues, and offers context on landscaping and nearby structures that may affect moisture levels. This documentation is valuable for understanding the property's characteristics and potential damp concerns."
     },
@@ -84,7 +84,7 @@
       "id": "air-quality-high-humidity",
       "group": "Air quality",
       "topic": "Air quality test - very high humidity",
-      "keywords": ["air quality", "air test", "pm2.5", "formaldehyde", "tvoc", "co2"],
+      "keywords": ["air quality high", "air test", "pm 2.5", "formaldehyde", "tvoc", "co2"],
       "placeholders": [],
       "text": "Air quality test\n1. Particulate Matter (PM2.5)\nParticulate matter is the sum of all solid and liquid particles suspended in air many of which are hazardous. This complex mixture includes both organic and inorganic particles, such as dust, pollen, soot, smoke, and liquid droplets.\n2. Formaldehyde (HCHO)\nFormaldehyde is a colourless, flammable, strong-smelling chemical that is used in building materials and to produce many household products. It is used in pressed wood products, such as particleboard, plywood, and fibreboard; glues, adhesives and more.\n3. Total Volatile Organic Compounds (TVOC)\nVolatile organic compounds, sometimes referred to as VOCs, are organic compounds that easily become vapours or gases, along with hydrogen, oxygen, fluorine, chlorine, bromine, sulphur or nitrogen.\n4. Carbon Dioxide (CO2)\nCarbon dioxide is a gas that the human body produces naturally. Everyone is exposed to some degree, to this gas every day. It occurs naturally in the atmosphere as part of animal metabolism, plant photosynthesis, decomposition, and combustion.\nVery high humidity."
     },
@@ -92,7 +92,7 @@
       "id": "air-quality-no-issues",
       "group": "Air quality",
       "topic": "Air quality test - no issues detected",
-      "keywords": ["air quality", "no issues"],
+      "keywords": ["air quality low"],
       "placeholders": [],
       "text": "Air quality test\n1. Particulate Matter (PM2.5)\nParticulate matter is the sum of all solid and liquid particles suspended in air many of which are hazardous. This complex mixture includes both organic and inorganic particles, such as dust, pollen, soot, smoke, and liquid droplets.\n2. Formaldehyde (HCHO)\nFormaldehyde is a colourless, flammable, strong-smelling chemical that is used in building materials and to produce many household products. It is used in pressed wood products, such as particleboard, plywood, and fibreboard; glues, adhesives and more.\n3. Total Volatile Organic Compounds (TVOC)\nVolatile organic compounds, sometimes referred to as VOCs, are organic compounds that easily become vapours or gases, along with hydrogen, oxygen, fluorine, chlorine, bromine, sulphur or nitrogen.\n4. Carbon Dioxide (CO2)\nCarbon dioxide is a gas that the human body produces naturally. Everyone is exposed to some degree, to this gas every day. It occurs naturally in the atmosphere as part of animal metabolism, plant photosynthesis, decomposition, and combustion.\nNo issues detected."
     },
@@ -100,7 +100,7 @@
       "id": "rh-high",
       "group": "Relative humidity",
       "topic": "Relative humidity above threshold",
-      "keywords": ["rh", "relative humidity", "humidity", "humidity reading"],
+      "keywords": ["rh", "relative humidity", "humidity bad", "humidity reading"],
       "placeholders": [
         { "key": "rh_value", "label": "Relative humidity (%)", "default": "71.7" }
       ],
@@ -110,7 +110,7 @@
       "id": "rh-low",
       "group": "Relative humidity",
       "topic": "Relative humidity within threshold",
-      "keywords": ["rh", "relative humidity", "humidity", "humidity ok"],
+      "keywords": ["rh", "relative humidity", "humidity good"],
       "placeholders": [
         { "key": "rh_value", "label": "Relative humidity (%)", "default": "46" }
       ],
@@ -130,7 +130,7 @@
       "id": "baseline-reading",
       "group": "Baseline",
       "topic": "Baseline moisture reading",
-      "keywords": ["baseline", "base line", "reference reading"],
+      "keywords": ["baseline", "base line"],
       "placeholders": [
         {
           "key": "baseline_location",
@@ -144,7 +144,7 @@
       "id": "reading-999-saturation",
       "group": "Moisture readings",
       "topic": "999 reading - maximum saturation",
-      "keywords": ["999", "max reading", "maximum"],
+      "keywords": ["999 saturation", "max reading"],
       "placeholders": [],
       "text": "It is important to note that a reading of '999' on the electronic moisture meter indicates the maximum level of moisture saturation detectable at a given location. This reading suggests that the area has reached or exceeded the instrument's upper measurement limit, signifying very high moisture content."
     },
@@ -152,7 +152,7 @@
       "id": "reading-999-resistance",
       "group": "Moisture readings",
       "topic": "999 reading - maximum resistance in masonry",
-      "keywords": ["999", "masonry"],
+      "keywords": ["999 masonry"],
       "placeholders": [],
       "text": "It is worth noting that a reading of 999 on the electronic moisture meter represents the maximum level of resistance recorded at a single location, which may indicate the presence of moisture within the masonry in that area."
     },
@@ -160,7 +160,7 @@
       "id": "three-readings-heights",
       "group": "Moisture readings",
       "topic": "Three readings taken at increasing heights",
-      "keywords": ["three readings", "reading", "readings", "skirting", "1.2m", "400mm"],
+      "keywords": ["three readings", "3 readings"],
       "placeholders": [
         { "key": "height_2", "label": "Second reading height above first", "default": "400mm" },
         { "key": "height_3", "label": "Third reading height from floor", "default": "1.2 metres" }
@@ -171,7 +171,7 @@
       "id": "readings-intro-wall",
       "group": "Moisture readings",
       "topic": "Readings taken to quantify moisture in a wall",
-      "keywords": ["moisture readings", "readings taken", "moisture map"],
+      "keywords": ["moisture map", "moisture readings"],
       "placeholders": [
         { "key": "wall_location", "label": "Which wall", "default": "the front exterior wall" }
       ],
@@ -181,7 +181,7 @@
       "id": "rising-damp-pattern",
       "group": "Moisture readings",
       "topic": "Reading pattern indicates rising damp",
-      "keywords": ["rising damp", "rising", "capillary"],
+      "keywords": ["rising damp", "RD"],
       "placeholders": [],
       "text": "A progressive increase in moisture levels ascending the wall, followed by a decrease at higher elevations, generally indicates the presence of rising damp. This phenomenon occurs as water is drawn upwards through capillary action within the masonry of brick or block walls. If left untreated, the persistent absorption of moisture from the ground can result in significant structural damage and the deterioration of building materials over time. Therefore, accurate diagnosis and appropriate remedial measures are essential to maintain the integrity and longevity of the structure, preventing ongoing damage and ensuring the property's stability."
     },
@@ -189,7 +189,7 @@
       "id": "rising-damp-consequences",
       "group": "Moisture readings",
       "topic": "Consequences of untreated rising damp",
-      "keywords": ["rising damp", "untreated"],
+      "keywords": ["rising damp consequences", "rising damp untreated"],
       "placeholders": [],
       "text": "If left unaddressed, rising damp can compromise the integrity of the entire structure, leading to costly repairs and potential health risks due to mould growth. Accurate diagnosis is essential to determine the extent of the dampness, and appropriate mitigation measures—such as installing damp proof courses or improving drainage—are vital to prevent further damage and preserve the building's stability."
     },
@@ -197,7 +197,7 @@
       "id": "chimney-moisture",
       "group": "Moisture readings",
       "topic": "High moisture in chimney breast",
-      "keywords": ["chimney", "chimney breast", "flue"],
+      "keywords": ["chimney moisture", "chimney breast"],
       "placeholders": [],
       "text": "Both Reading One and Reading Two areas demonstrated elevated moisture content within the chimney breast, which may indicate the presence of an underlying or unresolved roof or chimney issue, or insufficient ventilation in the chimney breast itself. The lack of ventilation chambers in both chimney breasts could be contributing to excessive condensation and moisture accumulation, exacerbating the risk of dampness and potential structural damage. This situation warrants further investigation to identify the root causes and implement appropriate remedial measures, such as improving ventilation or addressing any existing roof or chimney faults, to mitigate the risk of ongoing moisture-related issues and ensure the stability and integrity of the structure."
     },
@@ -205,7 +205,7 @@
       "id": "chimney-six-readings",
       "group": "Moisture readings",
       "topic": "Six consistently high chimney readings",
-      "keywords": ["chimney", "six readings"],
+      "keywords": ["chimney 6", "6 readings", "chimney six", "six readings"],
       "placeholders": [],
       "text": "All six moisture readings consistently demonstrate high moisture levels within the chimney breast. Such persistent moisture can have several adverse effects, including the deterioration of plaster and other wall finishes, which may result in peeling, bubbling, or delamination. Elevated moisture levels also create ideal conditions for mould growth, posing health risks to occupants and negatively impacting indoor air quality. Furthermore, prolonged high moisture content may weaken the structural integrity of the wall over time, increasing the risk of further deterioration and potential long-term damage if not addressed promptly."
     },
@@ -213,7 +213,7 @@
       "id": "floor-high-moisture",
       "group": "Moisture readings",
       "topic": "Consistently high floor moisture",
-      "keywords": ["floor", "subfloor", "floor moisture"],
+      "keywords": ["floor", "floor moisture", "floor moist"],
       "placeholders": [],
       "text": "All three moisture readings consistently indicate high moisture levels within the floor, which can have several detrimental effects. Prolonged moisture exposure may lead to the deterioration of the floor structure and create conditions conducive to mould growth, posing health risks to occupants and adversely affecting indoor air quality. Additionally, sustained high moisture levels can weaken the structural integrity of the floor over time, increasing the risk of deterioration and potential long-term damage if left untreated."
     },
@@ -221,7 +221,7 @@
       "id": "wall-high-moisture",
       "group": "Moisture readings",
       "topic": "Consistently high wall moisture",
-      "keywords": ["wall", "wall moisture", "high readings wall"],
+      "keywords": ["wall", "wall moisture", "wall moist"],
       "placeholders": [],
       "text": "All three moisture readings indicated consistently high moisture levels within the wall, which can have several detrimental effects. Prolonged exposure to elevated moisture can lead to the deterioration of plaster and other wall finishes, resulting in peeling, bubbling, or delamination. It also creates an environment conducive to mould growth, which can pose health risks to occupants and compromise indoor air quality. Additionally, persistent high moisture levels may weaken the structural integrity of the wall over time, increasing the likelihood of deterioration and potential long-term damage if left unaddressed."
     },
@@ -229,7 +229,7 @@
       "id": "high-moisture-risks-short",
       "group": "Moisture readings",
       "topic": "Risks of high moisture (short)",
-      "keywords": ["high moisture", "damp risks"],
+      "keywords": ["high moisture short", "high moisture"],
       "placeholders": [],
       "text": "High moisture levels in a property can lead to mould growth, structural damage, and health issues due to poor air quality and allergens. Promptly identifying and addressing the causes is essential to protect the property's integrity and ensure a healthy environment."
     },
@@ -237,7 +237,7 @@
       "id": "high-moisture-risks-full",
       "group": "Moisture readings",
       "topic": "Risks of high moisture (detailed)",
-      "keywords": ["high moisture", "mould", "mildew"],
+      "keywords": ["high moisture long"],
       "placeholders": [],
       "text": "High moisture readings in a property can pose significant risks, including the development of mould and mildew, which may compromise indoor air quality and adversely affect the health of occupants. Elevated moisture levels can also lead to structural damage, such as wood rot and deterioration of building materials, potentially resulting in costly repairs. Additionally, persistent dampness may contribute to the growth of harmful mould spores, increasing the risk of respiratory issues and allergies. It is therefore essential to identify and address the underlying causes of high moisture readings promptly to maintain the property's structural integrity and ensure a healthy living environment."
     },
@@ -245,7 +245,7 @@
       "id": "capillary-moisture-walls",
       "group": "Moisture readings",
       "topic": "Capillary moisture in walls",
-      "keywords": ["capillary", "persistent damp", "porous"],
+      "keywords": ["wall capillary", "wall damp"],
       "placeholders": [],
       "text": "High moisture readings in the walls indicate the presence of ongoing or persistent dampness within the property, which can lead to a range of detrimental effects over time. Capillary moisture, in particular, can cause the upward movement of dampness through porous materials such as brickwork, plaster, and timber, potentially resulting in paint and plaster deterioration, mould growth, and rot in timbers. This can compromise the structural integrity of load-bearing elements, promote timber decay, and create an unhealthy indoor environment due to increased humidity and mould spores. Addressing such moisture issues promptly is essential to prevent further damage, maintain the property's value, and ensure a healthy, safe living environment."
     },
@@ -253,7 +253,7 @@
       "id": "steel-pins-doorframe",
       "group": "Steel pin readings",
       "topic": "Pin reading - door frame",
-      "keywords": ["pin", "pins", "steel pins", "door frame"],
+      "keywords": ["pin door frame", "pindoor frame"],
       "placeholders": [],
       "text": "Stainless steel pins were used to assess the moisture content of the door frame, with readings generally below 16%, which is deemed acceptable for a domestic property. However, a reading exceeding 20% suggests that decay can occur and may necessitate further investigation or remedial action to address potential underlying issues."
     },
