@@ -188,6 +188,11 @@ export interface ReportExtras {
    */
   excludePlanCosts: boolean;
   /**
+   * When true, the generated report uses invasive-survey limitations wording
+   * instead of the default non-invasive limitations section.
+   */
+  invasiveSurvey: boolean;
+  /**
    * Which ticks were last set by details AI (shown purple in the UI),
    * plus short reasons shown under each AI pick.
    * Manual toggles clear the matching marks/reasons.

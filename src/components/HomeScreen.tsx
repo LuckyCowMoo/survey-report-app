@@ -3,6 +3,7 @@ import FloatingReports from "./FloatingReports";
 import HomeCtaMorph from "./HomeCtaMorph";
 import { IconBook, IconCamera, IconFileUp, IconGrid, IconSettings } from "./icons";
 import { CTA_MERGE_MS } from "../lib/homeCtaMorph";
+import { IMPORT_NOTES_ACCEPT } from "../lib/reportProject";
 
 interface Props {
   onFile: (file: File) => void;
@@ -139,7 +140,7 @@ export default function HomeScreen({
       <input
         ref={inputRef}
         type="file"
-        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept={IMPORT_NOTES_ACCEPT}
         hidden
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -198,7 +199,7 @@ export default function HomeScreen({
               </span>
               <span className="home-cta-copy">
                 <span className="home-btn-title">Import field notes</span>
-                <span className="home-upload-meta">.DOCX ↗</span>
+                <span className="home-upload-meta">.DOCX · .DMSR ↗</span>
               </span>
             </button>
             <button

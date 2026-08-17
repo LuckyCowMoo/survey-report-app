@@ -121,12 +121,23 @@ export function recoverScrollTouchAfterLift() {
 
 const LIFT_LOCK_CLASS = "is-lift-scroll-lock";
 
+let touchPanBlock: ((e: TouchEvent) => void) | null = null;
+
 /** Apply immediately on pointerdown — touch-action/overflow mid-gesture is too late on Firefox. */
 export function applyLiftScrollLock() {
   if (typeof document === "undefined") return;
   document.documentElement.classList.add(LIFT_LOCK_CLASS);
   const root = getScrollRoot();
   if (root instanceof HTMLElement) root.classList.add(LIFT_LOCK_CLASS);
+  // Stop Chrome treating the hold/drag as a page scroll (that fires pointercancel
+  // and used to drop the tile, or lock the UI if pointerup was ignored).
+  if (!touchPanBlock) {
+    touchPanBlock = (e) => e.preventDefault();
+    window.addEventListener("touchmove", touchPanBlock, {
+      passive: false,
+      capture: true
+    });
+  }
 }
 
 export function clearLiftScrollLock() {
@@ -134,6 +145,10 @@ export function clearLiftScrollLock() {
   document.documentElement.classList.remove(LIFT_LOCK_CLASS);
   const root = getScrollRoot();
   if (root instanceof HTMLElement) root.classList.remove(LIFT_LOCK_CLASS);
+  if (touchPanBlock) {
+    window.removeEventListener("touchmove", touchPanBlock, true);
+    touchPanBlock = null;
+  }
 }
 
 /** Keep scroll pinned unless edge auto-scroll moved it this frame. */

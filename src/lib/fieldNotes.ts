@@ -130,52 +130,95 @@ export type FieldNoteChecklistItem = {
   hint: string;
 };
 
-/** Core survey photos/readings, most important first. Site-specific items omitted. */
+/** Core survey photos/readings shown on the field-notes summary slide. */
 const FIELD_NOTE_CHECKLIST: FieldNoteChecklistItem[] = [
-  { id: "front-elevation", label: "Front elevation photo", hint: "front" },
-  {
-    id: "orientation",
-    label: "Cardinal direction screenshot",
-    hint: "N / facing north"
-  },
-  { id: "rear-elevation", label: "Rear elevation photo", hint: "rear" },
-  { id: "rh", label: "Relative humidity", hint: "rh 45%" },
-  { id: "dew-point", label: "Dew point", hint: "dew 12°" },
-  {
-    id: "baseline-reading",
-    label: "Baseline moisture reading",
-    hint: "baseline kitchen"
-  },
-  { id: "air-quality", label: "Air quality test", hint: "air quality" }
+  { id: "front", label: "front picture", hint: "front" },
+  { id: "compass", label: "compass picture", hint: "N / facing north" },
+  { id: "air-quality", label: "air quality picture", hint: "air quality" },
+  { id: "rh", label: "relative humidity", hint: "rh 45%" },
+  { id: "dew-point", label: "dew point", hint: "dew 12°" },
+  { id: "baseline", label: "baseline", hint: "baseline kitchen" },
+  { id: "three-readings", label: "3 readings location", hint: "1.2m / three readings" },
+  { id: "reading-1", label: "reading 1", hint: "reading 1" },
+  { id: "reading-2", label: "reading 2", hint: "reading 2" },
+  { id: "reading-3", label: "reading 3", hint: "reading 3" },
+  { id: "steel-pin", label: "steel pin reading", hint: "pin skirting" },
+  { id: "thermal", label: "thermal camera cold spots", hint: "thermal / cold spots" },
+  { id: "moisture-map-1", label: "moisture map 1", hint: "moisture map" },
+  { id: "moisture-map-2", label: "moisture map 2", hint: "moisture map" },
+  { id: "moisture-map-3", label: "moisture map 3", hint: "moisture map" }
 ];
 
-function checklistCovered(id: string, libraryIds: Set<string>): boolean {
-  if (id === "orientation") {
-    for (const x of libraryIds) {
-      if (x.startsWith("weather-")) return true;
+function readingNumber(section: SectionState, shot: FieldNoteShot): number | null {
+  const heading = /^reading\s*(\d+)/i.exec(section.headingLine.trim());
+  if (heading) return Number(heading[1]);
+  const note = /^reading\s*(\d+)/i.exec(shot.note.trim());
+  if (note) return Number(note[1]);
+  return null;
+}
+
+function isMoistureMapNote(section: SectionState, shot: FieldNoteShot): boolean {
+  if (section.libraryId === "readings-intro-wall") return true;
+  return /moisture\s*mapp?/.test(shot.note);
+}
+
+function checklistCovered(
+  id: string,
+  sections: SectionState[],
+  shots: FieldNoteShot[]
+): boolean {
+  const libraryIds = sections
+    .map((s) => s.libraryId)
+    .filter((x): x is string => Boolean(x));
+  const has = (prefix: string) => libraryIds.some((x) => x.startsWith(prefix) || x === prefix);
+
+  if (id === "front") return libraryIds.includes("front-elevation");
+  if (id === "compass") return libraryIds.some((x) => x.startsWith("weather-"));
+  if (id === "air-quality") {
+    return (
+      libraryIds.includes("air-quality-high-humidity") ||
+      libraryIds.includes("air-quality-no-issues")
+    );
+  }
+  if (id === "rh") return libraryIds.includes("rh-high") || libraryIds.includes("rh-low");
+  if (id === "dew-point") return libraryIds.includes("dew-point");
+  if (id === "baseline") return libraryIds.includes("baseline-reading");
+  if (id === "three-readings") {
+    return (
+      libraryIds.includes("three-readings-heights") ||
+      libraryIds.includes("readings-intro-wall")
+    );
+  }
+  if (id === "reading-1" || id === "reading-2" || id === "reading-3") {
+    const want = Number(id.slice(-1));
+    return sections.some((s, i) => readingNumber(s, shots[i]!) === want);
+  }
+  if (id === "steel-pin") return has("steel-pins-");
+  if (id === "thermal") {
+    return libraryIds.some(
+      (x) => x.startsWith("thermal-") || x.startsWith("infrared-")
+    );
+  }
+  if (id === "moisture-map-1" || id === "moisture-map-2" || id === "moisture-map-3") {
+    const want = Number(id.slice(-1));
+    let count = 0;
+    for (let i = 0; i < sections.length; i++) {
+      if (isMoistureMapNote(sections[i]!, shots[i]!)) count += 1;
+      if (count >= want) return true;
     }
     return false;
   }
-  if (id === "rh") return libraryIds.has("rh-high") || libraryIds.has("rh-low");
-  if (id === "air-quality") {
-    return (
-      libraryIds.has("air-quality-high-humidity") ||
-      libraryIds.has("air-quality-no-issues")
-    );
-  }
-  return libraryIds.has(id);
+  return false;
 }
 
 /** Important standard-wording sections not yet matched on any field note. */
 export function missingFieldNoteChecklist(
   shots: FieldNoteShot[]
 ): FieldNoteChecklistItem[] {
-  const libraryIds = new Set(
-    matchFieldNoteShots(shots)
-      .filter((s) => s.source === "library" && s.libraryId)
-      .map((s) => s.libraryId as string)
+  const sections = shots.length > 0 ? matchFieldNoteShots(shots) : [];
+  return FIELD_NOTE_CHECKLIST.filter(
+    (item) => !checklistCovered(item.id, sections, shots)
   );
-  return FIELD_NOTE_CHECKLIST.filter((item) => !checklistCovered(item.id, libraryIds));
 }
 
 export function createFieldNoteShot(

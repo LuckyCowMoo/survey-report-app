@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PIP_FLASH_MS } from "../lib/pipTiming";
 import {
   deleteLibraryReport,
@@ -7,19 +7,15 @@ import {
   loadLibraryProject,
   type LibraryReportMeta
 } from "../lib/reportLibrary";
-import { openReportPrintDialog } from "../lib/reportPrint";
-import type { ReportProject } from "../lib/reportProject";
-import {
-  downloadFile,
-  shareOrDownload,
-  type ExportFormat,
-  type ExportFormatOption
-} from "../lib/webShare";
-import ExportFormatSheet from "./ExportFormatSheet";
+import { IMPORT_NOTES_ACCEPT, type ReportProject } from "../lib/reportProject";
+import { downloadFile, shareOrDownload } from "../lib/webShare";
+import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
 import SheetShell from "./SheetShell";
 
 interface Props {
   onOpenProject: (project: ReportProject) => void;
+  onImportFile: (file: File) => void;
+  busy?: boolean;
 }
 
 function displayTitle(report: LibraryReportMeta): string {
@@ -150,7 +146,12 @@ function ReportTile({
   );
 }
 
-export default function PastReportsScreen({ onOpenProject }: Props) {
+export default function PastReportsScreen({
+  onOpenProject,
+  onImportFile,
+  busy = false
+}: Props) {
+  const importRef = useRef<HTMLInputElement>(null);
   const [reports, setReports] = useState<LibraryReportMeta[] | null>(null);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -168,32 +169,6 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
     () => (reports ? reports.filter((r) => reportMatchesQuery(r, query)) : []),
     [reports, query]
   );
-
-  const downloadOptions: ExportFormatOption[] = useMemo(() => {
-    if (!downloadTarget) return [];
-    return [
-      {
-        id: "docx",
-        label: "Word (.docx)",
-        hint: "Finished client report for Word / email",
-        available: true
-      },
-      {
-        id: "pdf",
-        label: "PDF",
-        hint: downloadTarget.hasProject
-          ? "Opens print dialog — choose Save as PDF"
-          : "Needs a reopenable project save",
-        available: downloadTarget.hasProject
-      },
-      {
-        id: "project",
-        label: "Survey project (.dmsr)",
-        hint: "Reopenable design file for this app",
-        available: downloadTarget.hasProject
-      }
-    ];
-  }, [downloadTarget]);
 
   useEffect(() => {
     let cancelled = false;
@@ -282,32 +257,17 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
     setDownloadTarget(report);
   };
 
-  const runDownload = async (format: ExportFormat) => {
+  const runDownload = async (kind: "docx" | "project") => {
     if (!downloadTarget || busyId) return;
     const report = downloadTarget;
     setBusyId(report.id);
     setError(null);
     try {
-      if (format === "pdf") {
-        if (!report.hasProject) {
-          throw new Error("PDF needs a reopenable project save for this report.");
-        }
-        const project = await loadLibraryProject(report.id);
-        openReportPrintDialog({
-          sections: project.sections,
-          metadata: project.metadata,
-          extras: project.extras
-        });
-        setDownloadTarget(null);
-        return;
-      }
-
       const { docx, project } = await getLibraryExportFiles(report.id);
-      const file =
-        format === "project" ? project : format === "docx" ? docx : null;
+      const file = kind === "project" ? project : docx;
       if (!file) {
         throw new Error(
-          format === "project"
+          kind === "project"
             ? "No project file available for this report."
             : "No Word copy available for this report."
         );
@@ -324,12 +284,33 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
   return (
     <div className="past-reports">
       <header className="past-reports-intro">
-        <h2>Past reports</h2>
+        <div className="past-reports-intro-top">
+          <h2>Past reports</h2>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy || deleting}
+            onClick={() => importRef.current?.click()}
+          >
+            Import
+          </button>
+        </div>
         <p className="muted">
           Tap a tile to reopen the survey design (sections, status, and options).
-          Share opens your device share sheet when available; Download asks for a
-          format.
+          Share opens your device share sheet when available; Download exports a
+          .docx or .dmsr. Import a .docx field-notes file or a .dmsr project.
         </p>
+        <input
+          ref={importRef}
+          type="file"
+          accept={IMPORT_NOTES_ACCEPT}
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onImportFile(f);
+            e.target.value = "";
+          }}
+        />
       </header>
 
       {error && <div className="banner error">{error}</div>}
@@ -378,11 +359,18 @@ export default function PastReportsScreen({ onOpenProject }: Props) {
       )}
 
       {downloadTarget && (
-        <ExportFormatSheet
-          options={downloadOptions}
+        <FieldNotesFinishSheet
+          title="Download"
+          summary={`Export ${displayTitle(downloadTarget)} as a Word copy or a .dmsr you can import on another device.`}
           busy={busyId === downloadTarget.id}
-          onPick={(format) => void runDownload(format)}
-          onClose={() => setDownloadTarget(null)}
+          leave={false}
+          docxDisabled={false}
+          dmsrDisabled={!downloadTarget.hasProject}
+          onClose={() => {
+            if (!busyId) setDownloadTarget(null);
+          }}
+          onExportDocx={() => void runDownload("docx")}
+          onExportDmsr={() => void runDownload("project")}
         />
       )}
 

@@ -33,8 +33,14 @@ import {
   unlinkReportFolder
 } from "../lib/reportLibrary";
 import ThemePicker from "./ThemeToggle";
+import CountryLanguageGrid from "./CountryLanguageGrid";
 import SheetShell from "./SheetShell";
 import { canCallOpenAiFromBrowser } from "../lib/openaiBrowserCompat";
+import {
+  loadTutorialLanguage,
+  saveTutorialLanguage,
+  type TutorialLanguage
+} from "../lib/tutorial/progress";
 
 interface Props {
   settings: AppSettings;
@@ -140,6 +146,9 @@ export default function SettingsSheet({
   const [modelsBusy, setModelsBusy] = useState(false);
   const [addingProvider, setAddingProvider] = useState(false);
   const [openAiBrowserOk, setOpenAiBrowserOk] = useState<boolean | null>(null);
+  const [language, setLanguage] = useState<TutorialLanguage | null>(
+    loadTutorialLanguage
+  );
 
   // Persist whatever is on screen whenever Settings closes for any reason
   // (Done, backdrop tap, Back, history pop, etc.).
@@ -274,6 +283,18 @@ export default function SettingsSheet({
         <h2>Settings</h2>
 
         <ThemePicker onThemeApplied={requestClose} />
+
+        <div className="theme-field settings-language-field">
+          <span className="theme-field-label">Language</span>
+          <CountryLanguageGrid
+            layout="row"
+            value={language}
+            onChange={(next) => {
+              setLanguage(next);
+              saveTutorialLanguage(next);
+            }}
+          />
+        </div>
 
         <div className="pip-jump-row">
           <button

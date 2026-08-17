@@ -2,28 +2,44 @@ import SheetShell, { type SheetExitApi } from "./SheetShell";
 
 type Props = {
   onClose: () => void;
-  shotCount: number;
   busy: boolean;
-  onSaveInApp: () => void;
+  title?: string;
+  summary: string;
+  /** When true, export/save actions are disabled (e.g. no photos yet). */
+  actionsDisabled?: boolean;
+  /** Omit to hide “Save in app”. */
+  onSaveInApp?: () => void;
   onExportDocx: () => void;
+  onExportDmsr: () => void;
+  docxDisabled?: boolean;
+  dmsrDisabled?: boolean;
+  /** Append “ & leave” to action labels. */
+  leave?: boolean;
 };
 
-/** Save options — both paths persist an in-app draft; export also downloads .docx. */
+/** Save / export options — in-app draft, Word shorthand, and reopenable .dmsr. */
 export default function FieldNotesFinishSheet({
   onClose,
-  shotCount,
   busy,
+  title = "Save & leave",
+  summary,
+  actionsDisabled = false,
   onSaveInApp,
-  onExportDocx
+  onExportDocx,
+  onExportDmsr,
+  docxDisabled = false,
+  dmsrDisabled = false,
+  leave = true
 }: Props) {
-  const empty = shotCount === 0;
+  const suffix = leave ? " & leave" : "";
+  const blocked = busy || actionsDisabled;
 
   return (
     <SheetShell onClose={onClose} aria-labelledby="field-notes-save-title">
       {({ requestClose }: SheetExitApi) => (
         <>
           <div className="sheet-header">
-            <h2 id="field-notes-save-title">Save & leave</h2>
+            <h2 id="field-notes-save-title">{title}</h2>
             <button
               type="button"
               className="btn small"
@@ -33,27 +49,33 @@ export default function FieldNotesFinishSheet({
               Close
             </button>
           </div>
-          <p className="muted field-notes-finish-summary">
-            {empty
-              ? "Take at least one photo before saving."
-              : `${shotCount} photo${shotCount === 1 ? "" : "s"} will be saved in the app.`}
-          </p>
+          <p className="muted field-notes-finish-summary">{summary}</p>
           <div className="field-notes-finish-actions">
+            {onSaveInApp ? (
+              <button
+                type="button"
+                className="btn primary big"
+                disabled={blocked}
+                onClick={onSaveInApp}
+              >
+                {`Save in app${suffix}`}
+              </button>
+            ) : null}
             <button
               type="button"
-              className="btn primary big"
-              disabled={busy || empty}
-              onClick={onSaveInApp}
+              className="btn big"
+              disabled={blocked || docxDisabled}
+              onClick={onExportDocx}
             >
-              Save in app & leave
+              {`Export .docx${suffix}`}
             </button>
             <button
               type="button"
               className="btn big"
-              disabled={busy || empty}
-              onClick={onExportDocx}
+              disabled={blocked || dmsrDisabled}
+              onClick={onExportDmsr}
             >
-              Export .docx & leave
+              {`Export .dmsr${suffix}`}
             </button>
           </div>
         </>

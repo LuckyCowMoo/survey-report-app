@@ -338,6 +338,7 @@ export default function EntryCard({
   /** Progressive text shown while a large paste types in; null = show section.text. */
   const [revealDisplay, setRevealDisplay] = useState<string | null>(null);
   const [noteExpanded, setNoteExpanded] = useState(false);
+  const [stackText, setStackText] = useState(false);
   const [deleteHolding, setDeleteHolding] = useState(false);
   const [deleteHoldProgress, setDeleteHoldProgress] = useState(0);
   const [showDeleteHint, setShowDeleteHint] = useState(false);
@@ -545,9 +546,7 @@ export default function EntryCard({
       Number.parseFloat(
         getComputedStyle(main).getPropertyValue("--card-media-size")
       ) || 132;
-    const thumb = main.parentElement?.querySelector<HTMLElement>(
-      ".thumb-btn.can-grow-y"
-    );
+    const thumb = main.querySelector<HTMLElement>(".thumb-btn.can-grow-y");
     let raf = 0;
     let clearTimer = 0;
 
@@ -574,6 +573,7 @@ export default function EntryCard({
       minTextHeightRef.current = 0;
       lastTextBoxHeightRef.current = 0;
       lastThumbHeightRef.current = 0;
+      if (stackText) setStackText(false);
       const mainFrom = main.getBoundingClientRect().height;
       const thumbFrom = thumb?.getBoundingClientRect().height ?? mediaSize;
       if (text) {
@@ -617,14 +617,78 @@ export default function EntryCard({
       mediaSize;
     const alreadyExpanded = lastTextBoxHeightRef.current > 0;
 
-    // Measure content height reliably (0px then scrollHeight).
-    if (text) {
-      text.style.transition = "none";
-      text.style.minHeight = "0";
-      text.style.height = "0px";
-      void text.offsetHeight;
+    const measureAtWidth = (widthPx: number) => {
+      if (!text || widthPx < 8) return 0;
+      const cs = getComputedStyle(text);
+      const probe = document.createElement("textarea");
+      probe.value = text.value;
+      probe.readOnly = true;
+      probe.tabIndex = -1;
+      probe.setAttribute("aria-hidden", "true");
+      probe.style.cssText = [
+        "position:fixed",
+        "left:-9999px",
+        "top:0",
+        "visibility:hidden",
+        "pointer-events:none",
+        "height:auto",
+        "min-height:0",
+        "max-height:none",
+        "overflow:hidden",
+        `width:${widthPx}px`,
+        `box-sizing:${cs.boxSizing}`,
+        `padding:${cs.padding}`,
+        `border:${cs.border}`,
+        `font:${cs.font}`,
+        `line-height:${cs.lineHeight}`,
+        `letter-spacing:${cs.letterSpacing}`
+      ].join(";");
+      document.body.appendChild(probe);
+      const needed = probe.scrollHeight;
+      probe.remove();
+      return needed;
+    };
+
+    const lineHeight = text
+      ? Number.parseFloat(getComputedStyle(text).lineHeight) || 19.6
+      : 19.6;
+    const padY = text
+      ? Number.parseFloat(getComputedStyle(text).paddingTop) +
+        Number.parseFloat(getComputedStyle(text).paddingBottom)
+      : 14;
+    const gap = Number.parseFloat(getComputedStyle(main).columnGap) || 12;
+    const hasThumb = !!main.querySelector(".thumb-btn");
+    const narrowW = hasThumb
+      ? Math.max(8, main.clientWidth - mediaSize - gap)
+      : Math.max(8, main.clientWidth);
+    const neededNarrow = measureAtWidth(narrowW);
+    const lineCount = (neededNarrow - padY) / Math.max(1, lineHeight);
+    let nextStack = stackText;
+    if (!stackText && lineCount > 9) nextStack = true;
+    else if (stackText && lineCount <= 8) nextStack = false;
+    if (nextStack !== stackText) {
+      setStackText(nextStack);
+      if (!nextStack) return;
     }
-    const textNeeded = text?.scrollHeight ?? 0;
+
+    if (nextStack) {
+      const fullW = Math.max(8, text?.clientWidth || main.clientWidth);
+      const neededFull = measureAtWidth(fullW);
+      if (text) {
+        text.style.transition = "";
+        text.style.height = `${Math.max(72, neededFull)}px`;
+        text.style.minHeight = "";
+      }
+      main.style.transition = "none";
+      main.style.height = "";
+      main.style.maxHeight = "";
+      setThumbHeight("");
+      lastTextBoxHeightRef.current = neededFull;
+      lastThumbHeightRef.current = 0;
+      return;
+    }
+
+    const textNeeded = neededNarrow;
     const textTo = Math.max(minTextHeightRef.current, textNeeded);
     const textBoxResized =
       Math.abs(textTo - lastTextBoxHeightRef.current) > 0.5 || !alreadyExpanded;
@@ -714,7 +778,7 @@ export default function EntryCard({
       cancelAnimationFrame(raf);
       window.clearTimeout(clearTimer);
     };
-  }, [bodyExpanded, section.text, noteExpanded, section.entry.note, revealDisplay]);
+  }, [bodyExpanded, section.text, noteExpanded, section.entry.note, revealDisplay, stackText]);
 
   // After height layout: pin this card in the viewport while neighbours collapse.
   useLayoutEffect(() => {
@@ -732,7 +796,7 @@ export default function EntryCard({
       return;
     }
     chaseFocusedCard();
-  }, [dragPreview, focused, bodyExpanded, section.text, noteExpanded, revealDisplay]);
+  }, [dragPreview, focused, bodyExpanded, section.text, noteExpanded, revealDisplay, stackText]);
 
   useEffect(() => {
     if (dragPreview || !focused) return;
@@ -943,11 +1007,67 @@ export default function EntryCard({
     });
   };
 
+  const textAndPlaceholders = (
+    <>
+      <div className="section-text-wrap">
+        {section.source === "crossref" ? (
+          <p className={`crossref-text${boxTone ? ` tone-${boxTone}` : ""}`}>
+            {revealDisplay ?? section.text}
+          </p>
+        ) : (
+          <textarea
+            ref={sectionTextRef}
+            className={`section-text${boxTone ? ` tone-${boxTone}` : ""}`}
+            rows={3}
+            placeholder={
+              paragraph &&
+              paragraph.placeholders.length > 0 &&
+              hasMissingPlaceholders(section.libraryId!, section.placeholderValues)
+                ? "Enter the reading(s) below - wording appears when complete"
+                : "Report text for this photo..."
+            }
+            value={revealDisplay ?? section.text}
+            disabled={aiWorking || revealDisplay !== null}
+            onChange={(e) => editText(e.target.value)}
+          />
+        )}
+        {aiWorking && (
+          <div className="ai-writing-overlay" aria-hidden>
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-pulse" />
+            <span className="ai-writing-label">Drafting section…</span>
+          </div>
+        )}
+      </div>
+
+      {paragraph && paragraph.placeholders.length > 0 && (
+        <div className="placeholders">
+          {paragraph.placeholders.map((ph) => {
+            const filled = Boolean(section.placeholderValues[ph.key]?.trim());
+            return (
+              <label key={ph.key} className={filled ? undefined : "needs-value"}>
+                <span>{ph.label}</span>
+                <input
+                  type="text"
+                  value={section.placeholderValues[ph.key] ?? ""}
+                  placeholder={ph.default ? `e.g. ${ph.default}` : "Enter value"}
+                  disabled={aiWorking}
+                  onChange={(e) => setPlaceholder(ph.key, e.target.value)}
+                />
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div
       ref={cardRef}
       id={dragPreview ? undefined : `section-card-${section.entry.number}`}
-      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${aiError ? " ai-error" : ""}${focused || showPicker ? " is-active" : ""}${dragPreview ? " is-drag-preview" : ""}`}
+      className={`card${section.needsAttention ? " attention" : ""}${section.pendingReview ? " pending-review" : ""}${aiWorking ? " ai-working" : ""}${aiError ? " ai-error" : ""}${focused || showPicker ? " is-active" : ""}${stackText ? " is-stack-text" : ""}${dragPreview ? " is-drag-preview" : ""}`}
       aria-busy={aiWorking}
       aria-hidden={dragPreview || undefined}
       onFocusCapture={() => {
@@ -1025,14 +1145,14 @@ export default function EntryCard({
         )}
       </div>
 
-      <div className="card-body">
+      <div className="card-body" ref={cardMainRef}>
         {section.entry.images.length > 0 && (
           <Thumb
             bytes={section.entry.images[0]}
             name={section.entry.imageNames[0]}
           />
         )}
-        <div className="card-main" ref={cardMainRef}>
+        <div className="card-copy">
           {section.entry.note && (
             <button
               type="button"
@@ -1060,59 +1180,8 @@ export default function EntryCard({
             disabled={aiWorking}
             onChange={(e) => onChange(index, { ...section, headingLine: e.target.value })}
           />
-
-          <div className="section-text-wrap">
-            {section.source === "crossref" ? (
-              <p className={`crossref-text${boxTone ? ` tone-${boxTone}` : ""}`}>
-                {revealDisplay ?? section.text}
-              </p>
-            ) : (
-              <textarea
-                ref={sectionTextRef}
-                className={`section-text${boxTone ? ` tone-${boxTone}` : ""}`}
-                rows={3}
-                placeholder={
-                  paragraph &&
-                  paragraph.placeholders.length > 0 &&
-                  hasMissingPlaceholders(section.libraryId!, section.placeholderValues)
-                    ? "Enter the reading(s) below - wording appears when complete"
-                    : "Report text for this photo..."
-                }
-                value={revealDisplay ?? section.text}
-                disabled={aiWorking || revealDisplay !== null}
-                onChange={(e) => editText(e.target.value)}
-              />
-            )}
-            {aiWorking && (
-              <div className="ai-writing-overlay" aria-hidden>
-                <span className="ai-writing-pulse" />
-                <span className="ai-writing-pulse" />
-                <span className="ai-writing-pulse" />
-                <span className="ai-writing-label">Drafting section…</span>
-              </div>
-            )}
-          </div>
-
-          {paragraph && paragraph.placeholders.length > 0 && (
-            <div className="placeholders">
-              {paragraph.placeholders.map((ph) => {
-                const filled = Boolean(section.placeholderValues[ph.key]?.trim());
-                return (
-                  <label key={ph.key} className={filled ? undefined : "needs-value"}>
-                    <span>{ph.label}</span>
-                    <input
-                      type="text"
-                      value={section.placeholderValues[ph.key] ?? ""}
-                      placeholder={ph.default ? `e.g. ${ph.default}` : "Enter value"}
-                      disabled={aiWorking}
-                      onChange={(e) => setPlaceholder(ph.key, e.target.value)}
-                    />
-                  </label>
-                );
-              })}
-            </div>
-          )}
         </div>
+        {textAndPlaceholders}
       </div>
 
       <div className="card-actions">

@@ -10,6 +10,7 @@ import {
 import { createPortal } from "react-dom";
 import EntryCard from "./EntryCard";
 import AnnotationOverlay from "./AnnotationOverlay";
+import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
 import { getImageDims } from "../lib/imageUtils";
 import { rotate, spinFromDelta, stepUpright, unrotate } from "../lib/dragSpin";
 import {
@@ -43,6 +44,9 @@ interface Props {
   aiBatchRunning: boolean;
   onDismissAiError: (index: number) => void;
   onContinue: () => void;
+  onSaveInApp: () => void;
+  onExportDocx: () => void;
+  onExportDmsr: () => void;
   onAddMoreNotes: () => void;
   onDeleteSection: (index: number) => void;
   onAnnotateSection: (
@@ -149,6 +153,9 @@ export default function ReviewScreen({
   aiBatchRunning,
   onDismissAiError,
   onContinue,
+  onSaveInApp,
+  onExportDocx,
+  onExportDmsr,
   onAddMoreNotes,
   onDeleteSection,
   onAnnotateSection,
@@ -163,6 +170,7 @@ export default function ReviewScreen({
   lockReorder = false
 }: Props) {
   const [showWarnings, setShowWarnings] = useState(false);
+  const [showSave, setShowSave] = useState(false);
   const [holdArm, setHoldArm] = useState<HoldArm | null>(null);
   const [holdProgress, setHoldProgress] = useState(0);
   const [drag, setDrag] = useState<LiftDrag | null>(null);
@@ -526,68 +534,55 @@ export default function ReviewScreen({
     const onPointerMove = (e: PointerEvent) => {
       const p = physicsRef.current;
       if (!p || p.pointerId !== e.pointerId || p.releasing) return;
-      // Avoid preventDefault on touch — with scrollTop auto-scroll it breaks
-      // Firefox's touch pan/zoom until the scrollport is remounted.
-      if (e.pointerType !== "touch") e.preventDefault();
+      e.preventDefault();
       moveFromClient(e.clientX, e.clientY);
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      const p = physicsRef.current;
+      if (!p || p.pointerId !== e.pointerId) return;
       endDrag(e.pointerId);
     };
 
     const onPointerCancel = (e: PointerEvent) => {
       const p = physicsRef.current;
       if (!p || p.pointerId !== e.pointerId) return;
-      // Firefox cancels the pointer when programmatic scroll runs under a touch.
-      // Keep the lift alive and continue via touch events.
-      if (p.pointerType === "touch" && (isProgrammaticScroll() || autoScrollActiveRef.current)) {
+      // Chrome may still cancel if a parent scrolls; keep the lift and follow
+      // the finger via touch events instead of dropping the tile.
+      if (p.pointerType === "touch") {
         p.useTouchFallback = true;
         return;
       }
       endDrag(e.pointerId);
     };
 
-    const touchOf = (e: TouchEvent) => {
-      const p = physicsRef.current;
-      if (!p) return null;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches.item(i);
-        if (t && t.identifier === p.pointerId) return t;
-      }
-      for (let i = 0; i < e.touches.length; i++) {
-        const t = e.touches.item(i);
-        if (t && t.identifier === p.pointerId) return t;
-      }
-      return null;
-    };
+    const activeTouch = (e: TouchEvent) =>
+      e.touches.item(0) ?? e.changedTouches.item(0);
 
     const onTouchMove = (e: TouchEvent) => {
       const p = physicsRef.current;
       if (!p || p.releasing || p.pointerType !== "touch") return;
-      const t = touchOf(e);
+      const t = activeTouch(e);
       if (!t) return;
-      // Passive: do not preventDefault (Firefox APZ).
+      e.preventDefault();
       moveFromClient(t.clientX, t.clientY);
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       const p = physicsRef.current;
-      if (!p || p.pointerType !== "touch") return;
-      const t = touchOf(e);
-      if (!t) return;
+      if (!p || p.pointerType !== "touch" || p.releasing) return;
+      if (e.touches.length > 0) return;
       endDrag(p.pointerId);
     };
 
     const onTouchCancel = (e: TouchEvent) => {
       const p = physicsRef.current;
-      if (!p || p.pointerType !== "touch") return;
-      const t = touchOf(e);
-      if (!t) return;
+      if (!p || p.pointerType !== "touch" || p.releasing) return;
       if (isProgrammaticScroll() || autoScrollActiveRef.current) {
         p.useTouchFallback = true;
         return;
       }
+      if (e.touches.length > 0) return;
       endDrag(p.pointerId);
     };
 
@@ -612,7 +607,7 @@ export default function ReviewScreen({
     window.addEventListener("pointermove", onPointerMove, { passive: false });
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerCancel);
-    window.addEventListener("touchmove", onTouchMove, { passive: true, capture: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
     window.addEventListener("touchend", onTouchEnd, { capture: true });
     window.addEventListener("touchcancel", onTouchCancel, { capture: true });
     window.addEventListener("scroll", onScroll, true);
@@ -901,7 +896,10 @@ export default function ReviewScreen({
               onPointerDownCapture={(e) => onWrapPointerDown(e, i)}
               onPointerMove={(e) => onWrapPointerMove(e, i)}
               onPointerUp={(e) => onWrapPointerUp(e, i)}
-              onPointerCancel={(e) => onWrapPointerUp(e, i)}
+              onPointerCancel={(e) => {
+                if (dragRef.current) return;
+                onWrapPointerUp(e, i);
+              }}
             >
               <EntryCard
                 section={s}
@@ -949,6 +947,20 @@ export default function ReviewScreen({
         </button>
       </div>
 
+      <div className="review-save-leave">
+        <button
+          type="button"
+          className="btn big"
+          disabled={busy || !!drag || tutorial || sections.length === 0}
+          onClick={() => {
+            if (tutorial) return;
+            setShowSave(true);
+          }}
+        >
+          Save & leave
+        </button>
+      </div>
+
       {drag &&
         ghostSection &&
         createPortal(
@@ -990,6 +1002,27 @@ export default function ReviewScreen({
           Continue to report details
         </button>
       </div>
+
+      {showSave && (
+        <FieldNotesFinishSheet
+          busy={busy}
+          summary={`${sections.length} section${sections.length === 1 ? "" : "s"} will be saved in the app.`}
+          actionsDisabled={sections.length === 0}
+          onClose={() => setShowSave(false)}
+          onSaveInApp={() => {
+            setShowSave(false);
+            onSaveInApp();
+          }}
+          onExportDocx={() => {
+            setShowSave(false);
+            onExportDocx();
+          }}
+          onExportDmsr={() => {
+            setShowSave(false);
+            onExportDmsr();
+          }}
+        />
+      )}
 
       {annotate && (
         <AnnotationOverlay

@@ -35,6 +35,10 @@ import {
   fillPlaceholders
 } from "../data/boilerplate";
 import {
+  INVASIVE_LIMITATIONS,
+  INVASIVE_LIMITATIONS_TITLE
+} from "../data/invasiveLimitations";
+import {
   COVER_LOGO,
   FINANCE_IMAGE,
   FOOTER_LOGO,
@@ -600,9 +604,12 @@ function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
   return out;
 }
 
-function limitationsPages(): Paragraph[] {
-  const out: Paragraph[] = [pageBreak(), heading(LIMITATIONS_TITLE, 30)];
-  for (const l of library.limitations) {
+function limitationsPages(extras: ReportExtras): Paragraph[] {
+  const invasive = extras.invasiveSurvey;
+  const title = invasive ? INVASIVE_LIMITATIONS_TITLE : LIMITATIONS_TITLE;
+  const items = invasive ? INVASIVE_LIMITATIONS : library.limitations;
+  const out: Paragraph[] = [pageBreak(), heading(title, 30)];
+  for (const l of items) {
     out.push(body(l.heading, { bold: true }));
     out.push(body(l.text));
   }
@@ -619,7 +626,7 @@ export function buildReportDocument(input: ReportInput): Document {
     ...dampTypePages(extras),
     ...recommendationsPages(extras),
     ...costsPages(extras, metadata),
-    ...limitationsPages()
+    ...limitationsPages(extras)
   ];
 
   return new Document({

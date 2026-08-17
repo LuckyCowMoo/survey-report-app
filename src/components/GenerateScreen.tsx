@@ -26,6 +26,7 @@ import {
 } from "../lib/webShare";
 import type { ReportExtras, ReportMetadata, SectionState } from "../types";
 import ExportFormatSheet from "./ExportFormatSheet";
+import DocxPreview from "./DocxPreview";
 
 interface Props {
   sections: SectionState[];
@@ -386,6 +387,13 @@ export default function GenerateScreen({
           <p className="warn-text">The property address is empty.</p>
         )}
       </section>
+
+      {result && (
+        <section className="panel generate-preview-panel">
+          <h2>Document preview</h2>
+          <DocxPreview blob={result.blob} />
+        </section>
+      )}
 
       {error && (
         <div className="banner error">

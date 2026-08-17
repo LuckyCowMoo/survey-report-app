@@ -41,7 +41,7 @@ interface Props {
   onClose: () => void;
   apiKeys: Partial<Record<AiProvider, string>>;
   onApiKeyChange: (apiKey: string, provider: AiProvider) => void;
-  onStartTutorial?: () => void;
+  onStartTutorial?: (opts?: { fromStart?: boolean }) => void;
 }
 
 /**
@@ -175,6 +175,22 @@ export default function KeywordGuide({
   const [viewingId, setViewingId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const pointerMode = usePointerInputModeValue();
+  const tutorialHoldRef = useRef(0);
+  const tutorialHoldTimerRef = useRef(0);
+  const tutorialShakeRafRef = useRef(0);
+  const [tutorialShake, setTutorialShake] = useState(0);
+
+  const stopTutorialHold = () => {
+    if (tutorialHoldTimerRef.current) {
+      window.clearTimeout(tutorialHoldTimerRef.current);
+      tutorialHoldTimerRef.current = 0;
+    }
+    if (tutorialShakeRafRef.current) {
+      window.cancelAnimationFrame(tutorialShakeRafRef.current);
+      tutorialShakeRafRef.current = 0;
+    }
+    setTutorialShake(0);
+  };
 
   useLayoutEffect(() => {
     if (pointerMode !== "fine") return;
@@ -251,10 +267,6 @@ export default function KeywordGuide({
   const pipsToShow = q === "" || pipsSectionHit ? REVIEW_PIP_LEGEND : pipHits;
   const smartToShow = q === "" || smartSectionHit ? SMART_PHRASES : smartHits;
 
-  const viewingParagraph = viewingId
-    ? library.photoParagraphs.find((p) => p.id === viewingId) ?? null
-    : null;
-
   const anyHit =
     showPurpose ||
     showMatching ||
@@ -269,10 +281,6 @@ export default function KeywordGuide({
       {({ requestClose }) => (
         <>
         <h2>Guide</h2>
-        <p className="muted">
-          How this app turns field notes into a finished damp survey report, and
-          what to write so the right standard wording is picked automatically.
-        </p>
 
         <input
           ref={searchRef}
@@ -286,8 +294,38 @@ export default function KeywordGuide({
         {onStartTutorial && (
           <button
             type="button"
-            className="btn guide-tutorial-btn"
-            onClick={onStartTutorial}
+            className={`btn primary big guide-tutorial-btn${tutorialShake > 0 ? " is-holding" : ""}`}
+            style={{ ["--shake" as string]: String(tutorialShake) }}
+            onClick={(e) => {
+              if (tutorialHoldRef.current < 0) {
+                e.preventDefault();
+                tutorialHoldRef.current = 0;
+                return;
+              }
+              onStartTutorial();
+            }}
+            onPointerDown={() => {
+              stopTutorialHold();
+              const started = performance.now();
+              tutorialHoldRef.current = started;
+              const tick = (now: number) => {
+                const t = Math.min(1, (now - started) / 3000);
+                setTutorialShake(Math.pow(t, 1.55) * 16);
+                if (t < 1) {
+                  tutorialShakeRafRef.current = window.requestAnimationFrame(tick);
+                }
+              };
+              tutorialShakeRafRef.current = window.requestAnimationFrame(tick);
+              tutorialHoldTimerRef.current = window.setTimeout(() => {
+                tutorialHoldTimerRef.current = 0;
+                tutorialHoldRef.current = -1;
+                stopTutorialHold();
+                onStartTutorial({ fromStart: true });
+              }, 3000);
+            }}
+            onPointerUp={stopTutorialHold}
+            onPointerCancel={stopTutorialHold}
+            onContextMenu={(e) => e.preventDefault()}
           >
             Retake the tutorial
           </button>
@@ -418,10 +456,15 @@ export default function KeywordGuide({
                       <button
                         type="button"
                         className="btn tiny guide-topic-view"
-                        onClick={() => setViewingId(p.id)}
+                        onClick={() =>
+                          setViewingId((cur) => (cur === p.id ? null : p.id))
+                        }
                       >
-                        View text
+                        {viewingId === p.id ? "Hide text" : "View text"}
                       </button>
+                      {viewingId === p.id && (
+                        <p className="guide-topic-text">{p.text}</p>
+                      )}
                     </div>
                   );
                 })}
@@ -439,52 +482,6 @@ export default function KeywordGuide({
             Close
           </button>
         </div>
-
-      {viewingParagraph && (
-        <SheetShell
-          onClose={() => setViewingId(null)}
-          backdropClassName="guide-wording-backdrop"
-          sheetClassName="sheet guide-wording-sheet"
-          aria-labelledby="guide-wording-title"
-        >
-          {({ requestClose: closeWording }) => (
-            <>
-            <h2 id="guide-wording-title">{viewingParagraph.topic}</h2>
-            <p className="muted">Standard wording produced by these shorthand notes</p>
-            <div className="guide-keywords guide-wording-keywords">
-              {guideKeywordsFor(viewingParagraph).map((k) => (
-                <span
-                  key={k}
-                  className={
-                    sharedKeywords.has(k.toLowerCase())
-                      ? "chip kw shared"
-                      : "chip kw"
-                  }
-                >
-                  {k}
-                </span>
-              ))}
-            </div>
-            <p className="guide-wording-body">{viewingParagraph.text}</p>
-            {viewingParagraph.placeholders.length > 0 && (
-              <p className="muted">
-                Placeholders filled from the note:{" "}
-                {viewingParagraph.placeholders.map((ph) => ph.key).join(", ")}
-              </p>
-            )}
-            <div className="sheet-actions">
-              <button
-                type="button"
-                className="btn primary"
-                onClick={closeWording}
-              >
-                Close
-              </button>
-            </div>
-            </>
-          )}
-        </SheetShell>
-      )}
         </>
       )}
     </SheetShell>

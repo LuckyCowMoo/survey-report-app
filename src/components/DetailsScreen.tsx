@@ -1,18 +1,30 @@
 import {
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type TextareaHTMLAttributes
 } from "react";
 import { library } from "../lib/matcher";
 import {
+  costItemNeedsLocation,
   detailsCostsBlockingReason,
   detailsCostsComplete,
+  detailsFirstIncompleteId,
   emptyAiSuggested,
   type DetailsSuggestScope,
   type IssueSuggestKey
 } from "../lib/detailsSuggest";
-import type { CostLine, ReportExtras, ReportMetadata } from "../types";
+import {
+  bestSearchMatch,
+  rankedMatches,
+  selectedThenAlpha,
+  type SearchableItem
+} from "../lib/fuzzySearch";
+import { scrollElementIntoViewCentered } from "../lib/scrollRoot";
+import type { CostLine, LibraryCostItem, LibraryRecommendation, ReportExtras, ReportMetadata } from "../types";
+import SheetShell from "./SheetShell";
+import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
 
 interface Props {
   metadata: ReportMetadata;
@@ -20,6 +32,10 @@ interface Props {
   onMetadata: (m: ReportMetadata) => void;
   onExtras: (e: ReportExtras) => void;
   onContinue: () => void;
+  onSaveInApp: () => void;
+  onExportDocx: () => void;
+  onExportDmsr: () => void;
+  busy?: boolean;
   aiConfigured: boolean;
   /** Which panel(s) are currently drafting. */
   suggestBusy: DetailsSuggestScope | null;
@@ -154,6 +170,10 @@ export default function DetailsScreen({
   onMetadata,
   onExtras,
   onContinue,
+  onSaveInApp,
+  onExportDocx,
+  onExportDmsr,
+  busy = false,
   aiConfigured,
   suggestBusy,
   suggestError,
@@ -164,6 +184,10 @@ export default function DetailsScreen({
 }: Props) {
   const [recPreview, setRecPreview] = useState<string | null>(null);
   const [costPreview, setCostPreview] = useState<string | null>(null);
+  const [recQuery, setRecQuery] = useState("");
+  const [costQuery, setCostQuery] = useState("");
+  const [incompleteOpen, setIncompleteOpen] = useState(false);
+  const [showSave, setShowSave] = useState(false);
 
   const setMeta = <K extends keyof ReportMetadata>(key: K, value: ReportMetadata[K]) =>
     onMetadata({ ...metadata, [key]: value });
@@ -350,8 +374,84 @@ export default function DetailsScreen({
 
   const costsComplete = detailsCostsComplete(extras);
   const costsBlockReason = detailsCostsBlockingReason(extras);
-  const canContinue = !anyBusy && !lockContinue && (tutorial || costsComplete);
+  const canContinue = !anyBusy && !lockContinue;
   const excludePlanCosts = extras.excludePlanCosts;
+
+  const recItems: SearchableItem[] = useMemo(
+    () =>
+      library.recommendations.map((r) => ({
+        id: r.id,
+        title: r.label,
+        keywords: r.keywords,
+        text: r.text
+      })),
+    []
+  );
+  const costItems: SearchableItem[] = useMemo(
+    () =>
+      library.costItems.map((c) => ({
+        id: c.id,
+        title: c.label,
+        text: c.text
+      })),
+    []
+  );
+
+  const recsToShow = useMemo(() => {
+    const q = recQuery.trim();
+    if (q) return rankedMatches(recItems, q);
+    return selectedThenAlpha(
+      recItems,
+      (item) => extras.recommendationIds.includes(item.id),
+      (item) => item.title
+    );
+  }, [recItems, recQuery, extras.recommendationIds]);
+
+  const costsToShow = useMemo(() => {
+    const q = costQuery.trim();
+    if (q) return rankedMatches(costItems, q);
+    return selectedThenAlpha(
+      costItems,
+      (item) => hasCostItem(item.id),
+      (item) => item.title
+    );
+  }, [costItems, costQuery, extras.costLines]);
+
+  const bestRec = useMemo(
+    () => (recQuery.trim() ? bestSearchMatch(recItems, recQuery) : null),
+    [recItems, recQuery]
+  );
+  const bestCost = useMemo(
+    () => (costQuery.trim() ? bestSearchMatch(costItems, costQuery) : null),
+    [costItems, costQuery]
+  );
+
+  const recById = useMemo(() => {
+    const map = new Map<string, LibraryRecommendation>();
+    for (const r of library.recommendations) map.set(r.id, r);
+    return map;
+  }, []);
+  const costById = useMemo(() => {
+    const map = new Map<string, LibraryCostItem>();
+    for (const c of library.costItems) map.set(c.id, c);
+    return map;
+  }, []);
+
+  const jumpToIncomplete = () => {
+    const id = detailsFirstIncompleteId(extras);
+    setIncompleteOpen(false);
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el) scrollElementIntoViewCentered(el);
+  };
+
+  const requestContinue = () => {
+    if (tutorial || costsComplete) {
+      onContinue();
+      return;
+    }
+    setIncompleteOpen(true);
+  };
 
   return (
     <div className="details">
@@ -624,8 +724,27 @@ export default function DetailsScreen({
           </div>
         )}
         <p className="muted">Tick the standard recommendations to include.</p>
-        {library.recommendations.map((r) => (
-          <div key={r.id} className="rec-row">
+        <input
+          className="search details-list-search"
+          type="search"
+          placeholder="Search recommendations..."
+          value={recQuery}
+          onChange={(e) => setRecQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const pick = bestRec;
+            if (!pick) return;
+            if (!extras.recommendationIds.includes(pick.id)) toggleRec(pick.id);
+            setRecQuery("");
+          }}
+        />
+        {recsToShow.map((item) => {
+          const r = recById.get(item.id);
+          if (!r) return null;
+          const highlighted = Boolean(recQuery.trim() && bestRec?.id === r.id);
+          return (
+          <div key={r.id} className={`rec-row${highlighted ? " is-best" : ""}`}>
             <label className="toggle">
               <input
                 type="checkbox"
@@ -636,7 +755,10 @@ export default function DetailsScreen({
                 }
                 checked={extras.recommendationIds.includes(r.id)}
                 disabled={recsBusy}
-                onChange={() => toggleRec(r.id)}
+                onChange={() => {
+                  toggleRec(r.id);
+                  if (recQuery.trim()) setRecQuery("");
+                }}
               />
               <span>{r.label}</span>
             </label>
@@ -647,12 +769,16 @@ export default function DetailsScreen({
             >
               {recPreview === r.id ? "Hide" : "View"}
             </button>
+            {highlighted && (
+              <em className="picker-best-hint">Press Enter to select</em>
+            )}
             {aiSuggested.recommendationIds.includes(r.id) && (
               <AiPickReason text={aiSuggested.recommendationReasons[r.id]} />
             )}
             {recPreview === r.id && <p className="rec-preview">{r.text}</p>}
           </div>
-        ))}
+          );
+        })}
         <label className="toggle">
           <input
             type="checkbox"
@@ -754,7 +880,7 @@ export default function DetailsScreen({
         >
           <div className="details-costs-collapse-inner">
         <label className="field">
-          <span>Areas of work (one line per room/area){extras.otherCost ? " *" : ""}</span>
+          <span>Areas of work (one line per room/area)</span>
           <textarea
             rows={4}
             placeholder={"Living area: all exterior walls from floor to 1.2 meters\nHallway: interior wall from floor to 1.2 meters"}
@@ -765,11 +891,31 @@ export default function DetailsScreen({
         </label>
 
         <p className="muted">
-          Tick the standard cost items. Enter a price and work location for each
-          selected item before generating.
+          Tick the standard cost items. Enter a price for each selected item
+          (and a work location where the job is room-specific) before generating.
         </p>
-        {library.costItems.map((c) => (
-          <div key={c.id} className="rec-row">
+        <input
+          className="search details-list-search"
+          type="search"
+          placeholder="Search project plan & costs..."
+          value={costQuery}
+          disabled={costsBusy || excludePlanCosts}
+          onChange={(e) => setCostQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const pick = bestCost;
+            if (!pick) return;
+            if (!hasCostItem(pick.id)) toggleCostItem(pick.id);
+            setCostQuery("");
+          }}
+        />
+        {costsToShow.map((item) => {
+          const c = costById.get(item.id);
+          if (!c) return null;
+          const highlighted = Boolean(costQuery.trim() && bestCost?.id === c.id);
+          return (
+          <div key={c.id} className={`rec-row${highlighted ? " is-best" : ""}`}>
             <label className="toggle">
               <input
                 type="checkbox"
@@ -778,7 +924,10 @@ export default function DetailsScreen({
                 }
                 checked={hasCostItem(c.id)}
                 disabled={costsBusy || excludePlanCosts}
-                onChange={() => toggleCostItem(c.id)}
+                onChange={() => {
+                  toggleCostItem(c.id);
+                  if (costQuery.trim()) setCostQuery("");
+                }}
               />
               <span>{c.label}</span>
             </label>
@@ -789,12 +938,16 @@ export default function DetailsScreen({
             >
               {costPreview === c.id ? "Hide" : "View"}
             </button>
+            {highlighted && (
+              <em className="picker-best-hint">Press Enter to select</em>
+            )}
             {aiSuggested.costItemIds.includes(c.id) && (
               <AiPickReason text={aiSuggested.costReasons[c.id]} />
             )}
             {costPreview === c.id && <p className="rec-preview">{c.text}</p>}
           </div>
-        ))}
+          );
+        })}
         <label className="toggle">
           <input
             type="checkbox"
@@ -808,9 +961,11 @@ export default function DetailsScreen({
         {extras.costLines.map((line) => (
           <div key={line.id} className="cost-line">
             <div className="cost-line-label">{costLineLabel(line)}</div>
+            {costItemNeedsLocation(line.itemId) ? (
             <label className="field cost-location-field">
               <span>Where / areas *</span>
               <input
+                id={`cost-${line.id}-location`}
                 type="text"
                 value={line.location ?? ""}
                 placeholder="e.g. rear reception & hallway exterior walls to 1.2m"
@@ -821,6 +976,7 @@ export default function DetailsScreen({
                 }
               />
             </label>
+            ) : null}
             <div className="cost-standard-row">
               <button
                 type="button"
@@ -841,6 +997,7 @@ export default function DetailsScreen({
               <label>
                 £ *
                 <input
+                  id={`cost-${line.id}-amount`}
                   type="text"
                   inputMode="decimal"
                   value={line.amount}
@@ -876,6 +1033,7 @@ export default function DetailsScreen({
               <label>
                 £ *
                 <input
+                  id="cost-other-amount"
                   type="text"
                   inputMode="decimal"
                   value={extras.otherCostAmount}
@@ -923,16 +1081,109 @@ export default function DetailsScreen({
         </div>
       </section>
 
+      <section className="panel details-limitations-panel">
+        <div className="details-exclude-row">
+          <button
+            type="button"
+            className={`pill-switch${extras.invasiveSurvey ? " is-on" : ""}`}
+            role="switch"
+            aria-checked={extras.invasiveSurvey}
+            onClick={() =>
+              onExtras({ ...extras, invasiveSurvey: !extras.invasiveSurvey })
+            }
+          >
+            <span className="pill-switch-thumb" aria-hidden />
+          </button>
+          <div className="details-exclude-copy">
+            <span className="details-exclude-label">
+              {extras.invasiveSurvey
+                ? "Invasive survey limitations"
+                : "Non-invasive survey limitations"}
+            </span>
+            <span className="details-exclude-hint">
+              {extras.invasiveSurvey
+                ? "The final section will use invasive-survey limitations wording."
+                : "The final section will use the standard non-invasive limitations wording."}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div className="details-save-leave">
+        <button
+          type="button"
+          className="btn big"
+          disabled={busy || tutorial}
+          onClick={() => {
+            if (tutorial) return;
+            setShowSave(true);
+          }}
+        >
+          Save & leave
+        </button>
+      </div>
+
+      {incompleteOpen && costsBlockReason && (
+        <SheetShell
+          onClose={() => setIncompleteOpen(false)}
+          aria-labelledby="details-incomplete-title"
+        >
+          {({ requestClose }) => (
+            <>
+              <h2 id="details-incomplete-title">Fill in the remaining details?</h2>
+              <p className="muted">{costsBlockReason}</p>
+              <p className="muted">
+                You can still generate if you are sure this is complete enough.
+              </p>
+              <div className="sheet-actions">
+                <button type="button" className="btn" onClick={jumpToIncomplete}>
+                  Go to issue
+                </button>
+                <button type="button" className="btn" onClick={requestClose}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => {
+                    requestClose();
+                    onContinue();
+                  }}
+                >
+                  Ignore and generate
+                </button>
+              </div>
+            </>
+          )}
+        </SheetShell>
+      )}
+
+      {showSave && (
+        <FieldNotesFinishSheet
+          busy={busy}
+          summary="This report’s sections, details, and options will be saved in the app."
+          onClose={() => setShowSave(false)}
+          onSaveInApp={() => {
+            setShowSave(false);
+            onSaveInApp();
+          }}
+          onExportDocx={() => {
+            setShowSave(false);
+            onExportDocx();
+          }}
+          onExportDmsr={() => {
+            setShowSave(false);
+            onExportDmsr();
+          }}
+        />
+      )}
+
       <div className="bottom-bar">
-        {!costsComplete && costsBlockReason && (
-          <p className="details-continue-hint">{costsBlockReason}</p>
-        )}
         <button
           type="button"
           className="btn primary big"
           disabled={!canContinue}
-          title={costsBlockReason ?? undefined}
-          onClick={onContinue}
+          onClick={requestContinue}
         >
           Continue to generate
         </button>

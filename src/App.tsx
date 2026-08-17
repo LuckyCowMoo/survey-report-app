@@ -49,9 +49,13 @@ import {
 } from "./lib/reportLibrary";
 import {
   buildReportProject,
+  decodeReportProject,
   encodeReportProject,
   fingerprintSourceEntries,
   fingerprintSourceSections,
+  isDmsrFile,
+  PROJECT_MIME,
+  projectFileNameFromDocx,
   type ReportProject
 } from "./lib/reportProject";
 import { reportFileName } from "./lib/docxGenerator";
@@ -70,6 +74,7 @@ import {
   shorthandDocxFileName
 } from "./lib/shorthandDocxGenerator";
 import { compositeAnnotationsOntoJpeg } from "./lib/annotationComposite";
+import { downloadFile } from "./lib/webShare";
 import type {
   FieldNoteShot,
   PhotoAnnotation,
@@ -164,6 +169,7 @@ const defaultExtras: ReportExtras = {
   surveyDiscount: "",
   timeEstimate: "5-7 days",
   excludePlanCosts: false,
+  invasiveSurvey: false,
   aiSuggested: {
     issues: {
       risingDamp: false,
@@ -600,12 +606,12 @@ export default function App() {
     navigateTo("fieldNotes");
   }, [navigateTo]);
 
-  const beginInteractiveTutorial = useCallback(() => {
+  const beginInteractiveTutorial = useCallback((fromStart = false) => {
     setError(null);
     setFieldNotes([]);
     setSections([]);
     fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
-    setTutorialBeat("newReport");
+    setTutorialBeat(fromStart ? "welcome" : "newReport");
     setStep("home");
     replaceAppHist({ app: 1, step: "home" });
   }, []);
@@ -905,6 +911,41 @@ export default function App() {
     }
   }, [fieldNotes, saveFieldNotesDraft]);
 
+  const exportFieldNotesDmsr = useCallback(async (leaveHome = false) => {
+    if (fieldNotes.length === 0) return;
+    setBusy("Saving & exporting…");
+    setError(null);
+    try {
+      await saveFieldNotesDraft(false);
+      const entries = await fieldNotesToShorthand(fieldNotes);
+      const nextSections = matchEntries(entries);
+      const meta = defaultMetadata(settingsRef.current);
+      const fileName = projectFileNameFromDocx(reportFileName(meta));
+      const sourceFingerprint = await fingerprintSourceEntries(entries);
+      const projectBlob = encodeReportProject(
+        buildReportProject({
+          sections: nextSections,
+          metadata: meta,
+          extras: defaultExtras,
+          warnings: [],
+          fileName,
+          step: "review",
+          sourceFingerprint
+        })
+      );
+      downloadFile(new File([projectBlob], fileName, { type: PROJECT_MIME }));
+      if (leaveHome) {
+        setFieldNotes([]);
+        setStep("home");
+        replaceAppHist({ app: 1, step: "home" });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  }, [fieldNotes, saveFieldNotesDraft]);
+
   // Autosave field-notes draft while capturing.
   useEffect(() => {
     if (step !== "fieldNotes" || fieldNotes.length === 0) return;
@@ -913,39 +954,6 @@ export default function App() {
     }, 8000);
     return () => window.clearTimeout(timer);
   }, [step, fieldNotes, saveFieldNotesDraft]);
-
-  const handleFile = useCallback(
-    async (file: File) => {
-      setBusy("Reading document...");
-      setError(null);
-      setAiErrors({});
-      setPendingSourceMatch(null);
-      aiBatchAbortRef.current?.abort();
-      aiBatchAbortRef.current = null;
-      setAiBatchRunning(false);
-      try {
-        const data = await file.arrayBuffer();
-        const parsed = await parseShorthandDocx(data);
-        const nextSections = matchEntries(parsed.entries);
-        const fingerprint = await fingerprintSourceEntries(parsed.entries);
-        const match = await findLatestLibraryMatchBySource(fingerprint);
-        if (match) {
-          setPendingSourceMatch({
-            sections: nextSections,
-            warnings: parsed.warnings,
-            match
-          });
-          return;
-        }
-        beginFreshImport(nextSections, parsed.warnings);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setBusy(null);
-      }
-    },
-    [beginFreshImport]
-  );
 
   /** Reopen a proprietary past-report project at pre-generation design state. */
   const openProject = useCallback(
@@ -973,6 +981,44 @@ export default function App() {
       }
     },
     [navigateTo]
+  );
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      setBusy(isDmsrFile(file) ? "Opening project..." : "Reading document...");
+      setError(null);
+      setAiErrors({});
+      setPendingSourceMatch(null);
+      aiBatchAbortRef.current?.abort();
+      aiBatchAbortRef.current = null;
+      setAiBatchRunning(false);
+      try {
+        if (isDmsrFile(file)) {
+          const project = await decodeReportProject(file);
+          openProject(project);
+          return;
+        }
+        const data = await file.arrayBuffer();
+        const parsed = await parseShorthandDocx(data);
+        const nextSections = matchEntries(parsed.entries);
+        const fingerprint = await fingerprintSourceEntries(parsed.entries);
+        const match = await findLatestLibraryMatchBySource(fingerprint);
+        if (match) {
+          setPendingSourceMatch({
+            sections: nextSections,
+            warnings: parsed.warnings,
+            match
+          });
+          return;
+        }
+        beginFreshImport(nextSections, parsed.warnings);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(null);
+      }
+    },
+    [beginFreshImport, openProject]
   );
 
   const resumeMatchedProject = useCallback(async () => {
@@ -1449,15 +1495,16 @@ export default function App() {
   }, [settings]);
 
   const saveMidFlowDraft = useCallback(
-    async (designStep: DesignStep) => {
+    async (designStep: DesignStep, afterPersist?: () => Promise<void>) => {
       if (sectionsRef.current.length === 0 || saveAndLeaveBusy) return;
       setSaveAndLeaveBusy(true);
       setError(null);
       aiBatchAbortRef.current?.abort();
       detailsSuggestAbortRef.current?.abort();
       try {
-        setBusy("Saving draft…");
+        setBusy(afterPersist ? "Saving & exporting…" : "Saving draft…");
         await persistReportDraftQuiet({ designStep });
+        if (afterPersist) await afterPersist();
         draftFingerprintRef.current = null;
         reset();
       } catch (err) {
@@ -1468,6 +1515,42 @@ export default function App() {
       }
     },
     [saveAndLeaveBusy, persistReportDraftQuiet, reset]
+  );
+
+  const exportMidFlowDocx = useCallback(
+    (designStep: DesignStep) =>
+      saveMidFlowDraft(designStep, async () => {
+        const blob = await generateShorthandDocx(
+          sectionsRef.current.map((s) => s.entry)
+        );
+        downloadFile(
+          new File([blob], shorthandDocxFileName(), {
+            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          })
+        );
+      }),
+    [saveMidFlowDraft]
+  );
+
+  const exportMidFlowDmsr = useCallback(
+    (designStep: DesignStep) =>
+      saveMidFlowDraft(designStep, async () => {
+        const meta = metadataRef.current;
+        const fileName = projectFileNameFromDocx(reportFileName(meta));
+        const projectBlob = encodeReportProject(
+          buildReportProject({
+            sections: sectionsRef.current,
+            metadata: meta,
+            extras: extrasRef.current,
+            warnings: warningsRef.current,
+            fileName,
+            step: designStep,
+            sourceFingerprint: draftFingerprintRef.current ?? undefined
+          })
+        );
+        downloadFile(new File([projectBlob], fileName, { type: PROJECT_MIME }));
+      }),
+    [saveMidFlowDraft]
   );
 
   // Persist on every screen change; leaving to home also resets the session.
@@ -1670,7 +1753,11 @@ export default function App() {
           />
         )}
         {step === "past" && (
-          <PastReportsScreen onOpenProject={openProject} />
+          <PastReportsScreen
+            onOpenProject={openProject}
+            onImportFile={handleFile}
+            busy={busy !== null}
+          />
         )}
         {step === "fieldNotes" && (
           <FieldNotesScreen
@@ -1680,6 +1767,7 @@ export default function App() {
             onSaveInApp={() => void saveFieldNotesDraft(true)}
             onContinueToReport={continueFieldNotesToReport}
             onExportDocx={() => void exportFieldNotesDocx(true)}
+            onExportDmsr={() => void exportFieldNotesDmsr(true)}
             photoPassThrough={settings.studioPhotoPassThrough}
             tutorial={tutorialMode}
             tutorialBeat={tutorialBeat}
@@ -1713,6 +1801,9 @@ export default function App() {
               }
               navigateTo("details");
             }}
+            onSaveInApp={() => void saveMidFlowDraft("review")}
+            onExportDocx={() => void exportMidFlowDocx("review")}
+            onExportDmsr={() => void exportMidFlowDmsr("review")}
             onAddMoreNotes={openFieldNotesFromReview}
             onDeleteSection={tutorialMode ? () => {} : deleteSection}
             onAnnotateSection={annotateSection}
@@ -1749,6 +1840,10 @@ export default function App() {
               }
               goToGenerate();
             }}
+            onSaveInApp={() => void saveMidFlowDraft("details")}
+            onExportDocx={() => void exportMidFlowDocx("details")}
+            onExportDmsr={() => void exportMidFlowDmsr("details")}
+            busy={busy !== null}
             aiConfigured={activeDetailsSuggestAi(settings).apiKey.length > 0}
             suggestBusy={detailsSuggestBusy}
             suggestError={detailsSuggestError}
@@ -1791,9 +1886,9 @@ export default function App() {
           onClose={dismissOverlay}
           apiKeys={settings.apiKeys}
           onApiKeyChange={handleGuideApiKey}
-          onStartTutorial={() => {
+          onStartTutorial={(opts) => {
             setShowGuide(false);
-            beginInteractiveTutorial();
+            beginInteractiveTutorial(Boolean(opts?.fromStart));
           }}
         />
       )}

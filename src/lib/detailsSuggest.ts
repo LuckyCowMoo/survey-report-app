@@ -37,6 +37,22 @@ const ISSUE_KEYS: IssueSuggestKey[] = [
 const REC_IDS = new Set(library.recommendations.map((r) => r.id));
 const COST_IDS = new Set(library.costItems.map((c) => c.id));
 
+/** Whole-property / unit-priced items — no room/area location is required. */
+const COST_NO_LOCATION = new Set([
+  "cost-waste-removal",
+  "cost-piv-unit",
+  "cost-loft-insulation",
+  "cost-ulv-fogging",
+  "cost-electro-osmosis",
+  "cost-ozonation",
+  "cost-flood-drying"
+]);
+
+export function costItemNeedsLocation(itemId: string): boolean {
+  if (itemId === "custom" || itemId === "other") return false;
+  return !COST_NO_LOCATION.has(itemId);
+}
+
 const SYSTEM_PROMPT = `You are the recommendations assistant for DampMaster, a UK damp and timber surveying firm.
 
 You read the survey section text already written for a property and decide which standard Issues, Recommendations, and billed Cost items should be ticked.
@@ -488,6 +504,7 @@ export function normalizeReportExtras(extras: ReportExtras): ReportExtras {
   return {
     ...extras,
     excludePlanCosts: Boolean(extras.excludePlanCosts),
+    invasiveSurvey: Boolean(extras.invasiveSurvey),
     aiSuggested: {
       issues: {
         risingDamp: Boolean(ai?.issues?.risingDamp),
@@ -599,19 +616,17 @@ export function applyDetailsSuggestions(
   return { ...next, aiSuggested };
 }
 
-/** True when every selected cost item has a price and work location. */
+/** True when every selected cost item has a price, and a location if that item needs one. */
 export function detailsCostsComplete(extras: ReportExtras): boolean {
   if (extras.excludePlanCosts) return true;
   for (const line of extras.costLines) {
     const amount = line.amount.replace(/[£,\s]/g, "").trim();
     if (!amount) return false;
-    if (!line.location?.trim()) return false;
+    if (costItemNeedsLocation(line.itemId) && !line.location?.trim()) return false;
   }
   if (extras.otherCost) {
     const amount = extras.otherCostAmount.replace(/[£,\s]/g, "").trim();
     if (!amount) return false;
-    // Other work uses the shared areas-of-work field as its location.
-    if (!extras.projectPlanLines.trim()) return false;
   }
   return true;
 }
@@ -619,18 +634,30 @@ export function detailsCostsComplete(extras: ReportExtras): boolean {
 export function detailsCostsBlockingReason(extras: ReportExtras): string | null {
   if (extras.excludePlanCosts) return null;
   if (detailsCostsComplete(extras)) return null;
-  const missingPrice = extras.costLines.some(
-    (line) => !line.amount.replace(/[£,\s]/g, "").trim()
+  const missingPrice =
+    extras.costLines.some((line) => !line.amount.replace(/[£,\s]/g, "").trim()) ||
+    (extras.otherCost && !extras.otherCostAmount.replace(/[£,\s]/g, "").trim());
+  const missingLocation = extras.costLines.some(
+    (line) => costItemNeedsLocation(line.itemId) && !line.location?.trim()
   );
-  const missingLocation = extras.costLines.some((line) => !line.location?.trim());
-  const otherMissingPrice =
-    extras.otherCost && !extras.otherCostAmount.replace(/[£,\s]/g, "").trim();
-  const otherMissingLocation =
-    extras.otherCost && !extras.projectPlanLines.trim();
 
   const parts: string[] = [];
-  if (missingPrice || otherMissingPrice) parts.push("prices");
-  if (missingLocation || otherMissingLocation) parts.push("work locations");
-  if (!parts.length) return "Fill in all prices and work locations before generating.";
+  if (missingPrice) parts.push("prices");
+  if (missingLocation) parts.push("work locations");
+  if (!parts.length) return "Fill in all required fields before generating.";
   return `Fill in all ${parts.join(" and ")} before generating.`;
+}
+
+export function detailsFirstIncompleteId(extras: ReportExtras): string | null {
+  if (extras.excludePlanCosts) return null;
+  for (const line of extras.costLines) {
+    if (!line.amount.replace(/[£,\s]/g, "").trim()) return `cost-${line.id}-amount`;
+    if (costItemNeedsLocation(line.itemId) && !line.location?.trim()) {
+      return `cost-${line.id}-location`;
+    }
+  }
+  if (extras.otherCost && !extras.otherCostAmount.replace(/[£,\s]/g, "").trim()) {
+    return "cost-other-amount";
+  }
+  return null;
 }

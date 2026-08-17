@@ -593,6 +593,17 @@ html[data-theme="dark"] .btn.danger:not(:disabled):hover {
   justify-content: center;
 }
 
+.review-save-leave,
+.details-save-leave {
+  margin: 0 0 24px;
+}
+
+.review-save-leave .btn,
+.details-save-leave .btn {
+  width: 100%;
+  justify-content: center;
+}
+
 .review.is-reordering {
   user-select: none;
   -webkit-user-select: none;
@@ -679,18 +690,12 @@ html.is-lift-scroll-lock .content {
 .section-lift-ghost .card.is-active,
 .section-lift-ghost .card.is-drag-preview {
   margin-bottom: 0;
-  --card-expand-y: 1;
-  transform: none;
   z-index: auto;
   border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
   background: color-mix(in srgb, var(--brand) 7%, var(--card));
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--brand) 22%, transparent),
     0 10px 24px color-mix(in srgb, var(--brand) 10%, rgba(20, 16, 10, 0.12));
-}
-
-.section-lift-ghost .card > * {
-  transform: none;
 }
 
 .warnings {
@@ -703,32 +708,20 @@ html.is-lift-scroll-lock .content {
 }
 
 .card {
-  --card-expand-y: 1;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 12px;
   margin-bottom: 14px;
   position: relative;
-  transform: scaleY(var(--card-expand-y));
-  transform-origin: center center;
   transition:
-    transform 180ms ease,
     box-shadow 180ms ease,
     background-color 180ms ease,
     border-color 180ms ease;
 }
 
-/* Counter-scale children so only spacing/positions expand, not the content */
-.card > * {
-  transform: scaleY(calc(1 / var(--card-expand-y)));
-  transform-origin: center center;
-  transition: transform 180ms ease;
-}
-
 .card:focus-within,
 .card.is-active {
-  --card-expand-y: 1.02;
   z-index: 3;
   border-color: color-mix(in srgb, var(--brand) 28%, var(--line));
   background: color-mix(in srgb, var(--brand) 5%, var(--card));
@@ -740,12 +733,6 @@ html.is-lift-scroll-lock .content {
 .card.attention:focus-within,
 .card.attention.is-active {
   border-color: #ff5a36;
-}
-
-.card.ai-working:focus-within,
-.card.ai-working.is-active {
-  /* Keep the AI treatment dominant while still lifting slightly */
-  --card-expand-y: 1.015;
 }
 
 .card.attention {
@@ -1062,10 +1049,26 @@ html.is-lift-scroll-lock .content {
 
 .card-body {
   --card-media-size: 132px;
-  display: flex;
-  gap: 12px;
-  /* When the thumb can't fill the text column height, keep it centred */
-  align-items: center;
+  display: grid;
+  grid-template-columns: var(--card-media-size) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 6px;
+  align-items: stretch;
+  height: var(--card-media-size);
+  max-height: var(--card-media-size);
+  overflow: hidden;
+  transition: height 280ms ease, max-height 280ms ease;
+}
+
+.card-body:not(:has(> .thumb-btn)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.card-body:not(:has(> .thumb-btn)) .card-copy,
+.card-body:not(:has(> .thumb-btn)) > .section-text-wrap,
+.card-body:not(:has(> .thumb-btn)) > .placeholders {
+  grid-column: 1;
 }
 
 .thumb-btn {
@@ -1075,13 +1078,73 @@ html.is-lift-scroll-lock .content {
   padding: 0;
   border: 0;
   background: none;
-  flex-shrink: 0;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  justify-self: start;
+  align-self: center;
   width: var(--card-media-size);
   height: var(--card-media-size);
   cursor: zoom-in;
   border-radius: 8px;
   overflow: hidden;
   transition: height 280ms ease;
+}
+
+.card-copy {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card-body > .section-text-wrap {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+}
+
+.card-body > .placeholders {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+/* Stacked layout only changes grid-column — display stays grid so a focused
+   textarea is never reparented or put through display:contents / subgrid. */
+.card.is-stack-text .card-body {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible;
+  grid-template-rows: auto auto auto;
+  align-items: start;
+}
+
+.card.is-stack-text .thumb-btn {
+  grid-row: 1;
+  height: var(--card-media-size) !important;
+  align-self: start;
+}
+
+.card.is-stack-text .card-copy {
+  min-height: var(--card-media-size);
+}
+
+.card.is-stack-text .card-body > .section-text-wrap {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.card.is-stack-text .card-body > .placeholders {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.card.is-stack-text .section-text {
+  height: auto;
+  min-height: 72px;
+  flex: none;
+  overflow: auto;
 }
 
 .thumb {
@@ -1153,29 +1216,16 @@ html.is-lift-scroll-lock .content {
     transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.card-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  /* Note + heading + text stack matches the thumbnail height */
-  height: var(--card-media-size);
-  max-height: var(--card-media-size);
-  overflow: hidden;
-  transition: height 280ms ease, max-height 280ms ease;
-}
-
 /* Manual note expand / placeholders — JS drives highlight expand */
-.card-main:has(.placeholders),
-.card-main:has(.note.is-expanded) {
+.card-body:has(.placeholders),
+.card-body:has(.note.is-expanded) {
   height: auto;
   max-height: none;
   overflow: visible;
 }
 
-.card-main:has(.placeholders) .section-text,
-.card-main:has(.note.is-expanded) .section-text {
+.card-body:has(.placeholders) .section-text,
+.card-body:has(.note.is-expanded) .section-text {
   flex: 0 1 auto;
   height: auto;
   min-height: 72px;
@@ -1255,6 +1305,13 @@ html.is-lift-scroll-lock .content {
 .card:focus-within .section-text {
   flex: 0 1 auto;
   overflow: hidden;
+}
+
+.card.is-stack-text .section-text,
+.card.is-stack-text.is-active .section-text,
+.card.is-stack-text:focus-within .section-text {
+  flex: none;
+  overflow: auto;
 }
 
 .crossref-text {
@@ -1477,6 +1534,7 @@ html[data-theme="dark"] .card-annotate-btn {
 .sheet-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
   flex-shrink: 0;
@@ -2095,6 +2153,93 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
   margin: 4px 0 8px;
 }
 
+.rec-row.is-best {
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  border-radius: 8px;
+  padding-inline: 6px;
+}
+
+.rec-row .picker-best-hint {
+  flex-basis: 100%;
+  margin: 0 0 6px;
+}
+
+.details-list-search {
+  width: 100%;
+  margin: 0 0 12px;
+}
+
+.details-incomplete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(10, 10, 10, 0.46);
+}
+
+.details-incomplete-card {
+  width: min(420px, 100%);
+  padding: 18px 16px 14px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.details-incomplete-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.docx-preview-frame {
+  width: 100%;
+  aspect-ratio: 210 / 297;
+  max-height: min(72dvh, 720px);
+  overflow: auto;
+  background: #5c5854;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  touch-action: pan-x pan-y;
+}
+
+.docx-preview-host,
+.docx-preview-body {
+  min-height: 100%;
+}
+
+.docx-preview-frame .docx-wrapper {
+  padding: 16px 0 28px;
+  background: #5c5854;
+}
+
+.docx-preview-frame .docx {
+  margin: 0 auto 18px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.docx-preview-zoom {
+  transform-origin: top left;
+}
+
+.docx-preview-host {
+  transform-origin: top left;
+}
+
+.docx-preview-zoom-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.docx-preview-zoom-bar input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
 .cost-line {
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -2483,12 +2628,15 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: calc(64px + env(safe-area-inset-top, 0px));
+  top: 0;
   right: max(6px, env(safe-area-inset-right, 0px));
-  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-  z-index: 6;
   width: 14px;
-  padding: 0;
+  height: 100svh;
+  max-height: 100svh;
+  box-sizing: border-box;
+  padding-top: calc(64px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  z-index: 6;
   pointer-events: none;
 }
 
@@ -2756,13 +2904,16 @@ html[data-theme="dark"] .pill-switch:not(.is-on) {
     grid-template-columns: minmax(0, 1fr) auto;
     /* Match content↔image and tools gaps (10px) */
     gap: var(--studio-gap, 10px);
-    top: var(--studio-top, calc(12px + 58px + 16px));
+    top: 0;
     right: 0;
-    bottom: var(--studio-bottom, calc(70px + env(safe-area-inset-bottom, 0px)));
     width: var(--studio-width, 34%);
+    height: 100svh;
+    max-height: 100svh;
     z-index: 2;
-    /* Gap to content is on .app.app-aside margin-right; right matches top bar */
-    padding: 0 var(--page-gutter, 14px) 0 0;
+    padding: var(--studio-top, calc(12px + 58px + 16px))
+      var(--page-gutter, 14px)
+      var(--studio-bottom, calc(70px + env(safe-area-inset-bottom, 0px)))
+      0;
   }
 
   .studio-aside-photo,
@@ -3533,9 +3684,9 @@ html:not([data-theme="original"]) .app {
 }
 
 html:not([data-theme="original"]) .app.app-field-notes {
-  width: min(100%, calc(100dvh * 9 / 19.5));
-  max-width: min(100%, calc(100dvh * 9 / 19.5));
-  margin-inline: auto;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
 }
 
 /* Home: lock to the viewport — no page scroll */
@@ -4532,8 +4683,16 @@ html[data-theme="dark"] .card.ai-working {
   margin-bottom: 28px;
 }
 
+.past-reports-intro-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .past-reports-intro h2 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -5378,7 +5537,7 @@ html[data-theme="dark"] .provider-key-warning {
 
 .guide-topic {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 8px 0;
@@ -5433,7 +5592,43 @@ html[data-theme="dark"] .provider-key-warning {
 
 .guide-tutorial-btn {
   margin-top: 12px;
-  align-self: flex-start;
+  width: 100%;
+  justify-content: center;
+  background: #ff5a36;
+  border-color: #ff5a36;
+  color: #fff;
+}
+
+.guide-tutorial-btn.is-holding {
+  animation: guide-tutorial-shake 70ms linear infinite;
+}
+
+@keyframes guide-tutorial-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(calc(var(--shake, 0) * -1px));
+  }
+  75% {
+    transform: translateX(calc(var(--shake, 0) * 1px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-tutorial-btn.is-holding {
+    animation: none;
+  }
+}
+
+.guide-topic-text {
+  flex-basis: 100%;
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+  white-space: pre-wrap;
 }
 
 /* ---- Export format chooser ---- */
@@ -5899,11 +6094,9 @@ html[data-theme="dark"] .chip.kw {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  /* 19.5:9 portrait phone. On a real phone this is ~full width; on a wide
-     window (already past the 720/1040 app cap) it pillarboxes to that ratio. */
-  width: min(100%, calc(100dvh * 9 / 19.5));
-  max-width: min(100%, calc(100dvh * 9 / 19.5));
-  margin-inline: auto;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
 }
 
 html:has(.app-field-notes),
@@ -6127,7 +6320,7 @@ html:not([data-theme="original"]) .app.app-field-notes .content {
   flex-direction: column;
   justify-content: flex-start;
   gap: 12px;
-  padding: 0 14px 12px;
+  padding: 0 14px calc(16px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 
@@ -6213,9 +6406,8 @@ html:not([data-theme="original"]) .app.app-field-notes .content {
 }
 
 .field-notes-summary-date {
-  flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: 0;
   font-size: 13px;
   font-weight: 600;
 }
@@ -6257,11 +6449,22 @@ html:not([data-theme="original"]) .app.app-field-notes .content {
   flex-direction: column;
   gap: 10px;
   margin-top: auto;
+  container-type: inline-size;
+  container-name: fn-finish;
 }
 
 .field-notes-finish-inline {
   width: 100%;
   justify-content: center;
+  overflow: hidden;
+  padding-inline: 10px;
+}
+
+.field-notes-finish-label {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .field-notes-video,
@@ -7148,6 +7351,13 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   color: var(--compass-ink, #141414);
 }
 
+html[data-theme="dark"] .field-notes-compass-live {
+  --compass-ink: #f2efe8;
+  --compass-paper: #161412;
+  background: var(--compass-paper);
+  color: var(--compass-ink);
+}
+
 .field-notes-compass-live .direction-compass {
   width: min(86vw, 340px);
 }
@@ -7168,6 +7378,13 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   margin: 6px 0 0;
   font-size: 15px;
   font-weight: 650;
+}
+
+.field-notes-compass-facing {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: inherit;
 }
 
 .field-notes-compass-error {
@@ -8146,6 +8363,23 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   position: relative;
 }
 
+.tutorial-lang-grid.is-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tutorial-lang-grid.is-row .tutorial-lang-map {
+  height: 52px;
+}
+
+.tutorial-lang-grid.is-row .tutorial-lang-card {
+  padding: 8px 4px;
+}
+
+.tutorial-lang-grid.is-row .tutorial-lang-label {
+  font-size: 0.78rem;
+}
+
 .tutorial-island-map {
   position: relative;
   display: block;
@@ -8153,12 +8387,38 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   height: 100%;
 }
 
-.tutorial-island-map .tutorial-country-flag {
+.tutorial-island-map .tutorial-country-flag-wrap {
   position: absolute;
   inset: 0;
 }
 
+.tutorial-country-flag-wrap {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.tutorial-country-silhouette {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: none;
+  /* Fallback country shape when the flag mask cannot paint. */
+  opacity: 0.92;
+}
+
+html[data-theme="dark"] .tutorial-country-silhouette {
+  filter: invert(1);
+  opacity: 0.88;
+}
+
 .tutorial-country-flag {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -8171,9 +8431,12 @@ html[data-theme="dark"] .field-notes-annotate-btn {
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
+  -webkit-mask-mode: alpha;
+  mask-mode: alpha;
 }
 
 .tutorial-country-svg {
+  display: block;
   width: 100%;
   height: 100%;
 }

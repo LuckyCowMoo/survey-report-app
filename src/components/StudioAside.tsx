@@ -1068,6 +1068,7 @@ export default function StudioAside({
 
   return (
     <>
+    {createPortal(
     <aside className="studio-aside" aria-label="Studio preview">
       <div
         ref={photoRef}
@@ -1315,7 +1316,9 @@ export default function StudioAside({
           </button>
         </div>
       </div>
-    </aside>
+    </aside>,
+    document.body
+    )}
     {loupe &&
       createPortal(
         <div

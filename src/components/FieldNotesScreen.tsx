@@ -1,9 +1,11 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type ButtonHTMLAttributes,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent
@@ -41,6 +43,7 @@ import BrandMark from "./BrandMark";
 import {
   DirectionCompass,
   WEATHER_DIRECTIONS,
+  weatherIdForHeading,
   weatherNoteForHeading,
   type DirectionCompassHandle
 } from "./DirectionCompass";
@@ -66,6 +69,7 @@ type Props = {
   onSaveInApp: () => void;
   onContinueToReport: () => void;
   onExportDocx: () => void;
+  onExportDmsr: () => void;
   /** When true, pip jumps animate through every in-between photo. */
   photoPassThrough?: boolean;
   /** Replace the live camera with the interactive house tutorial. */
@@ -101,6 +105,45 @@ function prefersReducedMotion(): boolean {
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
+}
+
+function FitOneLineButton({
+  label,
+  className,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const btn = btnRef.current;
+    const text = textRef.current;
+    if (!btn || !text) return;
+    const fit = () => {
+      text.style.fontSize = "";
+      const pad =
+        Number.parseFloat(getComputedStyle(btn).paddingLeft) +
+        Number.parseFloat(getComputedStyle(btn).paddingRight) +
+        4;
+      let size = Number.parseFloat(getComputedStyle(text).fontSize);
+      while (text.scrollWidth > btn.clientWidth - pad && size > 10) {
+        size -= 0.25;
+        text.style.fontSize = `${size}px`;
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(btn);
+    return () => ro.disconnect();
+  }, [label]);
+
+  return (
+    <button ref={btnRef} className={className} {...props}>
+      <span ref={textRef} className="field-notes-finish-label">
+        {label}
+      </span>
+    </button>
+  );
 }
 
 function zoomToDialAngle(zoom: number, min: number, max: number) {
@@ -181,6 +224,7 @@ export default function FieldNotesScreen({
   onSaveInApp,
   onContinueToReport,
   onExportDocx,
+  onExportDmsr,
   photoPassThrough = false,
   tutorial = false,
   tutorialBeat = null,
@@ -328,6 +372,16 @@ export default function FieldNotesScreen({
     () => library.photoParagraphs.filter((p) => p.group === "Weather / orientation"),
     []
   );
+  const lastFacingIdRef = useRef<string | null>(null);
+  const facingId =
+    headingDeg != null
+      ? weatherIdForHeading(headingDeg, lastFacingIdRef.current)
+      : null;
+  if (facingId) lastFacingIdRef.current = facingId;
+  const compassFacing =
+    facingId
+      ? weatherParagraphs.find((p) => p.id === facingId)?.topic ?? null
+      : null;
   const photoPassThroughRef = useRef(photoPassThrough);
   photoPassThroughRef.current = photoPassThrough;
 
@@ -1356,13 +1410,16 @@ export default function FieldNotesScreen({
                     ↑
                   </span>
                   <p>Point phone away from building</p>
+                  {compassFacing ? (
+                    <p className="field-notes-compass-facing">{compassFacing}</p>
+                  ) : null}
                 </div>
                 <DirectionCompass
                   ref={compassRef}
                   paragraphs={weatherParagraphs}
                   headingDeg={headingDeg}
                   interactive={false}
-                  showHint
+                  showHint={false}
                 />
                 {headingError ? (
                   <p className="field-notes-compass-error">{headingError}</p>
@@ -1687,7 +1744,6 @@ export default function FieldNotesScreen({
                   <div className="field-notes-summary-body">
                     <div className="field-notes-summary-main">
                       <label className="field-notes-created field-notes-summary-date">
-                        <span>Date</span>
                         <input
                           type="text"
                           value={createdDraft}
@@ -1707,21 +1763,21 @@ export default function FieldNotesScreen({
                         </p>
                       </div>
                       <div className="field-notes-summary-actions">
-                        <button
+                        <FitOneLineButton
                           type="button"
                           className="btn big field-notes-finish-inline"
                           disabled={busy || shots.length === 0 || tutorial}
+                          label="Save & leave"
                           onClick={() => {
                             if (tutorial) return;
                             setShowSave(true);
                           }}
-                        >
-                          Save & leave
-                        </button>
-                        <button
+                        />
+                        <FitOneLineButton
                           type="button"
                           className="btn primary big field-notes-finish-inline"
                           disabled={busy || shots.length === 0 || (tutorial && !tutorialAllows("continueDoc"))}
+                          label="Continue to document"
                           onClick={() => {
                             if (tutorial) {
                               onTutorialEventRef.current?.({ type: "continueDoc" });
@@ -1729,9 +1785,7 @@ export default function FieldNotesScreen({
                             }
                             onContinueToReport();
                           }}
-                        >
-                          Continue to document
-                        </button>
+                        />
                       </div>
                     </div>
                     <div className="field-notes-summary-missing">
@@ -1787,8 +1841,13 @@ export default function FieldNotesScreen({
 
       {showSave && (
         <FieldNotesFinishSheet
-          shotCount={shots.length}
           busy={busy}
+          summary={
+            shots.length === 0
+              ? "Take at least one photo before saving."
+              : `${shots.length} photo${shots.length === 1 ? "" : "s"} will be saved in the app.`
+          }
+          actionsDisabled={shots.length === 0}
           onClose={() => setShowSave(false)}
           onSaveInApp={() => {
             setShowSave(false);
@@ -1797,6 +1856,10 @@ export default function FieldNotesScreen({
           onExportDocx={() => {
             setShowSave(false);
             onExportDocx();
+          }}
+          onExportDmsr={() => {
+            setShowSave(false);
+            onExportDmsr();
           }}
         />
       )}

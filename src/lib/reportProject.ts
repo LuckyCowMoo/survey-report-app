@@ -16,6 +16,16 @@ export const PROJECT_KIND = "dampmaster.survey.project";
 export const PROJECT_VERSION = 1;
 export const PROJECT_EXT = ".dmsr";
 export const PROJECT_MIME = "application/vnd.dampmaster.survey+json";
+export const IMPORT_NOTES_ACCEPT = [
+  ".docx",
+  PROJECT_EXT,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  PROJECT_MIME
+].join(",");
+
+export function isDmsrFile(file: { name: string; type?: string }): boolean {
+  return /\.dmsr$/i.test(file.name) || file.type === PROJECT_MIME;
+}
 
 export type ProjectStep = "review" | "details";
 

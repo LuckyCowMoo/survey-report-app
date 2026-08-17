@@ -103,12 +103,24 @@ function onActivate(e: KeyboardEvent<SVGGElement>, pick: () => void) {
   }
 }
 
-export function weatherIdForHeading(headingDeg: number): string {
-  return WEATHER_DIRECTIONS[nearestCompassIndex(headingDeg)]!.id;
+export function weatherIdForHeading(
+  headingDeg: number,
+  currentId?: string | null
+): string {
+  const current = currentId
+    ? WEATHER_DIRECTIONS.findIndex((d) => d.id === currentId)
+    : -1;
+  return WEATHER_DIRECTIONS[
+    nearestCompassIndex(headingDeg, current >= 0 ? current : null)
+  ]!.id;
 }
 
-export function weatherNoteForHeading(headingDeg: number): string {
-  return WEATHER_DIRECTIONS[nearestCompassIndex(headingDeg)]!.note;
+export function weatherNoteForHeading(
+  headingDeg: number,
+  currentId?: string | null
+): string {
+  const id = weatherIdForHeading(headingDeg, currentId);
+  return WEATHER_DIRECTIONS.find((d) => d.id === id)?.note ?? "north facing";
 }
 
 export type DirectionCompassHandle = {
@@ -155,9 +167,13 @@ export const DirectionCompass = forwardRef<DirectionCompassHandle, Props>(
       [byId]
     );
 
+    const lastLiveIdRef = useRef<string | null>(null);
     const liveHot =
       hotIdProp ??
-      (headingDeg != null ? weatherIdForHeading(headingDeg) : null);
+      (headingDeg != null
+        ? weatherIdForHeading(headingDeg, lastLiveIdRef.current)
+        : null);
+    if (liveHot) lastLiveIdRef.current = liveHot;
     const hotId = liveHot ?? hoverId;
     const hotIdRef = useRef(hotId);
     hotIdRef.current = hotId;

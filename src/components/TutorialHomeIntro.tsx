@@ -82,7 +82,7 @@ export default function TutorialHomeIntro({
             </span>
             <span className="home-cta-copy">
               <span className="home-btn-title">Import field notes</span>
-              <span className="home-upload-meta">.DOCX ↗</span>
+              <span className="home-upload-meta">.DOCX · .DMSR ↗</span>
             </span>
           </button>
           <button
