@@ -1,5 +1,6 @@
 import type { ExportFormat, ExportFormatOption } from "../lib/webShare";
 import SheetShell from "./SheetShell";
+import { useT } from "../lib/i18n";
 
 interface Props {
   title?: string;
@@ -10,12 +11,13 @@ interface Props {
 }
 
 export default function ExportFormatSheet({
-  title = "Download format",
+  title,
   options,
   busy = false,
   onPick,
   onClose
 }: Props) {
+  const t = useT();
   return (
     <SheetShell
       onClose={onClose}
@@ -25,8 +27,8 @@ export default function ExportFormatSheet({
     >
       {({ requestClose }) => (
         <>
-          <h2 id="export-format-title">{title}</h2>
-          <p className="muted">Choose how you want the report saved.</p>
+          <h2 id="export-format-title">{title ?? t("export.title")}</h2>
+          <p className="muted">{t("export.hint")}</p>
           <div className="export-format-list">
             {options.map((opt) => (
               <button
@@ -48,7 +50,7 @@ export default function ExportFormatSheet({
               disabled={busy}
               onClick={requestClose}
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </>

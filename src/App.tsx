@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import HomeScreen from "./components/HomeScreen";
 import PastReportsScreen from "./components/PastReportsScreen";
 import FieldNotesScreen from "./components/FieldNotesScreen";
+import FieldNotesGate from "./components/FieldNotesGate";
 import ReviewScreen from "./components/ReviewScreen";
 import DetailsScreen from "./components/DetailsScreen";
 import GenerateScreen from "./components/GenerateScreen";
@@ -20,6 +22,7 @@ import {
   normalizeReportExtras,
   PartialDetailsSuggestError,
   suggestDetailsExtras,
+  suggestPostProjectCleanup,
   type DetailsSuggestScope
 } from "./lib/detailsSuggest";
 import {
@@ -68,7 +71,7 @@ import {
 } from "./lib/scrollRoot";
 import { startOrientationGuard } from "./lib/orientationGuard";
 import { reorderArray } from "./lib/sectionLift";
-import { fieldNotesForReviewReturn, fieldNotesToShorthand, renumberFieldNotes, createFieldNoteShot } from "./lib/fieldNotes";
+import { fieldNotesForReviewReturn, fieldNotesToShorthand, mergeRematchedSections, renumberFieldNotes, createFieldNoteShot } from "./lib/fieldNotes";
 import {
   generateShorthandDocx,
   shorthandDocxFileName
@@ -79,6 +82,7 @@ import type {
   FieldNoteShot,
   PhotoAnnotation,
   PhotoCrop,
+  PropertyEpcSummary,
   ReportExtras,
   ReportMetadata,
   SectionState
@@ -105,6 +109,20 @@ import {
 import { loadTutorialJpeg, TUTORIAL_ASSETS } from "./lib/tutorial/script";
 import { tutorialAiConfig } from "./lib/tutorial/openRouter";
 import { applyTheme } from "./lib/theme";
+import { applyTextScale, startTextFitWatcher } from "./lib/textScale";
+import { t, useT } from "./lib/i18n";
+import { waitCompositorIdle } from "./lib/cameraCapture";
+import { extractUkPostcode } from "./lib/postcodes";
+import {
+  epcFitsAddress,
+  epcHasCertificate,
+  fetchEpcCertificate,
+  fetchEpcForHit,
+  isEpcUnreachable,
+  pickEpcHitForAddress,
+  searchEpcByAddress,
+  searchEpcByPostcode
+} from "./lib/epc";
 
 type Step = AppStep;
 type DesignStep = "review" | "details";
@@ -124,7 +142,7 @@ function designStepForPersist(step: Step): DesignStep | null {
 function libraryDisplayTitle(report: LibraryReportMeta): string {
   return (
     report.fileName.replace(/\.docx$/i, "").replace(/\.dmsr$/i, "") ||
-    "Untitled report"
+    t("common.untitled")
   );
 }
 
@@ -169,6 +187,7 @@ const defaultExtras: ReportExtras = {
   surveyDiscount: "",
   timeEstimate: "5-7 days",
   excludePlanCosts: false,
+  postProjectCleanup: "",
   invasiveSurvey: false,
   aiSuggested: {
     issues: {
@@ -188,6 +207,10 @@ export default function App() {
   usePointerInputMode();
 
   useEffect(() => startOrientationGuard(), []);
+  useEffect(() => {
+    applyTextScale(loadSettings().textScale);
+    return startTextFitWatcher();
+  }, []);
   const { showIntro, dismissIntro } = useIntroSplash();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
@@ -224,6 +247,15 @@ export default function App() {
     defaultMetadata(loadSettings())
   );
   const [extras, setExtras] = useState<ReportExtras>(defaultExtras);
+  const [propertyEpc, setPropertyEpc] = useState<PropertyEpcSummary | null>(null);
+  const [fieldNotesSetup, setFieldNotesSetup] = useState<
+    "address" | "epc" | null
+  >(null);
+  /** Full-size field-notes tree. Shrink before review swap; expand after it paints. */
+  const [fieldNotesExpanded, setFieldNotesExpanded] = useState(true);
+  const [epcBusy, setEpcBusy] = useState(false);
+  const [epcError, setEpcError] = useState<string | null>(null);
+  const t = useT();
   const [busy, setBusy] = useState<string | null>(null);
   const [busySectionIndex, setBusySectionIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -239,6 +271,7 @@ export default function App() {
   const fieldNotesRef = useRef(fieldNotes);
   const metadataRef = useRef(metadata);
   const extrasRef = useRef(extras);
+  const propertyEpcRef = useRef(propertyEpc);
   const warningsRef = useRef(warnings);
   const settingsRef = useRef(settings);
   aiBatchRunningRef.current = aiBatchRunning;
@@ -248,6 +281,7 @@ export default function App() {
   fieldNotesRef.current = fieldNotes;
   metadataRef.current = metadata;
   extrasRef.current = extras;
+  propertyEpcRef.current = propertyEpc;
   warningsRef.current = warnings;
   settingsRef.current = settings;
   const importTriggerRef = useRef<(() => void) | null>(null);
@@ -286,6 +320,17 @@ export default function App() {
     setStep(next);
     pushAppHist({ app: 1, step: next });
   }, []);
+
+  const shrinkFieldNotesTree = useCallback(async () => {
+    flushSync(() => setFieldNotesExpanded(false));
+    await waitCompositorIdle();
+  }, []);
+
+  const expandFieldNotesSoon = useCallback(() => {
+    void waitCompositorIdle(80).then(() => setFieldNotesExpanded(true));
+  }, []);
+  const expandFieldNotesSoonRef = useRef(expandFieldNotesSoon);
+  expandFieldNotesSoonRef.current = expandFieldNotesSoon;
 
   // Always open review / details scrolled to the top.
   useEffect(() => {
@@ -407,10 +452,25 @@ export default function App() {
     replaceAppHist({ app: 1, step: "home" });
     const onPop = (e: PopStateEvent) => {
       const s = readAppHist(e.state);
+      const from = stepRef.current;
+      if (
+        (from === "review" && s.step === "fieldNotes") ||
+        (from === "fieldNotes" && s.step === "review")
+      ) {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement) active.blur();
+      }
+      if (from === "fieldNotes" && s.step === "review") {
+        setFieldNotesExpanded(false);
+      }
       setShowSettings(s.overlay === "settings");
       setShowGuide(s.overlay === "guide");
       if (s.overlay !== "settings") setSettingsFocusIdentity(false);
       setStep(s.step);
+      if (from === "review" && s.step === "fieldNotes") {
+        setFieldNotesExpanded(false);
+        expandFieldNotesSoonRef.current();
+      }
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -562,9 +622,47 @@ export default function App() {
     [settings]
   );
 
+  const refreshPropertyEpc = useCallback(async () => {
+    const meta = metadataRef.current;
+    const existing = propertyEpcRef.current;
+    setEpcBusy(true);
+    setEpcError(null);
+    try {
+      if (epcHasCertificate(existing) && existing && epcFitsAddress(existing, meta.propertyAddress)) {
+        const summary = await fetchEpcCertificate(existing.lmkKey);
+        setPropertyEpc(summary);
+        return;
+      }
+      const postcode = extractUkPostcode(meta.propertyAddress);
+      const street = meta.propertyAddress
+        .replace(postcode ?? "", "")
+        .replace(/[,;]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      let hits = postcode ? await searchEpcByPostcode(postcode) : [];
+      let match = pickEpcHitForAddress(hits, meta.propertyAddress);
+      if (!match && hits.length === 0 && street.length >= 4) {
+        hits = await searchEpcByAddress(street);
+        match = pickEpcHitForAddress(hits, meta.propertyAddress);
+      }
+      if (!match) {
+        setPropertyEpc(null);
+        setEpcError(null);
+        return;
+      }
+      setPropertyEpc(await fetchEpcForHit(match));
+    } catch (err) {
+      setPropertyEpc(null);
+      setEpcError(isEpcUnreachable(err) ? t("epc.error") : null);
+    } finally {
+      setEpcBusy(false);
+    }
+  }, [t]);
+
   const handleSettingsSave = useCallback((next: AppSettings) => {
     setSettings(next);
     saveSettings(next);
+    applyTextScale(next.textScale);
     setMetadata((m) => ({
       ...m,
       companyName: next.companyName,
@@ -601,7 +699,15 @@ export default function App() {
   const startFieldNotes = useCallback(() => {
     setError(null);
     setFieldNotes([]);
+    setSections([]);
+    setWarnings([]);
+    setExtras(defaultExtras);
+    setPropertyEpc(null);
+    setEpcError(null);
+    setMetadata(defaultMetadata(settingsRef.current));
     setTutorialBeat(null);
+    setFieldNotesSetup("address");
+    setFieldNotesExpanded(true);
     fieldNotesSessionKeyRef.current = `fieldnotes:${crypto.randomUUID()}`;
     navigateTo("fieldNotes");
   }, [navigateTo]);
@@ -642,6 +748,8 @@ export default function App() {
     setSections([]);
     setWarnings([]);
     setExtras(defaultExtras);
+    setPropertyEpc(null);
+    setFieldNotesSetup(null);
     setMetadata(defaultMetadata(settings));
     setError(null);
     setAiErrors({});
@@ -680,7 +788,9 @@ export default function App() {
       }
       if (next.beat === "reviewIntro") {
         void (async () => {
-          setBusy("Preparing report…");
+          setBusy(t("app.preparingReport"));
+          const active = document.activeElement;
+          if (active instanceof HTMLElement) active.blur();
           try {
             const notes = fieldNotesRef.current;
             const entries = await fieldNotesToShorthand(notes);
@@ -715,9 +825,16 @@ export default function App() {
 
   const openFieldNotesFromReview = useCallback(() => {
     setError(null);
+    setFieldNotesSetup(null);
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
+    setFieldNotesExpanded(false);
     setFieldNotes((prev) => fieldNotesForReviewReturn(sections, prev));
     navigateTo("fieldNotes");
-  }, [navigateTo, sections]);
+    setFocusedSectionIndex(null);
+    setReviewDwellIndex(null);
+    expandFieldNotesSoon();
+  }, [expandFieldNotesSoon, navigateTo, sections]);
 
   /** Quiet .dmsr upsert — no busy UI, no reset, does not abort AI. */
   const persistReportDraftQuiet = useCallback(
@@ -727,6 +844,7 @@ export default function App() {
       extras?: ReportExtras;
       warnings?: string[];
       designStep?: DesignStep;
+      epc?: PropertyEpcSummary | null;
     }) => {
       if (tutorialBeatRef.current) return;
       const secs = opts?.sections ?? sectionsRef.current;
@@ -734,6 +852,7 @@ export default function App() {
       const meta = opts?.metadata ?? metadataRef.current;
       const nextExtras = opts?.extras ?? extrasRef.current;
       const nextWarnings = opts?.warnings ?? warningsRef.current;
+      const nextEpc = opts?.epc !== undefined ? opts.epc : propertyEpcRef.current;
       const designStep =
         opts?.designStep ??
         designStepForPersist(stepRef.current) ??
@@ -753,7 +872,8 @@ export default function App() {
           warnings: nextWarnings,
           fileName,
           step: designStep,
-          sourceFingerprint
+          sourceFingerprint,
+          epc: nextEpc
         })
       );
       await saveProjectDraftToLibrary({
@@ -798,13 +918,19 @@ export default function App() {
         return;
       }
       if (announce) {
-        setBusy(leaveHome ? "Saving field notes…" : "Saving…");
+        setBusy(leaveHome ? t("app.savingFieldNotes") : t("app.saving"));
       }
       setError(null);
       try {
         const entries = await fieldNotesToShorthand(notes);
-        const nextSections = matchEntries(entries);
-        const meta = defaultMetadata(settingsRef.current);
+        const rematched = matchEntries(entries);
+        const nextSections = mergeRematchedSections(
+          rematched,
+          sectionsRef.current
+        );
+        const meta = metadataRef.current.propertyAddress.trim()
+          ? metadataRef.current
+          : defaultMetadata(settingsRef.current);
         const fileName = reportFileName(meta).replace(/\.docx$/i, "") + ".dmsr";
         const coverThumb = await coverThumbnailBlob(nextSections);
         // Stable session key while capturing so autosave upserts one draft row.
@@ -819,13 +945,15 @@ export default function App() {
           buildReportProject({
             sections: nextSections,
             metadata: meta,
-            extras: defaultExtras,
+            extras: extrasRef.current,
             warnings: [],
             fileName,
             step: "review",
-            sourceFingerprint
+            sourceFingerprint,
+            epc: propertyEpcRef.current
           })
         );
+        setSections(nextSections);
         await saveProjectDraftToLibrary({
           projectBlob,
           fileName,
@@ -856,12 +984,19 @@ export default function App() {
 
   const continueFieldNotesToReport = useCallback(() => {
     if (fieldNotes.length === 0) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
     void (async () => {
-      setBusy("Preparing report…");
+      await shrinkFieldNotesTree();
+      setBusy(t("app.preparingReport"));
       setError(null);
       try {
         const entries = await fieldNotesToShorthand(fieldNotes);
-        const nextSections = matchEntries(entries);
+        const rematched = matchEntries(entries);
+        const nextSections = mergeRematchedSections(
+          rematched,
+          sectionsRef.current
+        );
         // Keep fieldNotes so Add more notes can return without re-burning photos.
         setSections(nextSections);
         setWarnings([]);
@@ -878,15 +1013,22 @@ export default function App() {
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
+        setFieldNotesExpanded(true);
       } finally {
         setBusy(null);
       }
     })();
-  }, [fieldNotes, navigateTo, saveFieldNotesDraft, enqueuePersistReport]);
+  }, [
+    fieldNotes,
+    navigateTo,
+    saveFieldNotesDraft,
+    enqueuePersistReport,
+    shrinkFieldNotesTree
+  ]);
 
   const exportFieldNotesDocx = useCallback(async (leaveHome = false) => {
     if (fieldNotes.length === 0) return;
-    setBusy(leaveHome ? "Saving & exporting…" : "Saving & exporting…");
+    setBusy(t("app.savingExporting"));
     setError(null);
     try {
       await saveFieldNotesDraft(false);
@@ -913,24 +1055,31 @@ export default function App() {
 
   const exportFieldNotesDmsr = useCallback(async (leaveHome = false) => {
     if (fieldNotes.length === 0) return;
-    setBusy("Saving & exporting…");
+    setBusy(t("app.savingExporting"));
     setError(null);
     try {
       await saveFieldNotesDraft(false);
       const entries = await fieldNotesToShorthand(fieldNotes);
-      const nextSections = matchEntries(entries);
-      const meta = defaultMetadata(settingsRef.current);
+      const rematched = matchEntries(entries);
+      const nextSections = mergeRematchedSections(
+        rematched,
+        sectionsRef.current
+      );
+      const meta = metadataRef.current.propertyAddress.trim()
+        ? metadataRef.current
+        : defaultMetadata(settingsRef.current);
       const fileName = projectFileNameFromDocx(reportFileName(meta));
       const sourceFingerprint = await fingerprintSourceEntries(entries);
       const projectBlob = encodeReportProject(
         buildReportProject({
           sections: nextSections,
           metadata: meta,
-          extras: defaultExtras,
+          extras: extrasRef.current,
           warnings: [],
           fileName,
           step: "review",
-          sourceFingerprint
+          sourceFingerprint,
+          epc: propertyEpcRef.current
         })
       );
       downloadFile(new File([projectBlob], fileName, { type: PROJECT_MIME }));
@@ -969,6 +1118,8 @@ export default function App() {
       setWarnings(project.warnings);
       setMetadata(project.metadata);
       setExtras(normalizeReportExtras(project.extras));
+      setPropertyEpc(project.epc ?? null);
+      setFieldNotesSetup(null);
       setFocusedSectionIndex(null);
       setReviewDwellIndex(null);
       detailsSuggestRanRef.current = false;
@@ -985,7 +1136,7 @@ export default function App() {
 
   const handleFile = useCallback(
     async (file: File) => {
-      setBusy(isDmsrFile(file) ? "Opening project..." : "Reading document...");
+      setBusy(isDmsrFile(file) ? t("app.openingProject") : t("app.readingDocument"));
       setError(null);
       setAiErrors({});
       setPendingSourceMatch(null);
@@ -1231,7 +1382,7 @@ export default function App() {
         openSettings();
         return;
       }
-      setBusy(`Asking AI about section ${sections[index].entry.number}...`);
+      setBusy(t("app.askingAi", { n: sections[index].entry.number }));
       setBusySectionIndex(index);
       setAiErrors((prev) => {
         if (!(index in prev)) return prev;
@@ -1447,6 +1598,45 @@ export default function App() {
     [sections, settings, openSettings, enqueuePersistReport]
   );
 
+  const runCleanupSuggest = useCallback(async () => {
+    const ai = activeDetailsSuggestAi(settings);
+    if (!ai.apiKey) {
+      setDetailsSuggestError({
+        scope: "costs",
+        message: `Add your ${providerLabel(ai.provider)} API key in Settings first.`
+      });
+      openSettings();
+      return;
+    }
+    detailsSuggestAbortRef.current?.abort();
+    const ac = new AbortController();
+    detailsSuggestAbortRef.current = ac;
+    setDetailsSuggestBusy("costs");
+    setDetailsSuggestError(null);
+    try {
+      const text = await suggestPostProjectCleanup(sections, extras, ai);
+      if (ac.signal.aborted) return;
+      setExtras((prev) => {
+        const next = { ...prev, postProjectCleanup: text };
+        enqueuePersistReport({ extras: next, designStep: "details" });
+        return next;
+      });
+    } catch (err) {
+      if (ac.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+        return;
+      }
+      setDetailsSuggestError({
+        scope: "costs",
+        message: err instanceof Error ? err.message : String(err)
+      });
+    } finally {
+      if (detailsSuggestAbortRef.current === ac) {
+        detailsSuggestAbortRef.current = null;
+      }
+      setDetailsSuggestBusy(null);
+    }
+  }, [sections, extras, settings, openSettings, enqueuePersistReport]);
+
   // Auto-suggest once ~5s after opening details (when enabled and not yet run).
   useEffect(() => {
     if (step !== "details") return;
@@ -1468,6 +1658,8 @@ export default function App() {
     setFieldNotes([]);
     setWarnings([]);
     setExtras(defaultExtras);
+    setPropertyEpc(null);
+    setFieldNotesSetup(null);
     setMetadata(defaultMetadata(settings));
     setError(null);
     setAiErrors({});
@@ -1502,7 +1694,7 @@ export default function App() {
       aiBatchAbortRef.current?.abort();
       detailsSuggestAbortRef.current?.abort();
       try {
-        setBusy(afterPersist ? "Saving & exporting…" : "Saving draft…");
+        setBusy(afterPersist ? t("app.savingExporting") : t("app.savingDraft"));
         await persistReportDraftQuiet({ designStep });
         if (afterPersist) await afterPersist();
         draftFingerprintRef.current = null;
@@ -1671,28 +1863,33 @@ export default function App() {
           <button
             type="button"
             className="topbar-btn topbar-btn-icon"
-            aria-label="Back"
+            aria-label={t("topbar.back")}
             onClick={() => {
               if (tutorialBeat) return;
+              if (step === "fieldNotes" && fieldNotesSetup === "epc") {
+                setFieldNotesSetup("address");
+                return;
+              }
               goBack();
             }}
           >
             <span className="topbar-btn-glyph" aria-hidden>
               <IconBack />
             </span>
-            <span className="topbar-btn-label">Back</span>
+            <span className="topbar-btn-label">{t("common.back")}</span>
           </button>
-          <h1 className="topbar-title">
-            {step === "past" && "Past reports"}
-            {step === "fieldNotes" && (tutorialMode ? "Tutorial" : "Field notes")}
-            {step === "review" && "Review sections"}
-            {step === "details" && "Report details"}
-            {step === "generate" && "Generate"}
+          <h1 className="topbar-title" data-fit-text>
+            {step === "past" && t("topbar.pastReports")}
+            {step === "fieldNotes" &&
+              (tutorialMode ? t("topbar.tutorial") : t("topbar.fieldNotes"))}
+            {step === "review" && t("topbar.review")}
+            {step === "details" && t("topbar.details")}
+            {step === "generate" && t("topbar.generate")}
           </h1>
           <button
             type="button"
             className="topbar-btn topbar-btn-icon"
-            aria-label="Settings"
+            aria-label={t("topbar.settings")}
             onClick={() => {
               if (tutorialBeat) return;
               openSettings();
@@ -1701,7 +1898,7 @@ export default function App() {
             <span className="topbar-btn-glyph" aria-hidden>
               <IconSettings />
             </span>
-            <span className="topbar-btn-label">Settings</span>
+            <span className="topbar-btn-label">{t("topbar.settings")}</span>
           </button>
         </header>
       )}
@@ -1739,6 +1936,16 @@ export default function App() {
             onBack={() => handleTutorialEvent({ type: "back" })}
             onLanguage={() => handleTutorialEvent({ type: "language" })}
             onChooseTheme={() => handleTutorialEvent({ type: "chooseTheme" })}
+            onSurveyorName={(name) => {
+              const next = {
+                ...settings,
+                surveyorName: name
+              };
+              setSettings(next);
+              saveSettings(next);
+              setMetadata((m) => ({ ...m, contactName: name }));
+              handleTutorialEvent({ type: "surveyorName" });
+            }}
             onTake={() => handleTutorialEvent({ type: "takeTutorial" })}
             onSkip={() => handleTutorialEvent({ type: "skip" })}
           />
@@ -1759,21 +1966,73 @@ export default function App() {
             busy={busy !== null}
           />
         )}
-        {step === "fieldNotes" && (
-          <FieldNotesScreen
-            shots={fieldNotes}
-            onChange={setFieldNotes}
-            busy={busy !== null}
-            onSaveInApp={() => void saveFieldNotesDraft(true)}
-            onContinueToReport={continueFieldNotesToReport}
-            onExportDocx={() => void exportFieldNotesDocx(true)}
-            onExportDmsr={() => void exportFieldNotesDmsr(true)}
-            photoPassThrough={settings.studioPhotoPassThrough}
-            tutorial={tutorialMode}
-            tutorialBeat={tutorialBeat}
-            onTutorialEvent={handleTutorialEvent}
+        {step === "fieldNotes" && fieldNotesSetup && (
+          <FieldNotesGate
+            phase={fieldNotesSetup}
+            metadata={metadata}
+            onMetadata={(next) => {
+              setMetadata(next);
+              if (
+                propertyEpc &&
+                !epcFitsAddress(propertyEpc, next.propertyAddress)
+              ) {
+                setPropertyEpc(null);
+                setEpcError(null);
+              }
+            }}
+            epc={propertyEpc}
+            epcLoading={epcBusy}
+            epcError={epcError}
+            onPickedEpc={(summary) => {
+              setPropertyEpc(summary);
+              setEpcError(null);
+            }}
+            onRefreshEpc={() => void refreshPropertyEpc()}
+            onContinueFromAddress={() => {
+              setFieldNotesSetup("epc");
+              void refreshPropertyEpc();
+            }}
+            onSkipToPhotos={() => {
+              setFieldNotesExpanded(true);
+              setFieldNotesSetup(null);
+            }}
+            onContinueFromEpc={() => {
+              setFieldNotesExpanded(true);
+              setFieldNotesSetup(null);
+            }}
           />
         )}
+        {(step === "fieldNotes" && !fieldNotesSetup) ||
+        ((step === "review" || step === "details" || step === "generate") &&
+          fieldNotes.length > 0) ? (
+          <div
+            className={
+              step === "fieldNotes" && fieldNotesExpanded
+                ? "field-notes-keep"
+                : "field-notes-held"
+            }
+            inert={!(step === "fieldNotes" && fieldNotesExpanded)}
+          >
+            <FieldNotesScreen
+              shots={fieldNotes}
+              onChange={setFieldNotes}
+              busy={busy !== null}
+              active={step === "fieldNotes" && fieldNotesExpanded}
+              onSaveInApp={() => void saveFieldNotesDraft(true)}
+              onContinueToReport={continueFieldNotesToReport}
+              onExportDocx={() => void exportFieldNotesDocx(true)}
+              onExportDmsr={() => void exportFieldNotesDmsr(true)}
+              photoPassThrough={settings.studioPhotoPassThrough}
+              tutorial={tutorialMode}
+              tutorialBeat={tutorialBeat}
+              onTutorialEvent={handleTutorialEvent}
+              onOpenEpc={() => {
+                setFieldNotesSetup("epc");
+                if (!epcHasCertificate(propertyEpc)) void refreshPropertyEpc();
+              }}
+            />
+          </div>
+        ) : null}
         {step === "review" && (
           <ReviewScreen
             sections={sections}
@@ -1831,6 +2090,10 @@ export default function App() {
           <DetailsScreen
             metadata={metadata}
             extras={extras}
+            epc={propertyEpc}
+            onRefreshEpc={() => void refreshPropertyEpc()}
+            epcLoading={epcBusy}
+            epcError={epcError}
             onMetadata={setMetadata}
             onExtras={setExtras}
             onContinue={() => {
@@ -1848,6 +2111,7 @@ export default function App() {
             suggestBusy={detailsSuggestBusy}
             suggestError={detailsSuggestError}
             onAskAi={runDetailsSuggest}
+            onAskCleanup={runCleanupSuggest}
             onDismissSuggestError={() => setDetailsSuggestError(null)}
             tutorial={tutorialMode}
             lockContinue={Boolean(
@@ -1860,6 +2124,7 @@ export default function App() {
             sections={sections}
             metadata={metadata}
             extras={extras}
+            epc={propertyEpc}
             warnings={warnings}
             flaggedCount={flaggedCount}
             onRestart={reset}
@@ -1978,21 +2243,21 @@ export default function App() {
         >
           {() => (
             <>
-              <h2 id="resume-match-title">Continue saved report?</h2>
+              <h2 id="resume-match-title">{t("app.resumeTitle")}</h2>
               <p>
-                This field notes document matches{" "}
-                <strong>{libraryDisplayTitle(pendingSourceMatch.match)}</strong>
-                {pendingSourceMatch.match.houseName ||
-                pendingSourceMatch.match.clientName
-                  ? ` (${[
-                      pendingSourceMatch.match.houseName,
-                      pendingSourceMatch.match.clientName
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")})`
-                  : ""}
-                . Continue from that saved work, or start a new report from the
-                import?
+                {t("app.resumeBody", {
+                  title: libraryDisplayTitle(pendingSourceMatch.match),
+                  detail:
+                    pendingSourceMatch.match.houseName ||
+                    pendingSourceMatch.match.clientName
+                      ? ` (${[
+                          pendingSourceMatch.match.houseName,
+                          pendingSourceMatch.match.clientName
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")})`
+                      : ""
+                })}
               </p>
               <div className="sheet-actions">
                 <button
@@ -2001,7 +2266,7 @@ export default function App() {
                   disabled={resumeBusy}
                   onClick={startFreshDespiteMatch}
                 >
-                  Start fresh
+                  {t("app.startFresh")}
                 </button>
                 <button
                   type="button"
@@ -2009,7 +2274,7 @@ export default function App() {
                   disabled={resumeBusy}
                   onClick={() => void resumeMatchedProject()}
                 >
-                  {resumeBusy ? "Opening…" : "Continue saved"}
+                  {resumeBusy ? t("common.opening") : t("app.continueSaved")}
                 </button>
               </div>
             </>
@@ -2028,6 +2293,7 @@ export default function App() {
           aiErrorSectionNums={aiErrorSectionNums}
           pipJumpOnHover={settings.pipJumpOnHover}
           studioPhotoPassThrough={settings.studioPhotoPassThrough}
+          showSectionText={settings.studioShowSectionText}
           onJumpSection={focusSection}
           onDwellComplete={completeDwellReview}
         />

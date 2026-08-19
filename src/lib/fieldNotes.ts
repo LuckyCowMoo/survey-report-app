@@ -69,28 +69,29 @@ export async function fieldNotesToShorthand(
   shots: FieldNoteShot[]
 ): Promise<ShorthandEntry[]> {
   const numbered = renumberFieldNotes(shots);
-  return Promise.all(
-    numbered.map(async (s) => {
-      const annotations = s.annotations?.length ? s.annotations : undefined;
-      const photoCrop = s.photoCrop;
-      const image = await compositeAnnotationsOntoJpeg(
-        s.image,
-        annotations,
-        photoCrop
-      );
-      return {
-        number: s.number,
-        note: s.note,
-        created: s.created,
-        imageNames: [
-          s.imageName.replace(/^word\/media\//i, "") || `image${s.number}.jpeg`
-        ],
-        images: [image],
-        ...(annotations ? { annotations } : {}),
-        ...(photoCrop ? { photoCrop } : {})
-      };
-    })
-  );
+  const out: ShorthandEntry[] = [];
+  // One photo at a time — compositing every JPEG in parallel can gray-screen Chrome.
+  for (const s of numbered) {
+    const annotations = s.annotations?.length ? s.annotations : undefined;
+    const photoCrop = s.photoCrop;
+    const image = await compositeAnnotationsOntoJpeg(
+      s.image,
+      annotations,
+      photoCrop
+    );
+    out.push({
+      number: s.number,
+      note: s.note,
+      created: s.created,
+      imageNames: [
+        s.imageName.replace(/^word\/media\//i, "") || `image${s.number}.jpeg`
+      ],
+      images: [image],
+      ...(annotations ? { annotations } : {}),
+      ...(photoCrop ? { photoCrop } : {})
+    });
+  }
+  return out;
 }
 
 function matchFieldNoteShots(shots: FieldNoteShot[]) {
@@ -292,6 +293,57 @@ export function fieldNotesForReviewReturn(
     );
   }
   return sectionsToFieldNotes(sections);
+}
+
+function photoKey(image: Uint8Array, note: string): string {
+  const n = image.length;
+  const head = n > 0 ? image[0] : 0;
+  const tail = n > 1 ? image[n - 1] : 0;
+  return `${n}:${head}:${tail}:${note.trim()}`;
+}
+
+/**
+ * Keep review wording (manual / AI / edited library) when returning from
+ * the camera so rematching shorthand does not wipe it. Rematch when the
+ * field note itself changed.
+ */
+export function mergeRematchedSections(
+  fresh: SectionState[],
+  previous: SectionState[]
+): SectionState[] {
+  if (previous.length === 0) return fresh;
+  const prevByKey = new Map<string, SectionState>();
+  for (const section of previous) {
+    const image = section.entry.images[0] ?? new Uint8Array();
+    prevByKey.set(photoKey(image, section.entry.note), section);
+  }
+  return fresh.map((next, i) => {
+    const image = next.entry.images[0] ?? new Uint8Array();
+    const prev =
+      prevByKey.get(photoKey(image, next.entry.note)) ??
+      (previous.length === fresh.length ? previous[i] : undefined);
+    if (!prev) return next;
+    if (prev.entry.note.trim() !== next.entry.note.trim()) return next;
+    const keepWording =
+      prev.source === "manual" ||
+      prev.source === "ai" ||
+      prev.source === "crossref" ||
+      prev.text.trim() !== next.text.trim();
+    if (!keepWording) return next;
+    return {
+      ...next,
+      libraryId: prev.libraryId,
+      placeholderValues: { ...prev.placeholderValues },
+      headingLine: prev.headingLine,
+      crossrefSection: prev.crossrefSection,
+      text: prev.text,
+      source: prev.source,
+      needsAttention: prev.needsAttention,
+      pendingReview: prev.pendingReview,
+      pendingNoteConfirm: prev.pendingNoteConfirm,
+      suggestions: prev.suggestions.length ? prev.suggestions : next.suggestions
+    };
+  });
 }
 
 export function moveFieldNote(

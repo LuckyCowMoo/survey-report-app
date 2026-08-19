@@ -6,7 +6,8 @@ import type {
   TextSource,
   PhotoAnnotation,
   PhotoCrop,
-  NormPoint
+  NormPoint,
+  PropertyEpcSummary
 } from "../types";
 import { normalizeReportExtras } from "./detailsSuggest";
 import { normalizePhotoCrop } from "./photoCrop";
@@ -42,6 +43,8 @@ export interface ReportProject {
   metadata: ReportMetadata;
   extras: ReportExtras;
   warnings: string[];
+  /** Cached England & Wales EPC snapshot for this property. */
+  epc?: PropertyEpcSummary | null;
 }
 
 interface SerializedEntry {
@@ -81,6 +84,7 @@ interface SerializedProject {
   metadata: ReportMetadata;
   extras: ReportExtras;
   warnings: string[];
+  epc?: PropertyEpcSummary | null;
 }
 
 /** Stable id for an imported field-notes document (notes + photo sizes). */
@@ -280,6 +284,7 @@ export function buildReportProject(input: {
   fileName: string;
   step?: ProjectStep;
   sourceFingerprint?: string;
+  epc?: PropertyEpcSummary | null;
 }): ReportProject {
   return {
     kind: PROJECT_KIND,
@@ -293,7 +298,8 @@ export function buildReportProject(input: {
     sections: input.sections,
     metadata: input.metadata,
     extras: input.extras,
-    warnings: input.warnings ? [...input.warnings] : []
+    warnings: input.warnings ? [...input.warnings] : [],
+    ...(input.epc ? { epc: input.epc } : {})
   };
 }
 
@@ -311,7 +317,8 @@ export function encodeReportProject(project: ReportProject): Blob {
     sections: project.sections.map(serializeSection),
     metadata: project.metadata,
     extras: project.extras,
-    warnings: [...project.warnings]
+    warnings: [...project.warnings],
+    ...(project.epc ? { epc: project.epc } : {})
   };
   return new Blob([JSON.stringify(payload)], { type: PROJECT_MIME });
 }
@@ -361,6 +368,9 @@ export async function decodeReportProject(blob: Blob): Promise<ReportProject> {
     extras: normalizeReportExtras(parsed.extras as ReportExtras),
     warnings: Array.isArray(parsed.warnings)
       ? parsed.warnings.map(String)
-      : []
+      : [],
+    ...(parsed.epc && typeof parsed.epc === "object"
+      ? { epc: parsed.epc as PropertyEpcSummary }
+      : {})
   };
 }

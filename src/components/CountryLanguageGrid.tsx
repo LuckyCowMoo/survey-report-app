@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { useT } from "../lib/i18n";
 import type { TutorialLanguage } from "../lib/tutorial/progress";
 import flagEngland from "../assets/tutorial/flag-england.svg";
 import flagWales from "../assets/tutorial/flag-wales.svg";
@@ -23,42 +24,43 @@ export default function CountryLanguageGrid({
   onChange,
   layout = "grid"
 }: Props) {
+  const t = useT();
   return (
     <div
       className={`tutorial-lang-grid${layout === "row" ? " is-row" : ""}`}
       role="listbox"
-      aria-label="Language"
+      aria-label={t("settings.language")}
     >
       <LangCard
-        label="English"
+        label={t("tutorial.english")}
         selected={value === "en"}
         onSelect={() => onChange("en")}
       >
-        <FlagShape svg={mapEngland} flag={flagEngland} label="England" />
+        <FlagShape svg={mapEngland} flag={flagEngland} label={t("tutorial.england")} />
       </LangCard>
       <LangCard
-        label="Welsh"
+        label={t("tutorial.welsh")}
         selected={value === "cy"}
         onSelect={() => onChange("cy")}
       >
-        <FlagShape svg={mapWales} flag={flagWales} label="Wales" />
+        <FlagShape svg={mapWales} flag={flagWales} label={t("tutorial.wales")} />
       </LangCard>
       <LangCard
-        label="Irish"
+        label={t("tutorial.irish")}
         selected={value === "ga"}
         onSelect={() => onChange("ga")}
       >
         <div className="tutorial-island-map" aria-hidden>
-          <FlagShape svg={mapIreland} flag={flagIreland} label="Ireland" />
-          <FlagShape svg={mapNi} flag={flagNi} label="Northern Ireland" />
+          <FlagShape svg={mapIreland} flag={flagIreland} label={t("tutorial.ireland")} />
+          <FlagShape svg={mapNi} flag={flagNi} label={t("tutorial.northernIreland")} />
         </div>
       </LangCard>
       <LangCard
-        label="Scottish"
+        label={t("tutorial.scottish")}
         selected={value === "gd"}
         onSelect={() => onChange("gd")}
       >
-        <FlagShape svg={mapScotland} flag={flagScotland} label="Scotland" />
+        <FlagShape svg={mapScotland} flag={flagScotland} label={t("tutorial.scotland")} />
       </LangCard>
     </div>
   );

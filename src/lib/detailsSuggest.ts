@@ -504,6 +504,10 @@ export function normalizeReportExtras(extras: ReportExtras): ReportExtras {
   return {
     ...extras,
     excludePlanCosts: Boolean(extras.excludePlanCosts),
+    postProjectCleanup:
+      typeof extras.postProjectCleanup === "string"
+        ? extras.postProjectCleanup
+        : "",
     invasiveSurvey: Boolean(extras.invasiveSurvey),
     aiSuggested: {
       issues: {
@@ -660,4 +664,37 @@ export function detailsFirstIncompleteId(extras: ReportExtras): string | null {
     return "cost-other-amount";
   }
   return null;
+}
+
+export async function suggestPostProjectCleanup(
+  sections: SectionState[],
+  extras: ReportExtras,
+  cfg: AiConfig
+): Promise<string> {
+  const corpus = sectionCorpus(sections);
+  const plan = extras.projectPlanLines.trim() || "(none written)";
+  const costs = extras.costLines
+    .map((l) => l.label || l.description)
+    .filter(Boolean)
+    .join("; ");
+  const prompt = `You write one professional paragraph for a UK damp-survey report covering post-project clean-up and reinstatement.
+
+It may mention items such as new skirting boards, decorating, removing and refitting radiators, and replacing ceiling coving where full-height wall treatment is needed — but only include what is relevant to THIS survey. Do not pad with generic boilerplate if the works do not need it.
+
+Write plain British English, one or two paragraphs, no heading, no bullet points.
+
+Project plan:
+${plan}
+
+Billed items: ${costs || "(none)"}
+
+Survey sections:
+${corpus}`;
+
+  const raw = await callAiText(
+    cfg,
+    prompt,
+    "You are a damp and timber surveyor writing report close-out notes."
+  );
+  return raw.trim();
 }

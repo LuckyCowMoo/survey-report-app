@@ -10,9 +10,10 @@ import {
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent
 } from "react";
+import { flushSync } from "react-dom";
 import {
   applyCameraZoom,
-  captureJpegFromVideo,
+  captureJpegFromStream,
   getCameraZoomRange,
   isCameraAbortError,
   listVideoCameras,
@@ -20,6 +21,7 @@ import {
   savePreferredCameraId,
   startCamera,
   stopCamera,
+  waitCompositorIdle,
   type CameraDeviceInfo
 } from "../lib/cameraCapture";
 import {
@@ -49,6 +51,7 @@ import {
 } from "./DirectionCompass";
 import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
 import FieldNotesNoteField from "./FieldNotesNoteField";
+import { useT } from "../lib/i18n";
 import TutorialLiveView, {
   type TutorialLiveHandle
 } from "./TutorialLiveView";
@@ -76,6 +79,9 @@ type Props = {
   tutorial?: boolean;
   tutorialBeat?: TutorialBeat | null;
   onTutorialEvent?: (event: TutorialEvent) => void;
+  onOpenEpc?: () => void;
+  /** False while review is showing — keep this tree mounted, pause the camera. */
+  active?: boolean;
 };
 
 type Mode = "live" | "review" | "retake";
@@ -94,13 +100,24 @@ const ANNOTATE_HOLD_MS = 500;
 const ANNOTATE_HOLD_MOVE_PX = 14;
 const ZOOM_CSS_MIN = 1;
 const ZOOM_CSS_MAX = 4;
-/** Keep the camera warm this many slides away from the live slot. */
-const CAMERA_KEEP_ALIVE_SWIPES = 2;
 const DIAL_START_DEG = 180; // left
 const DIAL_END_DEG = 0; // right (upper semicircle, clockwise from left→top→right)
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Enlarge a cover-fit media box without CSS transform (avoids video compositor layers). */
+function cssCoverZoomStyle(zoom: number): CSSProperties {
+  const z = Math.max(1, zoom);
+  if (z <= 1.001) return { width: "100%", height: "100%" };
+  const shift = -((z - 1) / 2) * 100;
+  return {
+    width: `${z * 100}%`,
+    height: `${z * 100}%`,
+    marginLeft: `${shift}%`,
+    marginTop: `${shift}%`
+  };
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -228,8 +245,11 @@ export default function FieldNotesScreen({
   photoPassThrough = false,
   tutorial = false,
   tutorialBeat = null,
-  onTutorialEvent
+  onTutorialEvent,
+  onOpenEpc,
+  active = true
 }: Props) {
+  const t = useT();
   const [index, setIndex] = useState(() => shots.length);
   const [mode, setMode] = useState<Mode>("live");
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -271,12 +291,17 @@ export default function FieldNotesScreen({
   const [gridView, setGridView] = useState(false);
   const [walkToken, setWalkToken] = useState(0);
   const [gutterChapter, setGutterChapter] = useState(false);
+  const [keepNoteField, setKeepNoteField] = useState(false);
+  const [previewParked, setPreviewParked] = useState(false);
+  const liveGenRef = useRef(0);
   const noteIdleRef = useRef(0);
   const onTutorialEventRef = useRef(onTutorialEvent);
   onTutorialEventRef.current = onTutorialEvent;
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const retakeVideoRef = useRef<HTMLVideoElement>(null);
+  const previewRef = useRef<HTMLCanvasElement>(null);
+  const previewRafRef = useRef(0);
+  const paintPreviewRef = useRef<() => void>(() => {});
   const tutorialViewRef = useRef<TutorialLiveHandle>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const importingRef = useRef(false);
@@ -323,6 +348,9 @@ export default function FieldNotesScreen({
   const deleteHintTimerRef = useRef(0);
   const annotateHoldTimerRef = useRef<number | null>(null);
   const thumbUrlsRef = useRef<string[]>([]);
+  const thumbCacheRef = useRef<Map<string, { sig: string; url: string }>>(
+    new Map()
+  );
   const [thumbUrls, setThumbUrls] = useState<string[]>([]);
   const compassRef = useRef<DirectionCompassHandle>(null);
   const compassOpenRef = useRef(false);
@@ -333,11 +361,7 @@ export default function FieldNotesScreen({
   const current = safeIndex < shots.length ? shots[safeIndex] : null;
   const isEmptySlot = current === null;
   const showLive = isEmptySlot || mode === "retake";
-  const swipesFromLive = shots.length - safeIndex;
-  const shouldRunCamera =
-    mode === "retake" ||
-    capturing ||
-    swipesFromLive <= CAMERA_KEEP_ALIVE_SWIPES;
+  const shouldRunCamera = active && showLive && !gridView;
   shouldRunCameraRef.current = shouldRunCamera;
   const tutorialAllows = (action: Parameters<typeof allows>[1]) =>
     !tutorial || (tutorialBeat != null && allows(tutorialBeat, action));
@@ -389,10 +413,8 @@ export default function FieldNotesScreen({
     cameraGenRef.current += 1;
     stopCamera(streamRef.current);
     streamRef.current = null;
-    const v = videoRef.current;
-    if (v) v.srcObject = null;
-    const r = retakeVideoRef.current;
-    if (r) r.srcObject = null;
+    const el = videoRef.current;
+    if (el) el.srcObject = null;
   }, []);
 
   const applyCameraRunning = useCallback((running: boolean) => {
@@ -402,13 +424,14 @@ export default function FieldNotesScreen({
         track.enabled = running;
       }
     }
-    const playEl = (el: HTMLVideoElement | null) => {
-      if (!el) return;
-      if (running) void el.play().catch(() => {});
-      else el.pause();
-    };
-    playEl(videoRef.current);
-    playEl(retakeVideoRef.current);
+    const el = videoRef.current;
+    if (!el) return;
+    if (running && stream) {
+      if (el.srcObject !== stream) el.srcObject = stream;
+      void el.play().catch(() => {});
+    } else {
+      el.pause();
+    }
   }, []);
 
   const refreshCameras = useCallback(async () => {
@@ -488,8 +511,27 @@ export default function FieldNotesScreen({
       setCameraLoading(false);
       return;
     }
-    void ensureCamera();
-  }, [cameraId, ensureCamera, tutorial]);
+    if (!active) {
+      stopStream();
+      return;
+    }
+    if (streamRef.current) {
+      applyCameraRunning(shouldRunCameraRef.current);
+      return;
+    }
+    let cancelled = false;
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        if (!cancelled) void ensureCamera();
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [active, applyCameraRunning, cameraId, ensureCamera, tutorial]);
 
   useEffect(() => () => stopStream(), [stopStream]);
 
@@ -497,21 +539,127 @@ export default function FieldNotesScreen({
     applyCameraRunning(shouldRunCamera);
   }, [shouldRunCamera, applyCameraRunning]);
 
+  const parkLivePreview = useCallback(async (releaseStream = false) => {
+    liveGenRef.current += 1;
+    if (previewRafRef.current) {
+      cancelAnimationFrame(previewRafRef.current);
+      previewRafRef.current = 0;
+    }
+    const canvas = previewRef.current;
+    if (canvas) {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
+    flushSync(() => setPreviewParked(true));
+    applyCameraRunning(false);
+    if (releaseStream) stopStream();
+    await waitCompositorIdle();
+  }, [applyCameraRunning, stopStream]);
+
+  paintPreviewRef.current = () => {
+    const video = videoRef.current;
+    const canvas = previewRef.current;
+    if (!video || !canvas || video.readyState < 2) return;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (vw < 2 || vh < 2) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+    const cw = Math.max(1, Math.round(rect.width * dpr));
+    const ch = Math.max(1, Math.round(rect.height * dpr));
+    if (cw < 2 || ch < 2) return;
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+    const ctx = canvas.getContext("2d", {
+      alpha: false,
+      willReadFrequently: true
+    });
+    if (!ctx) return;
+    const zoom = hwZoomRef.current ? 1 : Math.max(1, zoomRef.current);
+    const scale = Math.max(cw / vw, ch / vh) * zoom;
+    const dw = vw * scale;
+    const dh = vh * scale;
+    ctx.drawImage(video, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+  };
+
   useEffect(() => {
-    if (mode !== "retake") return;
-    const stream = streamRef.current;
-    const el = retakeVideoRef.current;
-    if (!stream || !el) return;
-    if (el.srcObject !== stream) el.srcObject = stream;
-    if (shouldRunCameraRef.current) void el.play().catch(() => {});
-  }, [mode]);
+    if (tutorial || !shouldRunCamera || previewParked) {
+      if (previewRafRef.current) {
+        cancelAnimationFrame(previewRafRef.current);
+        previewRafRef.current = 0;
+      }
+      return;
+    }
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        let last = 0;
+        const tick = (now: number) => {
+          if (now - last >= 32) {
+            last = now;
+            paintPreviewRef.current();
+          }
+          previewRafRef.current = requestAnimationFrame(tick);
+        };
+        previewRafRef.current = requestAnimationFrame(tick);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+      cancelAnimationFrame(previewRafRef.current);
+      previewRafRef.current = 0;
+    };
+  }, [tutorial, shouldRunCamera, previewParked]);
+
+  useEffect(() => {
+    if (tutorial || !shouldRunCamera) {
+      liveGenRef.current += 1;
+      setPreviewParked(true);
+      return;
+    }
+    const gen = liveGenRef.current;
+    let cancelled = false;
+    void waitCompositorIdle().then(() => {
+      if (!cancelled && gen === liveGenRef.current) setPreviewParked(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tutorial, shouldRunCamera]);
+
+  useEffect(() => {
+    if (!current && shots.length === 0) return;
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setKeepNoteField(true));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [current, shots.length]);
 
   useEffect(() => {
     let cancelled = false;
-    const prev = thumbUrlsRef.current;
+    const cache = thumbCacheRef.current;
     void (async () => {
       const next: string[] = [];
+      const keep = new Set<string>();
       for (const s of shots) {
+        const sig = `${s.image.byteLength}:${s.annotations?.length ?? 0}:${
+          s.photoCrop
+            ? `${s.photoCrop.left},${s.photoCrop.top},${s.photoCrop.right},${s.photoCrop.bottom}`
+            : ""
+        }`;
+        const hit = cache.get(s.id);
+        if (hit && hit.sig === sig) {
+          next.push(hit.url);
+          keep.add(s.id);
+          continue;
+        }
         const bytes = await compositeAnnotationsOntoJpeg(
           s.image,
           s.annotations,
@@ -520,13 +668,19 @@ export default function FieldNotesScreen({
         if (cancelled) return;
         const copy = new Uint8Array(bytes.byteLength);
         copy.set(bytes);
-        next.push(URL.createObjectURL(new Blob([copy], { type: "image/jpeg" })));
+        const url = URL.createObjectURL(new Blob([copy], { type: "image/jpeg" }));
+        if (hit) URL.revokeObjectURL(hit.url);
+        cache.set(s.id, { sig, url });
+        keep.add(s.id);
+        next.push(url);
       }
-      if (cancelled) {
-        for (const u of next) URL.revokeObjectURL(u);
-        return;
+      for (const [id, ent] of [...cache.entries()]) {
+        if (!keep.has(id)) {
+          URL.revokeObjectURL(ent.url);
+          cache.delete(id);
+        }
       }
-      for (const u of prev) URL.revokeObjectURL(u);
+      if (cancelled) return;
       thumbUrlsRef.current = next;
       setThumbUrls(next);
     })();
@@ -537,7 +691,10 @@ export default function FieldNotesScreen({
 
   useEffect(
     () => () => {
-      for (const u of thumbUrlsRef.current) URL.revokeObjectURL(u);
+      for (const ent of thumbCacheRef.current.values()) {
+        URL.revokeObjectURL(ent.url);
+      }
+      thumbCacheRef.current.clear();
     },
     []
   );
@@ -748,11 +905,9 @@ export default function FieldNotesScreen({
 
   const takePhoto = async () => {
     if (!canCapture) return;
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement) focused.blur();
     setCapturing(true);
-    triggerPulse();
-    triggerFlash();
-    setCapturePulse(true);
-    window.setTimeout(() => setCapturePulse(false), 450);
     try {
       const hotId = compassRef.current?.hotId();
       const fromHot = WEATHER_DIRECTIONS.find((d) => d.id === hotId)?.note;
@@ -768,13 +923,19 @@ export default function FieldNotesScreen({
               return view.captureJpeg();
             })()
           : await (async () => {
-              const video = videoRef.current;
-              if (!video || !streamRef.current) {
+              if (!streamRef.current) {
                 await ensureCamera();
-                throw new Error("Camera is not ready yet — wait a moment and try again.");
               }
-              return captureJpegFromVideo(video);
+              if (!streamRef.current) {
+                throw new Error(t("fieldNotes.cameraNotReady"));
+              }
+              return captureJpegFromStream(streamRef.current, videoRef.current);
             })();
+      await parkLivePreview();
+      triggerPulse();
+      triggerFlash();
+      setCapturePulse(true);
+      window.setTimeout(() => setCapturePulse(false), 450);
       if (mode === "retake" && current && !compassOpen) {
         onChange(
           shots.map((s, i) =>
@@ -807,6 +968,7 @@ export default function FieldNotesScreen({
       onTutorialEventRef.current?.({ type: "photo" });
     } catch (err) {
       setCameraError(err instanceof Error ? err.message : String(err));
+      if (shouldRunCameraRef.current) setPreviewParked(false);
     } finally {
       setCapturing(false);
     }
@@ -818,6 +980,7 @@ export default function FieldNotesScreen({
     setImportingPictures(true);
     setImportError(null);
     try {
+      await parkLivePreview();
       const currentShots = shotsRef.current;
       const target = pendingPictureTarget;
       const replacing =
@@ -859,13 +1022,13 @@ export default function FieldNotesScreen({
       }
     } catch (err) {
       setImportError(
-        err instanceof Error ? err.message : "Could not add that picture."
+        err instanceof Error ? err.message : t("fieldNotes.couldNotAdd")
       );
     } finally {
       importingRef.current = false;
       setImportingPictures(false);
     }
-  }, []);
+  }, [parkLivePreview, t]);
 
   const cancelHold = useCallback(() => {
     holdArmedRef.current = false;
@@ -961,7 +1124,7 @@ export default function FieldNotesScreen({
     if (!tutorial) {
       const ok = await requestHeadingPermission();
       if (!ok) {
-        setHeadingError("Allow compass access to align the rose.");
+        setHeadingError(t("fieldNotes.compassAllow"));
       } else {
         setHeadingError(null);
       }
@@ -1236,10 +1399,10 @@ export default function FieldNotesScreen({
   };
 
   const activeCameraLabel =
-    cameras.find((c) => c.deviceId === cameraId)?.label ?? "Camera";
+    cameras.find((c) => c.deviceId === cameraId)?.label ?? t("fieldNotes.camera");
 
   const indexLabel = isEmptySlot
-    ? "New note"
+    ? t("fieldNotes.newNote")
     : `${safeIndex + 1}/${shots.length}`;
 
   const onPickCamera = (id: string) => {
@@ -1272,10 +1435,7 @@ export default function FieldNotesScreen({
   };
 
   const cssZoom = hwZoom ? 1 : zoom;
-  const mediaZoomStyle: CSSProperties = {
-    transform: `scale(${cssZoom})`,
-    transformOrigin: "center center"
-  };
+  const mediaZoomStyle = cssCoverZoomStyle(cssZoom);
 
   const dialAngle = zoomToDialAngle(zoom, zoomMin, zoomMax);
   const knobRad = (dialAngle * Math.PI) / 180;
@@ -1311,10 +1471,10 @@ export default function FieldNotesScreen({
   });
 
   const shutterLabel = isEmptySlot
-    ? "Take photo"
+    ? t("fieldNotes.takePhoto")
     : mode === "retake"
-      ? "Take photo"
-      : "Retake";
+      ? t("fieldNotes.takePhoto")
+      : t("fieldNotes.retake");
 
   return (
     <div
@@ -1344,7 +1504,10 @@ export default function FieldNotesScreen({
       <div className="field-notes-stage">
         <div className="field-notes-camera-panel">
           <div className="field-notes-media-viewport">
-            <div className="field-notes-media-track" style={trackStyle}>
+            <div
+              className={`field-notes-media-track${sliding ? " is-sliding" : ""}`}
+              style={trackStyle}
+            >
               {shots.map((shot, i) => (
                 <div key={shot.id} className="field-notes-media-slide">
                   {thumbUrls[i] && (
@@ -1359,27 +1522,32 @@ export default function FieldNotesScreen({
                 </div>
               ))}
               <div className="field-notes-media-slide field-notes-media-live">
-                {!tutorial && (
-                  <video
-                    ref={videoRef}
-                    className="field-notes-video"
-                    style={mediaZoomStyle}
-                    playsInline
-                    muted
-                    autoPlay
-                  />
-                )}
+                <div className="field-notes-live-placeholder" />
               </div>
             </div>
-            {mode === "retake" && !tutorial && (
-              <video
-                ref={retakeVideoRef}
-                className="field-notes-video field-notes-video-retake"
-                style={mediaZoomStyle}
-                playsInline
-                muted
-                autoPlay
-              />
+            {!tutorial && (
+              <div
+                className={`field-notes-video-clip${showLive ? "" : " is-behind"}${
+                  previewParked || !showLive ? " is-parked" : ""
+                }`}
+              >
+                <video
+                  ref={videoRef}
+                  className="field-notes-video"
+                  width={1}
+                  height={1}
+                  playsInline
+                  muted
+                  autoPlay
+                />
+                {!previewParked && showLive ? (
+                  <canvas
+                    ref={previewRef}
+                    className="field-notes-video-preview"
+                    aria-hidden
+                  />
+                ) : null}
+              </div>
             )}
             {tutorial && (showLive || tutorialBeat === "walking") && (
               <TutorialLiveView
@@ -1457,7 +1625,7 @@ export default function FieldNotesScreen({
               <div
                 className="field-notes-camera-loading"
                 role="status"
-                aria-label="Starting camera"
+                aria-label={t("fieldNotes.startingCamera")}
               >
                 <BrandMark
                   className="field-notes-camera-loading-mark"
@@ -1494,7 +1662,7 @@ export default function FieldNotesScreen({
                   pendingPictureTarget = at < len ? at : "new";
                 }}
               >
-                {importingPictures ? "Adding…" : "Add from pictures"}
+                {importingPictures ? t("fieldNotes.adding") : t("fieldNotes.addFromPictures")}
               </label>
               {cameras.length > 1 ? (
                 <label className="field-notes-lens-btn">
@@ -1503,7 +1671,7 @@ export default function FieldNotesScreen({
                     className="field-notes-lens-select"
                     value={cameraId ?? cameras[0]?.deviceId ?? ""}
                     disabled={busy || capturing}
-                    aria-label="Choose camera"
+                    aria-label={t("fieldNotes.chooseCamera")}
                     onChange={(e) => onPickCamera(e.target.value)}
                   >
                     {cameras.map((c) => (
@@ -1538,7 +1706,7 @@ export default function FieldNotesScreen({
                       compassOpen ? " is-on" : ""
                     }`}
                     aria-label={
-                      compassOpen ? "Back to camera" : "Compass orientation"
+                      compassOpen ? t("fieldNotes.backToCamera") : t("fieldNotes.compass")
                     }
                     aria-pressed={compassOpen}
                     disabled={busy || capturing}
@@ -1564,7 +1732,7 @@ export default function FieldNotesScreen({
                     } as CSSProperties
                   }
                   disabled={!current || busy || isEmptySlot}
-                  aria-label="Hold to delete photo"
+                  aria-label={t("fieldNotes.holdToDeletePhoto")}
                   onPointerDown={onDeletePointerDown}
                   onPointerUp={onDeletePointerUp}
                   onPointerCancel={() => cancelDeleteHold(false)}
@@ -1651,7 +1819,7 @@ export default function FieldNotesScreen({
             }${shutterSolid ? " is-post-capture" : ""}`}
             aria-label={
               shutterRetakeLook || (mode === "review" && current)
-                ? "Hold to retake photo"
+                ? t("fieldNotes.holdToRetake")
                 : shutterLabel
             }
             disabled={
@@ -1677,7 +1845,7 @@ export default function FieldNotesScreen({
           <div
             className="field-notes-pips"
             role="tablist"
-            aria-label="Field note sections"
+            aria-label={t("fieldNotes.fieldNoteSections")}
           >
             {shots.map((shot, i) => {
               const tone = pipTones[i] ?? "empty";
@@ -1703,7 +1871,7 @@ export default function FieldNotesScreen({
               type="button"
               role="tab"
               aria-selected={isEmptySlot}
-              aria-label="Go to new note"
+              aria-label={t("fieldNotes.goToNew")}
               className={`studio-pip field-notes-pip tone-empty${
                 isEmptySlot ? " is-current" : ""
               }`}
@@ -1714,31 +1882,45 @@ export default function FieldNotesScreen({
             </button>
           </div>
           <div className="field-notes-notes-viewport">
-            <div className="field-notes-notes-track" style={trackStyle}>
-              {shots.map((shot, i) => (
-                <div key={shot.id} className="field-notes-notes-slide">
-                  <FieldNotesNoteField
-                    note={shot.note}
-                    tone={pipTones[i] ?? "empty"}
-                    disabled={busy || (tutorial && !tutorialAllows("notes"))}
-                    ariaLabel={`Notes for photo ${shot.number}`}
-                    placeholder={
-                      tutorial
-                        ? tutorialBeat === "typeFront"
-                          ? "Type “front”"
-                          : tutorialBeat === "typeRh"
-                            ? "Type “rh 45”"
-                            : tutorialBeat === "typeBaseline"
-                              ? "Type “baseline kitchen”"
-                              : tutorialBeat === "typeTrees"
-                                ? "Write a short note about the trees"
-                                : "Add a note for this photo…"
-                        : "Add a note for this photo…"
-                    }
-                    onChange={(note) => updateShot(i, { note })}
-                  />
-                </div>
-              ))}
+            {keepNoteField ? (
+            <div
+              className="field-notes-notes-slide"
+              inert={isEmptySlot}
+              aria-hidden={isEmptySlot}
+            >
+              <FieldNotesNoteField
+                note={current?.note ?? ""}
+                tone={pipTones[safeIndex] ?? "empty"}
+                disabled={
+                  isEmptySlot ||
+                  busy ||
+                  (tutorial && !tutorialAllows("notes"))
+                }
+                ariaLabel={
+                  current
+                    ? `Notes for photo ${current.number}`
+                    : t("fieldNotes.notePlaceholder")
+                }
+                placeholder={
+                  tutorial
+                    ? tutorialBeat === "typeFront"
+                      ? t("fieldNotes.tutorialFront")
+                      : tutorialBeat === "typeRh"
+                        ? t("fieldNotes.tutorialRh")
+                        : tutorialBeat === "typeBaseline"
+                          ? t("fieldNotes.tutorialBaseline")
+                          : tutorialBeat === "typeTrees"
+                            ? t("fieldNotes.tutorialTrees")
+                            : t("fieldNotes.notePlaceholder")
+                    : t("fieldNotes.notePlaceholder")
+                }
+                onChange={(note) => {
+                  if (current) updateShot(safeIndex, { note });
+                }}
+              />
+            </div>
+            ) : null}
+            {isEmptySlot ? (
               <div className="field-notes-notes-slide field-notes-notes-summary">
                 <div className="field-notes-summary">
                   <div className="field-notes-summary-body">
@@ -1749,17 +1931,38 @@ export default function FieldNotesScreen({
                           value={createdDraft}
                           disabled={busy || tutorial}
                           onChange={(e) => setCreatedDraft(e.target.value)}
-                          aria-label="Created date for new notes"
+                          aria-label={t("fieldNotes.createdDate")}
                         />
                       </label>
+                      {onOpenEpc && !tutorial && (
+                        <button
+                          type="button"
+                          className="btn small field-notes-epc-btn"
+                          disabled={busy}
+                          onClick={onOpenEpc}
+                        >
+                          {t("epc.open")}
+                        </button>
+                      )}
                       <div className="field-notes-summary-stats" aria-live="polite">
-                        <p>
-                          <strong>{shots.length}</strong>
-                          <span>photo{shots.length === 1 ? "" : "s"} taken</span>
-                        </p>
-                        <p>
-                          <strong>{matchedCount}</strong>
-                          <span>matched shorthand</span>
+                        <p className="field-notes-matched-line">
+                          {t("fieldNotes.notesMatched", {
+                            x: "\u0000",
+                            y: shots.length
+                          })
+                            .split("\u0000")
+                            .map((part, i, parts) =>
+                              i < parts.length - 1 ? (
+                                <span key={i}>
+                                  {part}
+                                  <strong className="field-notes-matched-count">
+                                    {matchedCount}
+                                  </strong>
+                                </span>
+                              ) : (
+                                <span key={i}>{part}</span>
+                              )
+                            )}
                         </p>
                       </div>
                       <div className="field-notes-summary-actions">
@@ -1767,7 +1970,7 @@ export default function FieldNotesScreen({
                           type="button"
                           className="btn big field-notes-finish-inline"
                           disabled={busy || shots.length === 0 || tutorial}
-                          label="Save & leave"
+                          label={t("fieldNotes.saveLeave")}
                           onClick={() => {
                             if (tutorial) return;
                             setShowSave(true);
@@ -1777,31 +1980,55 @@ export default function FieldNotesScreen({
                           type="button"
                           className="btn primary big field-notes-finish-inline"
                           disabled={busy || shots.length === 0 || (tutorial && !tutorialAllows("continueDoc"))}
-                          label="Continue to document"
+                          label={t("fieldNotes.continueDoc")}
                           onClick={() => {
                             if (tutorial) {
                               onTutorialEventRef.current?.({ type: "continueDoc" });
                               return;
                             }
-                            onContinueToReport();
+                            const focused = document.activeElement;
+                            if (focused instanceof HTMLElement) focused.blur();
+                            void parkLivePreview(true).then(() =>
+                              onContinueToReport()
+                            );
                           }}
                         />
                       </div>
                     </div>
                     <div className="field-notes-summary-missing">
                       <h2 className="field-notes-summary-missing-title">
-                        Still needed
+                        {t("fieldNotes.stillNeeded")}
                       </h2>
                       {missingChecklist.length === 0 ? (
                         <p className="field-notes-summary-missing-done">
-                          All key wording noted
+                          {t("fieldNotes.allNoted")}
                         </p>
                       ) : (
                         <ol className="field-notes-summary-missing-list">
                           {missingChecklist.map((item) => (
                             <li key={item.id}>
                               <span className="field-notes-summary-missing-label">
-                                {item.label}
+                                {t(
+                                  (
+                                    {
+                                      front: "checklist.front",
+                                      compass: "checklist.compass",
+                                      "air-quality": "checklist.airQuality",
+                                      rh: "checklist.rh",
+                                      "dew-point": "checklist.dewPoint",
+                                      baseline: "checklist.baseline",
+                                      "three-readings": "checklist.threeReadings",
+                                      "reading-1": "checklist.reading1",
+                                      "reading-2": "checklist.reading2",
+                                      "reading-3": "checklist.reading3",
+                                      "steel-pin": "checklist.steelPin",
+                                      thermal: "checklist.thermal",
+                                      "moisture-map-1": "checklist.moisture1",
+                                      "moisture-map-2": "checklist.moisture2",
+                                      "moisture-map-3": "checklist.moisture3"
+                                    } as Record<string, string>
+                                  )[item.id] ?? item.label
+                                )}
                               </span>
                               <span className="field-notes-summary-missing-hint">
                                 {item.hint}
@@ -1814,7 +2041,7 @@ export default function FieldNotesScreen({
                   </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </div>
           {(importError || !isEmptySlot) && (
             <div className="field-notes-notes-footer">
@@ -1828,7 +2055,7 @@ export default function FieldNotesScreen({
                   type="button"
                   className="field-notes-annotate-btn field-notes-annotate-footer"
                   disabled={!current || busy || capturing || (tutorial && !tutorialAllows("annotate"))}
-                  aria-label="Annotate photo"
+                  aria-label={t("fieldNotes.annotatePhoto")}
                   onClick={openAnnotate}
                 >
                   Annotate
@@ -1844,8 +2071,8 @@ export default function FieldNotesScreen({
           busy={busy}
           summary={
             shots.length === 0
-              ? "Take at least one photo before saving."
-              : `${shots.length} photo${shots.length === 1 ? "" : "s"} will be saved in the app.`
+              ? t("fieldNotes.saveNeedPhoto")
+              : t("fieldNotes.saveSummary", { count: shots.length })
           }
           actionsDisabled={shots.length === 0}
           onClose={() => setShowSave(false)}

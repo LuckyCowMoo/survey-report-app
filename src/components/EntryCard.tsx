@@ -29,11 +29,16 @@ import {
   writeScrollTop
 } from "../lib/scrollRoot";
 import type { LibraryParagraph, SectionState } from "../types";
+import AskAiButton from "./AskAiButton";
+import { t, useT } from "../lib/i18n";
 
 /** Hover must dwell this long before mouse highlights a section. */
 const HOVER_ACTIVATE_MS = 500;
 const SECTION_DELETE_HOLD_MS = 3000;
 
+/**
+ * Status chip and report-text card for one shorthand photo.
+ */
 interface Props {
   section: SectionState;
   index: number;
@@ -277,23 +282,23 @@ function Thumb({ bytes, name }: { bytes: Uint8Array; name: string }) {
 function statusChip(s: SectionState): { label: string; cls: string } {
   // Classes mirror studio pip tones (see .studio-pip.tone-*).
   if (s.pendingNoteConfirm)
-    return { label: "Confirm note", cls: "chip note-confirm" };
-  if (s.needsAttention) return { label: "Needs attention", cls: "chip attention" };
-  if (s.pendingReview) return { label: "Review wording", cls: "chip review" };
+    return { label: t("chip.confirmNote"), cls: "chip note-confirm" };
+  if (s.needsAttention) return { label: t("chip.needsAttention"), cls: "chip attention" };
+  if (s.pendingReview) return { label: t("chip.reviewWording"), cls: "chip review" };
   switch (s.source) {
     case "library":
-      return { label: "Standard wording", cls: "chip ok" };
+      return { label: t("chip.standard"), cls: "chip ok" };
     case "ai":
       return {
-        label: s.libraryId ? "AI · standard wording" : "AI written",
+        label: s.libraryId ? t("chip.aiStandard") : t("chip.aiWritten"),
         cls: "chip ai"
       };
     case "crossref":
-      return { label: "Cross-reference", cls: "chip ref" };
+      return { label: t("chip.crossref"), cls: "chip ref" };
     case "manual":
-      return { label: "Your wording", cls: "chip manual" };
+      return { label: t("chip.yourWording"), cls: "chip manual" };
     default:
-      return { label: "Empty", cls: "chip empty" };
+      return { label: t("chip.empty"), cls: "chip empty" };
   }
 }
 
@@ -334,6 +339,7 @@ export default function EntryCard({
   onAnnotate,
   onDelete
 }: Props) {
+  const t = useT();
   const [showPicker, setShowPicker] = useState(false);
   /** Progressive text shown while a large paste types in; null = show section.text. */
   const [revealDisplay, setRevealDisplay] = useState<string | null>(null);
@@ -360,6 +366,8 @@ export default function EntryCard({
   /** Last applied text-box height; image is only re-evaluated when this changes. */
   const lastTextBoxHeightRef = useRef(0);
   const lastThumbHeightRef = useRef(0);
+  /** True only after this card has actually been expanded in this mount. */
+  const wasExpandedRef = useRef(false);
   const focusChaseRafRef = useRef(0);
   const focusChaseRef = useRef<{ lastTop: number; lastScroll: number } | null>(
     null
@@ -547,8 +555,6 @@ export default function EntryCard({
         getComputedStyle(main).getPropertyValue("--card-media-size")
       ) || 132;
     const thumb = main.querySelector<HTMLElement>(".thumb-btn.can-grow-y");
-    let raf = 0;
-    let clearTimer = 0;
 
     const setMainHeight = (px: number) => {
       main.style.maxHeight = "none";
@@ -570,36 +576,22 @@ export default function EntryCard({
     };
 
     if (!bodyExpanded) {
+      wasExpandedRef.current = false;
       minTextHeightRef.current = 0;
       lastTextBoxHeightRef.current = 0;
       lastThumbHeightRef.current = 0;
-      if (stackText) setStackText(false);
-      const mainFrom = main.getBoundingClientRect().height;
-      const thumbFrom = thumb?.getBoundingClientRect().height ?? mediaSize;
+      if (stackText && document.activeElement !== text) setStackText(false);
+      main.style.height = "";
+      main.style.maxHeight = "";
       if (text) {
-        text.style.height = `${text.getBoundingClientRect().height}px`;
+        text.style.height = "";
+        text.style.minHeight = "";
       }
-      setMainHeight(mainFrom);
-      setThumbHeight(thumbFrom);
-      void main.offsetHeight;
-      raf = requestAnimationFrame(() => {
-        setMainHeight(mediaSize);
-        setThumbHeight(mediaSize);
-        clearTimer = window.setTimeout(() => {
-          main.style.height = "";
-          main.style.maxHeight = "";
-          setThumbHeight("");
-          if (text) {
-            text.style.height = "";
-            text.style.minHeight = "";
-          }
-        }, 300);
-      });
-      return () => {
-        cancelAnimationFrame(raf);
-        window.clearTimeout(clearTimer);
-      };
+      setThumbHeight("");
+      return;
     }
+
+    wasExpandedRef.current = true;
 
     // Lock the compact text height as the minimum the first time we expand.
     if (minTextHeightRef.current <= 0 && text) {
@@ -667,8 +659,12 @@ export default function EntryCard({
     if (!stackText && lineCount > 9) nextStack = true;
     else if (stackText && lineCount <= 8) nextStack = false;
     if (nextStack !== stackText) {
-      setStackText(nextStack);
-      if (!nextStack) return;
+      if (text && document.activeElement === text) {
+        nextStack = stackText;
+      } else {
+        setStackText(nextStack);
+        if (!nextStack) return;
+      }
     }
 
     if (nextStack) {
@@ -761,23 +757,8 @@ export default function EntryCard({
       return;
     }
 
-    // First highlight: animate from compact sizes up.
-    if (text) text.style.height = `${textFrom}px`;
-    setMainHeight(mainFrom);
-    setThumbHeight(thumbFrom);
-    void main.offsetHeight;
-
-    raf = requestAnimationFrame(() => {
-      main.style.transition = "";
-      if (text) text.style.transition = "";
-      if (thumb) thumb.style.transition = "";
-      applyTo();
-    });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.clearTimeout(clearTimer);
-    };
+    // First highlight: jump to size. Animating a live textarea gray-screens Chrome.
+    applyTo();
   }, [bodyExpanded, section.text, noteExpanded, section.entry.note, revealDisplay, stackText]);
 
   // After height layout: pin this card in the viewport while neighbours collapse.
@@ -1175,7 +1156,7 @@ export default function EntryCard({
           <input
             className="heading-input"
             type="text"
-            placeholder="Optional heading (e.g. Reading 1)"
+            placeholder={t("review.headingPlaceholder")}
             value={section.headingLine}
             disabled={aiWorking}
             onChange={(e) => onChange(index, { ...section, headingLine: e.target.value })}
@@ -1186,23 +1167,14 @@ export default function EntryCard({
 
       <div className="card-actions">
         <button className="btn small" disabled={aiWorking} onClick={() => setShowPicker(true)}>
-          Standard wording
+          {t("review.standardWording")}
         </button>
-        <button
-          className={`btn small${aiWorking ? " ai-busy" : ""}`}
-          disabled={!aiConfigured || busy}
-          title={aiConfigured ? "" : "Add your API key in Settings"}
-          onClick={() => onAskAi(index)}
-        >
-          {aiWorking ? (
-            <>
-              <span className="ai-spinner" aria-hidden />
-              Writing…
-            </>
-          ) : (
-            "Ask AI"
-          )}
-        </button>
+        <AskAiButton
+          configured={aiConfigured}
+          busy={aiWorking}
+          disabled={busy}
+          onAsk={() => onAskAi(index)}
+        />
         {section.entry.images[0] && onAnnotate && (
           <button
             type="button"
@@ -1213,7 +1185,7 @@ export default function EntryCard({
               onAnnotate(index);
             }}
           >
-            Annotate
+            {t("review.annotate")}
           </button>
         )}
         <select
@@ -1222,23 +1194,23 @@ export default function EntryCard({
           disabled={aiWorking}
           onChange={(e) => setCrossref(e.target.value)}
         >
-          <option value="">Refer to section...</option>
+          <option value="">{t("review.referTo")}</option>
           {otherSections.map((n) => (
             <option key={n} value={n}>
-              As illustrated in section {n}
+              {t("review.asIllustrated", { n })}
             </option>
           ))}
         </select>
         {section.entry.note && section.text !== section.entry.note && (
           <button className="btn small" onClick={() => editText(section.entry.note)}>
-            Use note text
+            {t("review.useNoteText")}
           </button>
         )}
         {onDelete && !dragPreview && (
           <span className="card-delete-wrap">
             {showDeleteHint && (
               <span className="card-delete-hint" role="status">
-                Hold to delete
+                {t("review.holdToDelete")}
               </span>
             )}
             <button
@@ -1252,14 +1224,14 @@ export default function EntryCard({
                 } as CSSProperties
               }
               disabled={aiWorking || busy}
-              aria-label="Hold to delete section"
+              aria-label={t("review.holdToDeleteSection")}
               onPointerDown={onDeletePointerDown}
               onPointerUp={onDeletePointerUp}
               onPointerCancel={() => cancelDeleteHold(false)}
               onContextMenu={(e) => e.preventDefault()}
             >
               <span className="card-delete-fill" aria-hidden />
-              <span className="card-delete-label">Delete</span>
+              <span className="card-delete-label">{t("common.delete")}</span>
             </button>
           </span>
         )}

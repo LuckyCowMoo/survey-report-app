@@ -9,6 +9,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import EntryCard from "./EntryCard";
+import AskAiButton from "./AskAiButton";
+import { useT } from "../lib/i18n";
 import AnnotationOverlay from "./AnnotationOverlay";
 import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
 import { getImageDims } from "../lib/imageUtils";
@@ -169,6 +171,7 @@ export default function ReviewScreen({
   lockContinue = false,
   lockReorder = false
 }: Props) {
+  const t = useT();
   const [showWarnings, setShowWarnings] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [holdArm, setHoldArm] = useState<HoldArm | null>(null);
@@ -832,38 +835,36 @@ export default function ReviewScreen({
     <div className={`review${drag ? " is-reordering" : ""}`}>
       <div className="review-summary">
         <p>
-          <strong>{sections.length}</strong> photo sections found
-          {flaggedCount > 0 ? (
-            <>
-              , <strong>{flaggedCount}</strong> need attention
-            </>
-          ) : (
-            " - all matched"
-          )}
+          {t("review.sectionsFound", { count: sections.length })}
+          {flaggedCount > 0
+            ? t("review.needAttention", { count: flaggedCount })
+            : t("review.allMatched")}
           .
         </p>
         <p className="muted review-reorder-hint">
-          Press and hold a section for 2 seconds, then drag to reorder.
+          {t("review.reorderHint")}
         </p>
         {flaggedCount > 0 && !tutorial && (
           aiBatchRunning ? (
             <button type="button" className="btn danger" onClick={onStopAiBatch}>
-              Stop AI
+              {t("askAi.stop")}
             </button>
           ) : (
-            <button
+            <AskAiButton
+              configured={aiConfigured}
+              busy={false}
+              disabled={busy}
+              onAsk={onAskAiAll}
+              label={t("askAi.aboutFlagged", { count: flaggedCount })}
               className="btn primary"
-              disabled={busy || !aiConfigured}
-              title={aiConfigured ? "" : "Add your API key in Settings"}
-              onClick={onAskAiAll}
-            >
-              Ask AI about all flagged ({flaggedCount})
-            </button>
+            />
           )
         )}
         {warnings.length > 0 && (
           <button className="btn small" onClick={() => setShowWarnings(!showWarnings)}>
-            {showWarnings ? "Hide" : "Show"} {warnings.length} parsing warning(s)
+            {showWarnings
+              ? t("review.hideWarnings", { count: warnings.length })
+              : t("review.showWarnings", { count: warnings.length })}
           </button>
         )}
         {showWarnings && (
@@ -943,7 +944,7 @@ export default function ReviewScreen({
             onAddMoreNotes();
           }}
         >
-          Add more notes
+          {t("review.addMore")}
         </button>
       </div>
 
@@ -957,7 +958,7 @@ export default function ReviewScreen({
             setShowSave(true);
           }}
         >
-          Save & leave
+          {t("finish.saveLeave")}
         </button>
       </div>
 
@@ -999,7 +1000,7 @@ export default function ReviewScreen({
           disabled={busy || !!drag || !!annotate || lockContinue}
           onClick={onContinue}
         >
-          Continue to report details
+          {t("review.continueDetails")}
         </button>
       </div>
 

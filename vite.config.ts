@@ -1,6 +1,66 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Plugin } from "vite";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+
+const EPC_UPSTREAM =
+  "https://api.get-energy-performance-data.communities.gov.uk";
+
+async function proxyEpcApi(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const raw = req.url ?? "";
+  const pathOnly = raw.split("?")[0] ?? "";
+  if (!pathOnly.startsWith("/api/epc")) return false;
+
+  const rest = pathOnly.slice("/api/epc".length) || "/";
+  const qs = raw.includes("?") ? raw.slice(raw.indexOf("?")) : "";
+  const target = `${EPC_UPSTREAM}/api${rest}${qs}`;
+  const rawAuth = req.headers.authorization;
+  const auth = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
+
+  try {
+    const upstream = await fetch(target, {
+      method: req.method || "GET",
+      headers: {
+        Accept:
+          typeof req.headers.accept === "string"
+            ? req.headers.accept
+            : "application/json",
+        ...(auth ? { Authorization: auth } : {})
+      }
+    });
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.statusCode = upstream.status;
+    const contentType = upstream.headers.get("content-type");
+    if (contentType) res.setHeader("Content-Type", contentType);
+    res.end(buf);
+  } catch {
+    res.statusCode = 502;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "EPC proxy failed" }));
+  }
+  return true;
+}
+
+function epcProxyPlugin(): Plugin {
+  const attach = (
+    server: { middlewares: { use: (fn: (req: IncomingMessage, res: ServerResponse, next: () => void) => void) => void } }
+  ) => {
+    server.middlewares.use((req, res, next) => {
+      void proxyEpcApi(req, res).then((handled) => {
+        if (!handled) next();
+      });
+    });
+  };
+  return {
+    name: "epc-proxy",
+    configureServer: attach,
+    configurePreviewServer: attach
+  };
+}
 
 export default defineConfig(({ command }) => ({
   // GitHub Pages serves project sites from /<repo-name>/; the deploy workflow
@@ -17,6 +77,7 @@ export default defineConfig(({ command }) => ({
     allowedHosts: true
   },
   plugins: [
+    epcProxyPlugin(),
     react(),
     VitePWA({
       // Dev: do not inject a SW. A stale PWA cache on the phone is a blank screen.
@@ -56,7 +117,14 @@ export default defineConfig(({ command }) => ({
         // The app bundle includes the content library; cache everything so it
         // works offline after the first visit.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/epc\//,
+            handler: "NetworkOnly"
+          }
+        ]
       }
     })
   ],

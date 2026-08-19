@@ -1,0 +1,52 @@
+{
+  "claude": {
+    "label": "Claude (Anthropic)",
+    "keyHint": "Anthropic Claude",
+    "keyPrefix": "sk-ant-"
+  },
+  "gemini": {
+    "label": "Gemini (Google)",
+    "keyHint": "Google Gemini",
+    "keyPrefix": "AIza"
+  },
+  "openai": {
+    "label": "OpenAI",
+    "keyHint": "OpenAI (GPT)",
+    "keyPrefix": "sk- / sk-proj-"
+  },
+  "xai": {
+    "label": "Grok (xAI)",
+    "keyHint": "xAI Grok",
+    "keyPrefix": "xai-"
+  },
+  "groq": {
+    "label": "Groq (Llama & others)",
+    "keyHint": "Groq — Meta Llama and other open models",
+    "keyPrefix": "gsk_"
+  },
+  "openrouter": {
+    "label": "OpenRouter",
+    "keyHint": "OpenRouter (many models via one key)",
+    "keyPrefix": "sk-or-"
+  },
+  "deepseek": {
+    "label": "DeepSeek",
+    "keyHint": "DeepSeek (OpenAI-style sk-… keys)",
+    "keyPrefix": "sk-…"
+  },
+  "mistral": {
+    "label": "Mistral",
+    "keyHint": "Mistral (no fixed prefix — tap to select)",
+    "keyPrefix": "(no fixed prefix)"
+  },
+  "together": {
+    "label": "Together AI",
+    "keyHint": "Together AI (Llama and open models)",
+    "keyPrefix": "(no fixed prefix)"
+  },
+  "fireworks": {
+    "label": "Fireworks",
+    "keyHint": "Fireworks AI",
+    "keyPrefix": "fw_"
+  }
+}

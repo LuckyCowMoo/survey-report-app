@@ -117,6 +117,46 @@ export function stopCamera(stream: MediaStream | null) {
   for (const track of stream.getTracks()) track.stop();
 }
 
+/** Two animation frames — enough for Chromium to drop a video compositor layer. */
+export function waitNextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+/**
+ * Extra settle time after dropping a live layer. Two rAFs alone still leaves
+ * a full-size video/canvas texture on the compositor during shutter / review
+ * swaps on several Chromium builds.
+ */
+export function waitCompositorIdle(extraMs = 64): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.setTimeout(resolve, extraMs);
+      });
+    });
+  });
+}
+
+/**
+ * Pause and hide a live <video> before tearing down its stream.
+ * Transformed hardware-video layers are the gray-screen crash on capture/nav.
+ */
+export function parkVideoElement(video: HTMLVideoElement | null) {
+  if (!video) return;
+  try {
+    video.pause();
+  } catch {
+    /* ignore */
+  }
+  video.style.transform = "none";
+  video.style.visibility = "hidden";
+  video.srcObject = null;
+}
+
 export type CameraZoomRange = {
   min: number;
   max: number;
@@ -168,30 +208,78 @@ export async function applyCameraZoom(
   }
 }
 
+async function jpegFromDrawable(
+  source: CanvasImageSource,
+  srcW: number,
+  srcH: number,
+  quality: number
+): Promise<Uint8Array> {
+  if (!srcW || !srcH) {
+    throw new Error("Camera is not ready yet — wait a moment and try again.");
+  }
+  const maxEdge = 1280;
+  const scale = Math.min(1, maxEdge / Math.max(srcW, srcH));
+  const w = Math.max(1, Math.round(srcW * scale));
+  const h = Math.max(1, Math.round(srcH * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  try {
+    const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: true });
+    if (!ctx) throw new Error("Could not capture photo.");
+    ctx.drawImage(source, 0, 0, w, h);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Could not encode photo."))),
+        "image/jpeg",
+        quality
+      );
+    });
+    return new Uint8Array(await blob.arrayBuffer());
+  } finally {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
+
+/** Grab a still from the camera track without reading a composited <video>. */
+export async function captureJpegFromStream(
+  stream: MediaStream | null,
+  video?: HTMLVideoElement | null,
+  quality = 0.88
+): Promise<Uint8Array> {
+  const track = stream?.getVideoTracks()[0];
+  const ImageCaptureCtor = (
+    window as unknown as {
+      ImageCapture?: new (
+        t: MediaStreamTrack
+      ) => { grabFrame: () => Promise<ImageBitmap> };
+    }
+  ).ImageCapture;
+  if (track && ImageCaptureCtor) {
+    try {
+      const bitmap = await new ImageCaptureCtor(track).grabFrame();
+      try {
+        return await jpegFromDrawable(bitmap, bitmap.width, bitmap.height, quality);
+      } finally {
+        bitmap.close();
+      }
+    } catch {
+      /* fall through to the <video> path */
+    }
+  }
+  if (!video) {
+    throw new Error("Camera is not ready yet — wait a moment and try again.");
+  }
+  return captureJpegFromVideo(video, quality);
+}
+
 /** Capture the current video frame as JPEG bytes. */
 export async function captureJpegFromVideo(
   video: HTMLVideoElement,
   quality = 0.88
 ): Promise<Uint8Array> {
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  if (!w || !h) {
-    throw new Error("Camera is not ready yet — wait a moment and try again.");
-  }
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Could not capture photo.");
-  ctx.drawImage(video, 0, 0, w, h);
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("Could not encode photo."))),
-      "image/jpeg",
-      quality
-    );
-  });
-  return new Uint8Array(await blob.arrayBuffer());
+  return jpegFromDrawable(video, video.videoWidth, video.videoHeight, quality);
 }
 
 /** Capture a canvas (e.g. the tutorial 360 viewfinder) as JPEG bytes. */

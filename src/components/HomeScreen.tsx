@@ -4,6 +4,7 @@ import HomeCtaMorph from "./HomeCtaMorph";
 import { IconBook, IconCamera, IconFileUp, IconGrid, IconSettings } from "./icons";
 import { CTA_MERGE_MS } from "../lib/homeCtaMorph";
 import { IMPORT_NOTES_ACCEPT } from "../lib/reportProject";
+import { useT } from "../lib/i18n";
 
 interface Props {
   onFile: (file: File) => void;
@@ -31,6 +32,7 @@ export default function HomeScreen({
   ctaMorph = true,
   importTriggerRef
 }: Props) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const splitRootRef = useRef<HTMLDivElement>(null);
   const mergeTimerRef = useRef(0);
@@ -127,14 +129,14 @@ export default function HomeScreen({
       <div className="home-hero">
         <div className="home-kicker">
           <span className="home-mark" aria-hidden />
-          DampMaster / Report studio
+          {t("home.kicker")}
         </div>
         <h2>
-          Create
+          {t("home.headlineCreate")}
           <br />
-          report.
+          {t("home.headlineReport")}
         </h2>
-        <p>Turn field notes into a client-ready report.</p>
+        <p>{t("home.tagline")}</p>
       </div>
 
       <input
@@ -178,15 +180,15 @@ export default function HomeScreen({
           >
             <span className="home-btn-label">
               <span className="home-btn-title">
-                {busy ? "Reading document…" : "Start new report"}
+                {busy ? t("home.readingDocument") : t("home.startNew")}
               </span>
               <span className="home-upload-meta">
-                {busy ? "Please wait" : "Import or create"}
+                {busy ? t("home.pleaseWait") : t("home.importOrCreate")}
               </span>
             </span>
           </button>
 
-          <div className="home-cta-pair" role="group" aria-label="Start new report">
+          <div className="home-cta-pair" role="group" aria-label={t("home.startNewAria")}>
             <button
               type="button"
               className="home-cta-half home-cta-import"
@@ -198,8 +200,8 @@ export default function HomeScreen({
                 <IconFileUp className="home-cta-glyph-svg" />
               </span>
               <span className="home-cta-copy">
-                <span className="home-btn-title">Import field notes</span>
-                <span className="home-upload-meta">.DOCX · .DMSR ↗</span>
+                <span className="home-btn-title">{t("home.importTitle")}</span>
+                <span className="home-upload-meta">{t("home.importMeta")}</span>
               </span>
             </button>
             <button
@@ -219,8 +221,8 @@ export default function HomeScreen({
                 <IconCamera className="home-cta-glyph-svg" />
               </span>
               <span className="home-cta-copy">
-                <span className="home-btn-title">Create new notes</span>
-                <span className="home-upload-meta">Camera</span>
+                <span className="home-btn-title">{t("home.createTitle")}</span>
+                <span className="home-upload-meta">{t("home.createMeta")}</span>
               </span>
             </button>
           </div>
@@ -229,33 +231,33 @@ export default function HomeScreen({
         <div className="home-secondary-actions">
           <button
             className="btn home-guide-btn home-past-btn"
-            aria-label="Past reports"
+            aria-label={t("home.past")}
             onClick={onShowPastReports}
           >
             <span className="home-btn-icon" aria-hidden>
               <IconGrid className="home-btn-glyph" />
             </span>
-            <span className="home-btn-label">Past reports</span>
+            <span className="home-btn-label">{t("home.past")}</span>
           </button>
           <button
             className="btn home-guide-btn"
-            aria-label="Guide"
+            aria-label={t("home.guide")}
             onClick={onShowGuide}
           >
             <span className="home-btn-icon" aria-hidden>
               <IconBook className="home-btn-glyph" />
             </span>
-            <span className="home-btn-label">Guide</span>
+            <span className="home-btn-label">{t("home.guide")}</span>
           </button>
           <button
             className="btn home-guide-btn home-settings-btn"
-            aria-label="Settings"
+            aria-label={t("home.settings")}
             onClick={onShowSettings}
           >
             <span className="home-btn-icon" aria-hidden>
               <IconSettings className="home-btn-glyph" />
             </span>
-            <span className="home-btn-label">Settings</span>
+            <span className="home-btn-label">{t("home.settings")}</span>
           </button>
         </div>
       </div>

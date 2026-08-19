@@ -17,13 +17,13 @@ import {
 } from "../lib/shapeRecognize";
 import { buildEdgeField, type EdgeField } from "../lib/edgeField";
 import { calloutAttachPoint, calloutFontPx, calloutMetrics } from "../lib/callout";
-import {
-  clampCrop,
+import { clampCrop,
   cropInsetCss,
   FULL_CROP,
   isFullCrop,
   MIN_CROP_SPAN
 } from "../lib/photoCrop";
+import { useT } from "../lib/i18n";
 
 type Tool = "draw" | "erase";
 
@@ -164,6 +164,7 @@ export default function AnnotationOverlay({
   lockFinished = false,
   coach
 }: Props) {
+  const t = useT();
   const [enterClass, setEnterClass] = useState(false);
   const [tool, setTool] = useState<Tool>("draw");
   const [annotations, setAnnotations] = useState<PhotoAnnotation[]>(() =>
@@ -1259,7 +1260,7 @@ export default function AnnotationOverlay({
       className="annotation-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Annotate photo"
+      aria-label={t("annotate.title")}
       onContextMenu={(e) => e.preventDefault()}
       style={{ ["--ann-zoom" as string]: String(zoom) }}
     >
@@ -1270,20 +1271,20 @@ export default function AnnotationOverlay({
           className="annotation-ctx"
           style={{ left: ctxMenu.clientX, top: ctxMenu.clientY }}
           role="menu"
-          aria-label="Annotation tools"
+          aria-label={t("annotate.tools")}
         >
           <div className="annotation-ctx-plate" aria-hidden />
           <div className="annotation-ctx-finger" aria-hidden />
 
           <div className="annotation-ctx-slot annotation-ctx-slot-detect">
             <label className="annotation-ctx-switch">
-              <span className="annotation-ctx-switch-label">Auto shape</span>
+              <span className="annotation-ctx-switch-label">{t("annotate.autoShape")}</span>
               <button
                 type="button"
                 role="switch"
                 className={`annotation-ctx-toggle${shapeDetect ? " is-on" : ""}`}
                 aria-checked={shapeDetect}
-                aria-label="Auto shape"
+                aria-label={t("annotate.autoShape")}
                 onClick={() => setShapeDetect((v) => !v)}
               >
                 <span className="annotation-ctx-toggle-knob" />
@@ -1296,7 +1297,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className="annotation-ctx-btn"
-              aria-label="Undo"
+              aria-label={t("annotate.undo")}
               disabled={past.length === 0}
               onClick={() => {
                 undo();
@@ -1309,7 +1310,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className="annotation-ctx-btn"
-              aria-label="Redo"
+              aria-label={t("annotate.redo")}
               disabled={future.length === 0}
               onClick={() => {
                 redo();
@@ -1325,7 +1326,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className={`annotation-ctx-btn${tool === "erase" ? " is-active" : ""}`}
-              aria-label="Eraser"
+              aria-label={t("annotate.eraser")}
               aria-pressed={tool === "erase"}
               onClick={() => {
                 setTool("erase");
@@ -1338,7 +1339,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className={`annotation-ctx-btn${tool === "draw" ? " is-active" : ""}`}
-              aria-label="Brush"
+              aria-label={t("annotate.brush")}
               aria-pressed={tool === "draw"}
               onClick={() => {
                 setTool("draw");
@@ -1354,7 +1355,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className="annotation-ctx-btn"
-              aria-label="Add arrow"
+              aria-label={t("annotate.addArrow")}
               onClick={() => spawnShape("arrow", ctxMenu.norm)}
             >
               <LucideArrowIcon />
@@ -1363,7 +1364,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className="annotation-ctx-btn"
-              aria-label="Add circle"
+              aria-label={t("annotate.addCircle")}
               onClick={() => spawnShape("circle", ctxMenu.norm)}
             >
               <LucideCircleIcon />
@@ -1372,7 +1373,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className="annotation-ctx-btn"
-              aria-label="Add line"
+              aria-label={t("annotate.addLine")}
               onClick={() => spawnShape("line", ctxMenu.norm)}
             >
               <LucideLineIcon />
@@ -1381,7 +1382,7 @@ export default function AnnotationOverlay({
               type="button"
               role="menuitem"
               className="annotation-ctx-btn"
-              aria-label="Add text note"
+              aria-label={t("annotate.addText")}
               onClick={() => spawnShape("callout", ctxMenu.norm)}
             >
               <LucideTypeIcon />
@@ -1514,7 +1515,7 @@ export default function AnnotationOverlay({
               type="button"
               className="annotation-crop-handle is-left"
               style={{ left: `${crop.left * 100}%`, top: `${((crop.top + crop.bottom) / 2) * 100}%` }}
-              aria-label="Crop left edge"
+              aria-label={t("annotate.cropLeft")}
               onPointerDown={(ev) => onCropPointerDown(ev, "left")}
               onPointerMove={onCropPointerMove}
               onPointerUp={onCropPointerUp}
@@ -1524,7 +1525,7 @@ export default function AnnotationOverlay({
               type="button"
               className="annotation-crop-handle is-right"
               style={{ left: `${crop.right * 100}%`, top: `${((crop.top + crop.bottom) / 2) * 100}%` }}
-              aria-label="Crop right edge"
+              aria-label={t("annotate.cropRight")}
               onPointerDown={(ev) => onCropPointerDown(ev, "right")}
               onPointerMove={onCropPointerMove}
               onPointerUp={onCropPointerUp}
@@ -1534,7 +1535,7 @@ export default function AnnotationOverlay({
               type="button"
               className="annotation-crop-handle is-top"
               style={{ left: `${((crop.left + crop.right) / 2) * 100}%`, top: `${crop.top * 100}%` }}
-              aria-label="Crop top edge"
+              aria-label={t("annotate.cropTop")}
               onPointerDown={(ev) => onCropPointerDown(ev, "top")}
               onPointerMove={onCropPointerMove}
               onPointerUp={onCropPointerUp}
@@ -1544,7 +1545,7 @@ export default function AnnotationOverlay({
               type="button"
               className="annotation-crop-handle is-bottom"
               style={{ left: `${((crop.left + crop.right) / 2) * 100}%`, top: `${crop.bottom * 100}%` }}
-              aria-label="Crop bottom edge"
+              aria-label={t("annotate.cropBottom")}
               onPointerDown={(ev) => onCropPointerDown(ev, "bottom")}
               onPointerMove={onCropPointerMove}
               onPointerUp={onCropPointerUp}
@@ -1662,7 +1663,7 @@ export default function AnnotationOverlay({
             type="button"
             className={`annotation-tool-btn${tool === "erase" ? " is-active" : ""}`}
             aria-pressed={tool === "erase"}
-            aria-label="Eraser"
+            aria-label={t("annotate.eraser")}
             onClick={() => setTool("erase")}
           >
             <LucideEraserIcon className="annotation-tool-icon" />
@@ -1671,7 +1672,7 @@ export default function AnnotationOverlay({
             type="button"
             className={`annotation-tool-btn${tool === "draw" ? " is-active" : ""}`}
             aria-pressed={tool === "draw"}
-            aria-label="Brush"
+            aria-label={t("annotate.brush")}
             onClick={() => setTool("draw")}
           >
             <LucideBrushIcon className="annotation-tool-icon" />
@@ -1682,7 +1683,7 @@ export default function AnnotationOverlay({
           <button
             type="button"
             className="annotation-tool-btn"
-            aria-label="Undo"
+            aria-label={t("annotate.undo")}
             disabled={past.length === 0}
             onClick={undo}
           >
@@ -1700,12 +1701,12 @@ export default function AnnotationOverlay({
               );
             }}
           >
-            Finished
+            {t("annotate.finished")}
           </button>
           <button
             type="button"
             className="annotation-tool-btn"
-            aria-label="Redo"
+            aria-label={t("annotate.redo")}
             disabled={future.length === 0}
             onClick={redo}
           >
@@ -1718,7 +1719,7 @@ export default function AnnotationOverlay({
             <button
               type="button"
               className="annotation-tool-btn"
-              aria-label="Add arrow"
+              aria-label={t("annotate.addArrow")}
               onClick={() => spawnShape("arrow")}
             >
               <LucideArrowIcon />
@@ -1726,7 +1727,7 @@ export default function AnnotationOverlay({
             <button
               type="button"
               className="annotation-tool-btn"
-              aria-label="Add circle"
+              aria-label={t("annotate.addCircle")}
               onClick={() => spawnShape("circle")}
             >
               <LucideCircleIcon />
@@ -1734,7 +1735,7 @@ export default function AnnotationOverlay({
             <button
               type="button"
               className="annotation-tool-btn"
-              aria-label="Add line"
+              aria-label={t("annotate.addLine")}
               onClick={() => spawnShape("line")}
             >
               <LucideLineIcon />
@@ -1742,20 +1743,20 @@ export default function AnnotationOverlay({
             <button
               type="button"
               className="annotation-tool-btn"
-              aria-label="Add text note"
+              aria-label={t("annotate.addText")}
               onClick={() => spawnShape("callout")}
             >
               <LucideTypeIcon />
             </button>
           </div>
           <label className="annotation-chrome-switch">
-            <span className="annotation-chrome-switch-label">Auto shape</span>
+            <span className="annotation-chrome-switch-label">{t("annotate.autoShape")}</span>
             <button
               type="button"
               role="switch"
               className={`annotation-ctx-toggle${shapeDetect ? " is-on" : ""}`}
               aria-checked={shapeDetect}
-              aria-label="Auto shape"
+              aria-label={t("annotate.autoShape")}
               onClick={() => setShapeDetect((v) => !v)}
             >
               <span className="annotation-ctx-toggle-knob" />
@@ -1781,7 +1782,7 @@ function Handle({
       type="button"
       className="annotation-handle"
       style={style}
-      aria-label="Resize annotation"
+      aria-label={t("annotate.resize")}
       onPointerDown={onPointerDown}
     />
   );
@@ -1914,7 +1915,7 @@ function CalloutLabel({
         value={ann.text}
         maxLength={80}
         size={Math.max(3, (ann.text.trim() || "Note").length)}
-        aria-label="Callout note text"
+        aria-label={t("annotate.callout")}
         autoFocus
         onFocus={() => {
           originRef.current = ann.text;

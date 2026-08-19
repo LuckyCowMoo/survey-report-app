@@ -186,6 +186,27 @@ export default function FieldNotesNoteField({
 
   return (
     <div className={`field-notes-note-wrap tone-${tone}${focused ? " is-focused" : ""}`}>
+      <textarea
+        ref={areaRef}
+        className={`field-notes-textarea${showPreview ? " is-under-preview" : ""}`}
+        placeholder={placeholder}
+        value={revealDisplay ?? note}
+        disabled={disabled || revealDisplay !== null}
+        tabIndex={showPreview ? -1 : undefined}
+        aria-hidden={showPreview || undefined}
+        aria-label={ariaLabel}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => {
+          setFocused(true);
+          cancelTextReveal();
+        }}
+        onBlur={() => {
+          if (libraryText) {
+            triggerTextReveal(note, libraryText, { replace: true });
+          }
+          setFocused(false);
+        }}
+      />
       {showPreview ? (
         <button
           type="button"
@@ -208,27 +229,7 @@ export default function FieldNotesNoteField({
         >
           {highlightKeywords(previewBody, keywords)}
         </button>
-      ) : (
-        <textarea
-          ref={areaRef}
-          className="field-notes-textarea"
-          placeholder={placeholder}
-          value={revealDisplay ?? note}
-          disabled={disabled || revealDisplay !== null}
-          aria-label={ariaLabel}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => {
-            setFocused(true);
-            cancelTextReveal();
-          }}
-          onBlur={() => {
-            if (libraryText) {
-              triggerTextReveal(note, libraryText, { replace: true });
-            }
-            setFocused(false);
-          }}
-        />
-      )}
+      ) : null}
     </div>
   );
 }

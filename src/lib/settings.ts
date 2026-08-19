@@ -1,5 +1,6 @@
 /** Persistent app settings, stored on the device in localStorage. */
 
+import { clampTextScale, TEXT_SCALE_DEFAULT } from "./textScale";
 import {
   type AiProvider,
   AI_PROVIDER_ORDER,
@@ -51,6 +52,20 @@ export interface AppSettings {
    * Blank by default — required before generating a document.
    */
   surveyorName: string;
+  /**
+   * Multiplier for UI text. Tight controls clamp themselves if they would overflow.
+   */
+  textScale: number;
+  /**
+   * When true, Review studio shows the current section wording instead of the photo.
+   * Details / generate still use the usual studio image.
+   */
+  studioShowSectionText: boolean;
+  /**
+   * Bearer token for the MHCLG energy-certificate API.
+   * Blank uses the built-in fallback key.
+   */
+  epcBearerToken: string;
 }
 
 export const DEFAULT_MODEL = AI_PROVIDERS.claude.defaultModel;
@@ -222,7 +237,10 @@ export function loadSettings(): AppSettings {
     studioPhotoPassThrough: false,
     autoSuggestDetailsExtras: false,
     homeCtaMorph: true,
-    surveyorName: ""
+    surveyorName: "",
+    textScale: TEXT_SCALE_DEFAULT,
+    studioShowSectionText: false,
+    epcBearerToken: ""
   };
   try {
     const raw = localStorage.getItem(KEY);
@@ -334,7 +352,19 @@ export function loadSettings(): AppSettings {
       surveyorName:
         typeof parsed.surveyorName === "string"
           ? parsed.surveyorName
-          : defaults.surveyorName
+          : defaults.surveyorName,
+      textScale:
+        typeof parsed.textScale === "number"
+          ? clampTextScale(parsed.textScale)
+          : defaults.textScale,
+      studioShowSectionText:
+        typeof parsed.studioShowSectionText === "boolean"
+          ? parsed.studioShowSectionText
+          : defaults.studioShowSectionText,
+      epcBearerToken:
+        typeof parsed.epcBearerToken === "string"
+          ? parsed.epcBearerToken
+          : defaults.epcBearerToken
     };
   } catch {
     return defaults;
@@ -354,7 +384,10 @@ export function saveSettings(settings: AppSettings): void {
     studioPhotoPassThrough: fixed.studioPhotoPassThrough,
     autoSuggestDetailsExtras: fixed.autoSuggestDetailsExtras,
     homeCtaMorph: fixed.homeCtaMorph,
-    surveyorName: fixed.surveyorName
+    surveyorName: fixed.surveyorName,
+    textScale: clampTextScale(fixed.textScale),
+    studioShowSectionText: Boolean(fixed.studioShowSectionText),
+    epcBearerToken: fixed.epcBearerToken.trim()
   };
   localStorage.setItem(KEY, JSON.stringify(clean));
 }

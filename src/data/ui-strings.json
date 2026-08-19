@@ -1,0 +1,3224 @@
+{
+  "common": {
+    "back": {
+      "en": "Back",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "done": {
+      "en": "Done",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continue": {
+      "en": "Continue",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "skip": {
+      "en": "Skip",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cancel": {
+      "en": "Cancel",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "save": {
+      "en": "Save",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "retry": {
+      "en": "Retry",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "dismiss": {
+      "en": "Dismiss",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "hide": {
+      "en": "Hide",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "show": {
+      "en": "Show",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "view": {
+      "en": "View",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "deselect": {
+      "en": "Deselect",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "delete": {
+      "en": "Delete",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "next": {
+      "en": "Next",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "finish": {
+      "en": "Finish",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "choose": {
+      "en": "Choose",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "loading": {
+      "en": "Loading…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "writing": {
+      "en": "Writing…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "other": {
+      "en": "Other",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tapToDismiss": {
+      "en": "(tap to dismiss)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "close": {
+      "en": "Close",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "share": {
+      "en": "Share",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "download": {
+      "en": "Download",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "opening": {
+      "en": "Opening…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "saving": {
+      "en": "Saving…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "untitled": {
+      "en": "Untitled report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "askAi": {
+    "label": {
+      "en": "Ask AI",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aboutAll": {
+      "en": "Ask AI about all",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aboutFlagged": {
+      "en": "Ask AI about all flagged ({count})",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addKey": {
+      "en": "Add API key in settings",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "stop": {
+      "en": "Stop AI",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "topbar": {
+    "back": {
+      "en": "Back",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "settings": {
+      "en": "Settings",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pastReports": {
+      "en": "Past reports",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "fieldNotes": {
+      "en": "Field notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tutorial": {
+      "en": "Tutorial",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "review": {
+      "en": "Review sections",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "details": {
+      "en": "Report details",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "generate": {
+      "en": "Generate",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "settings": {
+    "title": {
+      "en": "Settings",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "appearance": {
+      "en": "Appearance",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeStudio": {
+      "en": "Studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeStudioSwatch": {
+      "en": "Coral",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeDark": {
+      "en": "Dark",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeDarkSwatch": {
+      "en": "Ink",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "language": {
+      "en": "Language",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "textScale": {
+      "en": "Text size",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "textScaleHint": {
+      "en": "Grows labels and body text. Tight buttons and tiles shrink back if they would overflow.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "studioSectionText": {
+      "en": "Show section text in studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "studioSectionTextAria": {
+      "en": "show section text instead of the photo in review studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "epcToken": {
+      "en": "Energy certificate token",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "epcTokenHint": {
+      "en": "Copied from My account → Bearer token (for developers) on get-energy-performance-data.communities.gov.uk. Paste the token only — not the word Bearer. Leave blank to use the built-in key.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pipJumpHover": {
+      "en": "hover pip to move",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pipJumpClick": {
+      "en": "click pip to move",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pipJumpTap": {
+      "en": "tap pip to move",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "passThrough": {
+      "en": "scroll through in-between photos",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "autoSuggest": {
+      "en": "auto-suggest issues, recommendations & costs",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "homeCtaMorph": {
+      "en": "animate Start new report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "libraryLabel": {
+      "en": "Report library",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "libraryLinked": {
+      "en": "Finished reports are written to “{name}” on this computer.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "libraryUnlinked": {
+      "en": "This browser can link a folder. That’s the recommended place to keep finished reports so they aren’t downloaded twice.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "libraryUnsupported": {
+      "en": "This device can’t link a disk folder, so finished reports are kept in this app’s storage as reopenable projects (with a Word copy for share and download).",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "changeFolder": {
+      "en": "Change folder",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "linkFolder": {
+      "en": "Link a reports folder",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "useAppStorage": {
+      "en": "Use app storage instead",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "activeAi": {
+      "en": "Active AI service",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addOther": {
+      "en": "Add other",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "keySaved": {
+      "en": "Key saved",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "apiKeyLabel": {
+      "en": "{provider} API key",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pasteKey": {
+      "en": "Paste key here",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "apiKeyHint": {
+      "en": "Saved on this device only. Ask AI uses this active service — tap Add other to store a key for another provider and switch to it.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "hideKey": {
+      "en": "Hide API key",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "showKey": {
+      "en": "Show API key",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "openaiCorsTitle": {
+      "en": "This browser can’t use OpenAI from the app.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "openaiCorsBody": {
+      "en": "OpenAI blocks the request (CORS), so Ask AI will fail with a network error. Switch to Claude, Gemini, or OpenRouter instead.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "sectionModel": {
+      "en": "Section AI model",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "detailsModel": {
+      "en": "Details suggestions model",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noVisionModels": {
+      "en": "No vision models found",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "loadingModels": {
+      "en": "Loading models…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "modelsLive": {
+      "en": "Vision + text models from {provider}.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "modelsBuiltin": {
+      "en": "Using built-in vision model list.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "detailsModelHint": {
+      "en": "Used for issues, recommendations, and cost suggestions. Pick a higher-tier model here if you want.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "costSections": {
+      "en": "Est. {cost} for {count} photo sections",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "liveRates": {
+      "en": "(live rates)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "costDetails": {
+      "en": "Est. {cost} for report details suggestions",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "combinedEstimate": {
+      "en": "Combined estimate: {cost}",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "combinedEstimateBody": {
+      "en": " for {count} image sections + details suggestions (typical token use × {rates} rates). Actual spend varies with photo size and answers.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "liveCatalog": {
+      "en": "live catalog",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "estimated": {
+      "en": "estimated",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "yourName": {
+      "en": "Your name (report Contact)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "yourNamePlaceholder": {
+      "en": "e.g. Alex Morgan",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "yourNameHint": {
+      "en": "Shown as Contact in the page header. Required before generating a report.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "companyName": {
+      "en": "Company name",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "requiredBeforeGenerate": {
+      "en": "Required before generating a report.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "website": {
+      "en": "Website (shown on the cover page)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "tutorial": {
+    "welcomeTitle": {
+      "en": "Welcome to Dampmaster report studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "languageCopy": {
+      "en": "Please choose a language: English, Welsh, Irish, Scottish",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "changeAnytime": {
+      "en": "You can change these settings at any time",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeCopy": {
+      "en": "Please choose a theme: light / dark",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeLight": {
+      "en": "Light",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeDark": {
+      "en": "Dark",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeStudioSwatch": {
+      "en": "Studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeInkSwatch": {
+      "en": "Ink",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "themeAria": {
+      "en": "Theme",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "nameCopy": {
+      "en": "What is your name?",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "nameHint": {
+      "en": "This is saved in Settings and shown as Contact on generated reports.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "namePlaceholder": {
+      "en": "Your name",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pitchIntro": {
+      "en": "Dampmaster report studio is a bespoke tool created to help Dampmaster franchisees quickly and easily create notes while out in the field and seamlessly convert observations into finished documents",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pitchPrompt": {
+      "en": "Please consider taking this quick interactive tutorial to learn how to use report studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "take": {
+      "en": "Take tutorial",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "skip": {
+      "en": "Skip",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "english": {
+      "en": "English",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "welsh": {
+      "en": "Welsh",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "irish": {
+      "en": "Irish",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "scottish": {
+      "en": "Scottish",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "england": {
+      "en": "England",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "wales": {
+      "en": "Wales",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "ireland": {
+      "en": "Ireland",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "northernIreland": {
+      "en": "Northern Ireland",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "scotland": {
+      "en": "Scotland",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "exit": {
+      "en": "Exit tutorial",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "next": {
+      "en": "Next",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "address": {
+    "title": {
+      "en": "Property & client",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "intro": {
+      "en": "Start with the property address and client name. These details are saved with this survey and appear on the finished report.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "propertyAddress": {
+      "en": "Property address",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addressPlaceholder": {
+      "en": "9 Example Road, Cardiff, CF24 …",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "clientName": {
+      "en": "Client name",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "phone": {
+      "en": "Phone (page header)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "email": {
+      "en": "Email (page header)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "propertyType": {
+      "en": "Property type",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "postcode": {
+      "en": "Postcode",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "postcodePlaceholder": {
+      "en": "CF24 0AA",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "detectLocation": {
+      "en": "Use my location",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "detecting": {
+      "en": "Finding address…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "findProperties": {
+      "en": "Find properties",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "searching": {
+      "en": "Searching…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "nearbyTitle": {
+      "en": "Nearby properties",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "atPostcodeTitle": {
+      "en": "Properties at this postcode",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noProperties": {
+      "en": "No properties were found at this postcode. You can type the address by hand.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "locationDenied": {
+      "en": "Location permission was not granted. Enter a postcode instead.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "locationFailed": {
+      "en": "Could not read this phone’s position.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "epcFailed": {
+      "en": "Could not query the energy-certificate register. Street addresses below may not include every flat.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "lookupFailed": {
+      "en": "Could not look up addresses right now. Check the connection and try again.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "skipPhotos": {
+      "en": "Skip to photos",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continueEpc": {
+      "en": "Continue",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "epc": {
+    "title": {
+      "en": "Energy certificate",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "subtitle": {
+      "en": "England & Wales EPC register — age, construction, insulation and size when a certificate exists for this address.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "open": {
+      "en": "Energy certificate",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "loading": {
+      "en": "Looking up the energy certificate…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "none": {
+      "en": "No England & Wales energy certificate was found for this address. You can still continue.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "error": {
+      "en": "The energy certificate service could not be reached.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "refresh": {
+      "en": "Look up again",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continueNotes": {
+      "en": "Continue to photos",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "built": {
+      "en": "Built",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "property": {
+      "en": "Property",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "form": {
+      "en": "Built form",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "floorArea": {
+      "en": "Total floor area",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "extensions": {
+      "en": "Extensions",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "rooms": {
+      "en": "Habitable / heated rooms",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "walls": {
+      "en": "Walls",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "roof": {
+      "en": "Roof / ceiling",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "floor": {
+      "en": "Floors",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "windows": {
+      "en": "Glazing",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "heating": {
+      "en": "Main heating",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "hotWater": {
+      "en": "Hot water",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "lighting": {
+      "en": "Lighting",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "fuel": {
+      "en": "Main fuel",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "rating": {
+      "en": "Energy rating",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tenure": {
+      "en": "Tenure",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "inspected": {
+      "en": "Inspected",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "mainsGas": {
+      "en": "Mains gas",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "solarHotWater": {
+      "en": "Solar water heating",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pv": {
+      "en": "Photovoltaic supply",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "ventilation": {
+      "en": "Mechanical ventilation",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "yes": {
+      "en": "Yes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "no": {
+      "en": "No",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "sqm": {
+      "en": "{n} m²",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "details": {
+    "propertySurvey": {
+      "en": "Property & survey",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "surveyDate": {
+      "en": "Survey date",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "docId": {
+      "en": "Document id (footer, optional)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "docIdPlaceholder": {
+      "en": "112.1",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "weather": {
+      "en": "Weather",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "weatherPlaceholder": {
+      "en": "dry conditions",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "temp": {
+      "en": "Temp (°C)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "sky": {
+      "en": "Sky",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "skyPlaceholder": {
+      "en": "intermittent cloud cover",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "issuesTitle": {
+      "en": "Issues found at this property",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "issuesHint": {
+      "en": "Tick the damp issues identified on site.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "risingDamp": {
+      "en": "Rising damp",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "penetratingDamp": {
+      "en": "Penetrating damp",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "condensation": {
+      "en": "Condensation",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "otherIssue": {
+      "en": "Describe the other issue",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "otherIssuePlaceholder": {
+      "en": "Explain the issue and wording for the report…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "recsTitle": {
+      "en": "Recommendations",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "recsHint": {
+      "en": "Tick the standard recommendations to include.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "recsSearch": {
+      "en": "Search recommendations...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "otherRec": {
+      "en": "Other recommendation",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "otherRecPlaceholder": {
+      "en": "Write the recommendation wording for the report…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "planTitle": {
+      "en": "Project plan & costs",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "excludePlan": {
+      "en": "Exclude plan & costs",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "excludeHint": {
+      "en": "For recommendation-only reports — omit the project plan, prices, finance offer, and related service paragraphs from the export.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "areasOfWork": {
+      "en": "Areas of work (one line per room/area)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "costsHint": {
+      "en": "Tick the standard cost items. Enter a price for each selected item (and a work location where the job is room-specific) before generating.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "costsSearch": {
+      "en": "Search project plan & costs...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cleanupTitle": {
+      "en": "Post project clean-up",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cleanupHint": {
+      "en": "Optional wording after the project plan — reinstatement, decorating, radiators, coving, and similar close-out notes. Leave blank to omit this paragraph.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cleanupPlaceholder": {
+      "en": "e.g. New skirting boards will need to be fitted after the damp-proofing process is completed…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continueGenerate": {
+      "en": "Continue to generate",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "enterToSelect": {
+      "en": "Press Enter to select",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "issuesError": {
+      "en": "AI couldn’t finish issues",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "recsError": {
+      "en": "AI couldn’t finish recommendations",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "costsError": {
+      "en": "AI couldn’t finish project plan & costs",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cleanupError": {
+      "en": "AI couldn’t finish clean-up notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tryAgain": {
+      "en": "Try again",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "draftingIssues": {
+      "en": "Drafting issues…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "draftingRecs": {
+      "en": "Drafting recommendations…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "draftingCosts": {
+      "en": "Drafting costs…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "draftingCleanup": {
+      "en": "Drafting clean-up…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aiPickFallback": {
+      "en": "Suggested from the survey wording.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "total": {
+      "en": "Total:",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "plusVat": {
+      "en": "+ VAT",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "surveyFee": {
+      "en": "Survey fee refunded if work goes ahead (£)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "duration": {
+      "en": "Estimated duration",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "durationPlaceholder": {
+      "en": "5-7 days",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "invasiveOn": {
+      "en": "Invasive survey limitations",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "invasiveOff": {
+      "en": "Non-invasive survey limitations",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "invasiveOnHint": {
+      "en": "The final section will use invasive-survey limitations wording.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "invasiveOffHint": {
+      "en": "The final section will use the standard non-invasive limitations wording.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "incompleteTitle": {
+      "en": "Fill in the remaining details?",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "incompleteBody": {
+      "en": "You can still generate if you are sure this is complete enough.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "goToIssue": {
+      "en": "Go to issue",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "ignoreGenerate": {
+      "en": "Ignore and generate",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "customItem": {
+      "en": "Custom item",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "costItem": {
+      "en": "Cost item",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "deselect": {
+      "en": "Deselect",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "whereAreas": {
+      "en": "Where / areas *",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "wherePlaceholder": {
+      "en": "e.g. rear reception & hallway exterior walls to 1.2m",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "describeWork": {
+      "en": "Describe the work item...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "otherWork": {
+      "en": "Describe the other work item...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "priceZero": {
+      "en": "0",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "fieldNotes": {
+    "photosTaken": {
+      "en": "photo{s} taken",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "notesMatched": {
+      "en": "notes matched {x}/{y}",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "saveLeave": {
+      "en": "Save & leave",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continueDoc": {
+      "en": "Continue to document",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "stillNeeded": {
+      "en": "Still needed",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "allNoted": {
+      "en": "All key wording noted",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "holdToDelete": {
+      "en": "Hold to delete",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "holdToDeletePhoto": {
+      "en": "Hold to delete photo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "startingCamera": {
+      "en": "Starting camera",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "retryCamera": {
+      "en": "Retry camera",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "chooseCamera": {
+      "en": "Choose camera",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "chooseCameraCurrent": {
+      "en": "Choose camera (current: {label})",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "backToCamera": {
+      "en": "Back to camera",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "compass": {
+      "en": "Compass orientation",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "createdDate": {
+      "en": "Created date for new notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "newNote": {
+      "en": "New note",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "takePhoto": {
+      "en": "Take photo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "retake": {
+      "en": "Retake",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "adding": {
+      "en": "Adding…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addFromPictures": {
+      "en": "Add from pictures",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "camera": {
+      "en": "Camera",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "holdToRetake": {
+      "en": "Hold to retake photo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "annotatePhoto": {
+      "en": "Annotate photo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "notePlaceholder": {
+      "en": "Add a note for this photo…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tutorialFront": {
+      "en": "Type “front”",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tutorialRh": {
+      "en": "Type “rh 45”",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tutorialBaseline": {
+      "en": "Type “baseline kitchen”",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tutorialTrees": {
+      "en": "Write a short note about the trees",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "saveNeedPhoto": {
+      "en": "Take at least one photo before saving.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "saveSummary": {
+      "en": "{count} photo(s) will be saved in the app.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "fieldNoteSections": {
+      "en": "Field note sections",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "goToNew": {
+      "en": "Go to new note",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cameraNotReady": {
+      "en": "Camera is not ready yet — wait a moment and try again.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "couldNotAdd": {
+      "en": "Could not add that picture.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "compassAllow": {
+      "en": "Allow compass access to align the rose.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "review": {
+    "sectionsFound": {
+      "en": "{count} photo sections found",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "needAttention": {
+      "en": ", {count} need attention",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "allMatched": {
+      "en": " - all matched",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reorderHint": {
+      "en": "Press and hold a section for 2 seconds, then drag to reorder.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "standardWording": {
+      "en": "Standard wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "annotate": {
+      "en": "Annotate",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "holdToDelete": {
+      "en": "Hold to delete",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "holdToDeleteSection": {
+      "en": "Hold to delete section",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "fieldNote": {
+      "en": "Field note:",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "headingPlaceholder": {
+      "en": "Optional heading (e.g. Reading 1)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "referTo": {
+      "en": "Refer to section...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "asIllustrated": {
+      "en": "As illustrated in section {n}",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "useNoteText": {
+      "en": "Use note text",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "yourWording": {
+      "en": "Your wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "collapseNote": {
+      "en": "Collapse field note",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "expandNote": {
+      "en": "Expand field note",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "hideWarnings": {
+      "en": "Hide {count} parsing warning(s)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "showWarnings": {
+      "en": "Show {count} parsing warning(s)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addMore": {
+      "en": "Add more notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continueDetails": {
+      "en": "Continue to report details",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "confirmNote": {
+      "en": "Confirm note",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "needsAttention": {
+      "en": "Needs attention",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewWording": {
+      "en": "Review wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aiStandard": {
+      "en": "AI · standard wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aiWritten": {
+      "en": "AI written",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "crossref": {
+      "en": "Cross-reference",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "empty": {
+      "en": "Empty",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "studio": {
+    "preview": {
+      "en": "Studio preview",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reportsAlt": {
+      "en": "Stack of survey reports",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "dragScroll": {
+      "en": "Drag to scroll",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "emptyText": {
+      "en": "No wording for this section yet.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "home": {
+    "startNew": {
+      "en": "Start new report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "import": {
+      "en": "Import field notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "create": {
+      "en": "Create new field notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "past": {
+      "en": "Past reports",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "guide": {
+      "en": "Guide",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "settings": {
+      "en": "Settings",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "kicker": {
+      "en": "DampMaster / Report studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "headlineCreate": {
+      "en": "Create",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "headlineReport": {
+      "en": "report.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tagline": {
+      "en": "Turn field notes into a client-ready report.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "importTitle": {
+      "en": "Import field notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "importMeta": {
+      "en": ".DOCX · .DMSR ↗",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "createTitle": {
+      "en": "Create new notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "createMeta": {
+      "en": "Camera",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "importOrCreate": {
+      "en": "Import or create",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "startNewAria": {
+      "en": "Start new report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "readingDocument": {
+      "en": "Reading document…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pleaseWait": {
+      "en": "Please wait",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "past": {
+    "search": {
+      "en": "Search past reports…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "empty": {
+      "en": "No reports saved in this app yet.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noMatch": {
+      "en": "No reports match that search.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "import": {
+      "en": "Import a report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noPhoto": {
+      "en": "No photo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "surveyDateUnknown": {
+      "en": "Survey date unknown",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "ownerUnknown": {
+      "en": "Owner unknown",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "propertyUnknown": {
+      "en": "Property unknown",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "onDisk": {
+      "en": "{size} on disk",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "wordOnly": {
+      "en": "Word copy only — reopen needs a newer save",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "openAria": {
+      "en": "Open {title}",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cannotReopen": {
+      "en": "{title} (cannot reopen design state)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "sizeUnknown": {
+      "en": "Size unknown",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "deleteTitle": {
+      "en": "Delete this report?",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "deleteBody": {
+      "en": "This removes the saved copy from this app. Files already exported stay where you saved them.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "holdToDelete": {
+      "en": "Hold to confirm delete",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "confirmDelete": {
+      "en": "Delete report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "intro": {
+      "en": "Tap a tile to reopen the survey design (sections, status, and options). Share opens your device share sheet when available; Download exports a .docx or .dmsr. Import a .docx field-notes file or a .dmsr project.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "loading": {
+      "en": "Loading…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "emptyYet": {
+      "en": "No saved reports yet. Generate a report to see it here.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "searchPh": {
+      "en": "Search by name, owner, house, or date",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "searchAria": {
+      "en": "Search past reports",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noMatchQuery": {
+      "en": "No reports match “{query}”.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "downloadTitle": {
+      "en": "Download",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "downloadSummary": {
+      "en": "Export {title} as a Word copy or a .dmsr you can import on another device.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "importShort": {
+      "en": "Import",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "generate": {
+    "preparing": {
+      "en": "Preparing report…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "assembling": {
+      "en": "Assembling document…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "savingLibrary": {
+      "en": "Saving to library…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "fileName": {
+      "en": "File name",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "share": {
+      "en": "Share",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "download": {
+      "en": "Download",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "downloadFormat": {
+      "en": "Download format",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "newReport": {
+      "en": "Start another report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "word": {
+      "en": "Word (.docx)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "wordHint": {
+      "en": "Finished client report for Word / email",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pdf": {
+      "en": "PDF",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pdfHint": {
+      "en": "Opens print dialog — choose Save as PDF",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "project": {
+      "en": "Survey project (.dmsr)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "projectHint": {
+      "en": "Reopenable design file for this app",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "savingToLibrary": {
+      "en": "Saving to your report library…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "keptInApp": {
+      "en": "Kept in this app’s storage as a reopenable project (plus a Word copy for share/download).",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "issues": {
+      "en": "{count} issues",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "recommendations": {
+      "en": "{count} recommendations",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "flagged": {
+      "en": "{count} sections need attention",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "summary": {
+      "en": "Report summary",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "photoSections": {
+      "en": "{count} photo sections",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "issuesExplainers": {
+      "en": "{count} damp issue explainer(s)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "recsCount": {
+      "en": "{count} recommendation(s)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "planExcluded": {
+      "en": "Plan & costs: excluded",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "costLines": {
+      "en": "{count} cost line(s)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "propertyLabel": {
+      "en": "Property:",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addressNotSet": {
+      "en": "(address not set)",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "flaggedWarn": {
+      "en": "{count} section(s) are still marked \"needs attention\" and will appear in the report as they stand. Go back to review them if needed.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addressEmpty": {
+      "en": "The property address is empty.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "preview": {
+      "en": "Document preview",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "ready": {
+      "en": "Report ready",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "docName": {
+      "en": "Document name",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "libraryFailed": {
+      "en": "Library save failed: {error}",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "keptFolder": {
+      "en": "Kept in your linked folder “{name}”.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "linkFolder": {
+      "en": "Link a reports folder",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "linkHint": {
+      "en": "Recommended on this device: choose one folder for finished reports so the app can keep track of them without downloading twice.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "downloadCopy": {
+      "en": "Download a copy",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "downloadNoteApp": {
+      "en": "Not recommended — only if you need an extra file outside the library. Your report is already kept in app storage.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "downloadNoteFolder": {
+      "en": "Not recommended — only if you need an extra file outside the library. Your report is already kept in the linked folder.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "startAnother": {
+      "en": "Start a new report",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "export": {
+    "title": {
+      "en": "Download format",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "hint": {
+      "en": "Choose how you want the report saved.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "finish": {
+    "saveLeave": {
+      "en": "Save & leave",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "saveInApp": {
+      "en": "Save in app",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "saveInAppLeave": {
+      "en": "Save in app & leave",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "exportDocx": {
+      "en": "Export .docx",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "exportDocxLeave": {
+      "en": "Export .docx & leave",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "exportDmsr": {
+      "en": "Export .dmsr",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "exportDmsrLeave": {
+      "en": "Export .dmsr & leave",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "detailsSummary": {
+      "en": "This report’s sections, details, and options will be saved in the app.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "annotate": {
+    "title": {
+      "en": "Annotate photo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "tools": {
+      "en": "Annotation tools",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "autoShape": {
+      "en": "Auto shape",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "undo": {
+      "en": "Undo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "redo": {
+      "en": "Redo",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "eraser": {
+      "en": "Eraser",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "brush": {
+      "en": "Brush",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addArrow": {
+      "en": "Add arrow",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addCircle": {
+      "en": "Add circle",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addLine": {
+      "en": "Add line",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "addText": {
+      "en": "Add text note",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cropLeft": {
+      "en": "Crop left edge",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cropRight": {
+      "en": "Crop right edge",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cropTop": {
+      "en": "Crop top edge",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "cropBottom": {
+      "en": "Crop bottom edge",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "resize": {
+      "en": "Resize annotation",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "callout": {
+      "en": "Callout note text",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "finished": {
+      "en": "Finished",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "picker": {
+    "search": {
+      "en": "Search topics...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noMatches": {
+      "en": "No matches.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "title": {
+      "en": "Standard wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pressEnter": {
+      "en": "Press Enter to select",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "guide": {
+    "title": {
+      "en": "Guide",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "filter": {
+      "en": "Filter guide, topics, and keywords...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pipsTitle": {
+      "en": "Review status pips",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pipsIntro": {
+      "en": "On the review screen, the thin coloured column on the right shows each photo section's status at a glance. Colour changes fill top-to-bottom (about 0.7s, or ~5s while you review a yellow pip). Click or tap a pip to jump to that section — or turn on jump-on-hover in Settings.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "smartTitle": {
+      "en": "Smart phrases",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "smartIntro": {
+      "en": "These are understood directly, including common misspellings (e.g. \"infa red\", \"dew piont\", \"r.h.\").",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "topicsTitle": {
+      "en": "All topics & keywords",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "topicsIntro": {
+      "en": "Outlined keywords are used by more than one topic - add a context word (e.g. pin skirting rather than just pin) so the right wording is chosen; otherwise the section is flagged for review with all candidates suggested.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "matchingTitle": {
+      "en": "How matching works",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "viewText": {
+      "en": "View text",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "hideText": {
+      "en": "Hide text",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "startTutorial": {
+      "en": "Start tutorial",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "whatTitle": {
+      "en": "What this tool is for",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aiKeys": {
+      "en": "AI API keys",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "homeScreen": {
+      "en": "Add to Home Screen",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "retakeTutorial": {
+      "en": "Retake the tutorial",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "empty": {
+      "en": "No guide sections match “{query}”.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "purposeP1": {
+      "en": "This app helps a damp and timber surveyor turn numbered photo field notes into a polished, client-ready report. Start a new report to create field notes with the device camera, or import a Report and Run .docx. Everything stays on this device.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "purposeP2": {
+      "en": "For each photo it tries to match the note to the firm’s approved standard wording, filling in values from the note (such as humidity or pin readings). You then review every section, edit or swap wording, add property and client details, choose which damp issues and recommendations apply, and generate the finished report — cover, contents, photo sections, explainers, costs, and limitations — again entirely on the device.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "app": {
+    "preparingReport": {
+      "en": "Preparing report…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "savingFieldNotes": {
+      "en": "Saving field notes…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "saving": {
+      "en": "Saving…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "savingExporting": {
+      "en": "Saving & exporting…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "savingDraft": {
+      "en": "Saving draft…",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "openingProject": {
+      "en": "Opening project...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "readingDocument": {
+      "en": "Reading document...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "resumeTitle": {
+      "en": "Continue a saved survey?",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "resumeBody": {
+      "en": "This field notes document matches {title}{detail}. Continue from that saved work, or start a new report from the import?",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "startFresh": {
+      "en": "Start fresh",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continueSaved": {
+      "en": "Continue saved",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "rotatePhone": {
+      "en": "Rotate your phone upright to keep using the app",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "askingAi": {
+      "en": "Asking AI about section {n}...",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "chip": {
+    "confirmNote": {
+      "en": "Confirm note",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "needsAttention": {
+      "en": "Needs attention",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewWording": {
+      "en": "Review wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "standard": {
+      "en": "Standard wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aiStandard": {
+      "en": "AI · standard wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aiWritten": {
+      "en": "AI written",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "crossref": {
+      "en": "Cross-reference",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "yourWording": {
+      "en": "Your wording",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "empty": {
+      "en": "Empty",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "checklist": {
+    "front": {
+      "en": "front picture",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "compass": {
+      "en": "compass picture",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "airQuality": {
+      "en": "air quality picture",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "rh": {
+      "en": "relative humidity",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "dewPoint": {
+      "en": "dew point",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "baseline": {
+      "en": "baseline",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "threeReadings": {
+      "en": "3 readings location",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reading1": {
+      "en": "reading 1",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reading2": {
+      "en": "reading 2",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reading3": {
+      "en": "reading 3",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "steelPin": {
+      "en": "steel pin reading",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "thermal": {
+      "en": "thermal camera cold spots",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "moisture1": {
+      "en": "moisture map 1",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "moisture2": {
+      "en": "moisture map 2",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "moisture3": {
+      "en": "moisture map 3",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "pip": {
+    "attention": {
+      "en": "Orange",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "attentionMeaning": {
+      "en": "Needs attention — empty, missing readings, or no confident match",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noteConfirm": {
+      "en": "Yellow / blue stripes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "noteConfirmMeaning": {
+      "en": "Long field note — kept as written. Review this section to confirm accuracy and the pip will become blue",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "manual": {
+      "en": "Blue",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "manualMeaning": {
+      "en": "Your wording — confirmed field note, edited text, or a cross-reference",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "review": {
+      "en": "Yellow / green stripes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewMeaning": {
+      "en": "Standard text is filled in but confidence is low. Review this section to confirm accuracy and the pip will become green",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "library": {
+      "en": "Green",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "libraryMeaning": {
+      "en": "Standard wording — confident library match, or a soft match you've already reviewed",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "ai": {
+      "en": "Purple",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "aiMeaning": {
+      "en": "AI written — wording generated using ask AI feature based on picture and notes",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "error": {
+      "en": "Red",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "errorMeaning": {
+      "en": "AI error — Ask AI failed on this section; open the card overlay to read the message, dismiss it, or try again",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "empty": {
+      "en": "Grey",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "emptyMeaning": {
+      "en": "Empty — no text yet and not otherwise flagged",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  },
+  "coach": {
+    "welcomeKicker": {
+      "en": "Welcome to Dampmaster report studio",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "language": {
+      "en": "Please choose a language: English, Welsh, Irish, Scottish.\nYou can change these settings at any time.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "theme": {
+      "en": "Please choose a theme: light / dark\nYou can change these settings at any time.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "surveyorName": {
+      "en": "What is your name?",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pitch": {
+      "en": "Please consider taking this quick interactive tutorial to learn how to use report studio.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "newReport": {
+      "en": "**Press the new report button to start.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "createFieldNotes": {
+      "en": "To import a survey from Report and Run, first press share inside report and run as if you were sending it to a client, then press download to your device, then press import field notes in this app to start.\n\nAlternatively, this app can replace Report and Run using the field notes interface. **Press create new field notes to start.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "lookAround": {
+      "en": "You have now entered the field notes interface. In front of you is a simulation of the old valve house. **Turn your phone to look around.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "takeFront": {
+      "en": "In the top of this interface you can see your camera’s viewfinder and camera controls. **Take a picture of the front elevation of the old valve house**, to be included in the survey report.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "notesIntro": {
+      "en": "Well done! Now we move to the bottom of this interface. This is the notes section, here you can add notes about the observations you have made about the associated image.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "typeFront": {
+      "en": "You don’t need to make full detailed notes at this point. You can write short notes to finish later, or you may decide to use keywords that automatically activate standard Dampmaster wording for common elements of reports such as the front elevation. In the notes section, **simply type “front”.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "swipeNew": {
+      "en": "Great, now we can move on to the next observation. At any point swipe left or right on the screen to move between observations. To new observations, the camera is always located at the rightmost slide. **Swipe the screen to make a new note.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "openCompass": {
+      "en": "Another standard observation is the direction the property is facing. **Press the compass button in the bottom right corner of the viewfinder** to enter the compass view.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "compassCapture": {
+      "en": "While performing a survey, stand outside the front of the property and **point the top of the phone away from the building and press the camera button.** This will automatically insert the correct standard wording into the survey.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "walking": {
+      "en": "Please wait while we walk around the back of the building.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "takeTrees": {
+      "en": "A small tree has begun to grow from the roof and side of the building. This may be creating an opening for damp and moisture to enter the building. **Take a picture of the trees in the roof.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "typeTrees": {
+      "en": "**Now write a short note about the trees.** You can come back and add more before annotating.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "pressAnnotate": {
+      "en": "Similar to Report and Run, this app can also write annotations inside images to show exactly what is being discussed in the attached text segment. You can still edit the tree notes below. **Press annotate to edit this image.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "drawCircleKicker": {
+      "en": "Welcome to the annotate screen",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "drawCircle": {
+      "en": "**Try drawing a circle.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "moveCircle": {
+      "en": "**Now move it to the tree in the roof.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "drawArrow": {
+      "en": "**Now try drawing an arrow instead.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "annotateFree": {
+      "en": "You can turn off the auto shape detection with the toggle in the bottom. You can also switch between brush and eraser at the bottom or by double tapping quickly anywhere in the image. **Press finished when you are done.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "typeRh": {
+      "en": "Some more notes have been added to this survey for you. Some keywords contain two parts, the first part is the keyword and the second is the value. For example this image is of a relative humidity detector. It has determined that the relative humidity here is 45%. In the notes section **type “rh 45”** to note this down.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "typeBaseline": {
+      "en": "This baseline reading was taken in the kitchen. **Type “baseline kitchen” in the notes section.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "summary": {
+      "en": "On the bottom half of the screen you can see standard sections that you may want to consider adding on the left, and information about the notes you have taken on the right.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "continueDoc": {
+      "en": "In the bottom right you can save your notes as a survey file that is unique to this app, or as a Word document that will appear similar to ones produced by Report and Run. Alternatively you can continue straight into the document creation section of this app. This is what we will do now. **Press continue to document.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewIntro": {
+      "en": "This is the first page of the document process. Here you can organise and word your observations in a client ready format. If you wish to go back and add more notes, you can switch between document and field notes mode freely. On the right you can see the navigation bar. Each segment on this bar represents an image and its associated text. The colour of the segment represents the status of that segment according to these rules (also viewable in guide):",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewAi": {
+      "en": "In addition to a convenient interface to access Dampmaster standard wording for common observations, this app also gives surveyors the option to use an integrated AI agent to help convert short field notes into professional paragraphs. The AI has access to the image, field notes, and any additional information in the text area. If you are happy with the field note, **press the Ask AI button** to help convert the field notes about the trees into a full and professional sounding segment.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewAiAfter": {
+      "en": "You should always read AI responses to ensure they are correct. In order to use AI features within this app you must get an API key from one of the numerous providers supported by this app. Some providers such as Open Router offer free plans, while paid options may produce faster and higher quality results. See instructions in the guide page after this tutorial.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewReorder": {
+      "en": "From this interface you can rearrange the order of the segments by holding your finger on a segment and then dragging it above or below other segments. **Try to move any segment.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "reviewContinue": {
+      "en": "In this interface you can also choose to add standard wording segments from the standard wording search feature, enter the annotation screen to draw on pictures, and manually write the segments. When you are happy with your observations, **press the continue button at the bottom of the screen.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "detailsIntro": {
+      "en": "Welcome to the report details page. You have finished the part of the document explaining what observations you made at the client property. You can now fill in the details of the property and select which overarching issues you have identified and which recommendations you choose to give the client. The AI agent can help here by making suggestions for which options to pick based on the observations made on the previous page, but you should still always check its answers. **Scroll down to continue.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "detailsPlan": {
+      "en": "Finally, you can provide a project plan and costs. First you choose what services you can provide for this property by checking the appropriate boxes. Once you have chosen which projects may be necessary, you scroll down further and fill in the cost for each service. Not all surveys require a project plan. You can quickly disable this section and remove all financial boilerplate text from the final document by pressing the Exclude plan & costs toggle at the top of this segment. Once you are finished with your document, **press continue again to generate the document.**",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    },
+    "generateDone": {
+      "en": "Congratulations, you have finished your report. You can now share it as a Microsoft Word document or as a PDF. All past reports are always saved inside this app.\n\nIf you want to make any unique changes to the document, you are still capable of opening the document in Microsoft Word or other similar software to add anything this app was not designed for.\n\nThis concludes the tutorial.",
+      "cy": "",
+      "ga": "",
+      "gd": ""
+    }
+  }
+}

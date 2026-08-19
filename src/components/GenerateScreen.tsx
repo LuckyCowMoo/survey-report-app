@@ -24,14 +24,16 @@ import {
   type ExportFormat,
   type ExportFormatOption
 } from "../lib/webShare";
-import type { ReportExtras, ReportMetadata, SectionState } from "../types";
+import type { ReportExtras, ReportMetadata, SectionState, PropertyEpcSummary } from "../types";
 import ExportFormatSheet from "./ExportFormatSheet";
 import DocxPreview from "./DocxPreview";
+import { useT } from "../lib/i18n";
 
 interface Props {
   sections: SectionState[];
   metadata: ReportMetadata;
   extras: ReportExtras;
+  epc?: PropertyEpcSummary | null;
   warnings?: string[];
   flaggedCount: number;
   onRestart: () => void;
@@ -57,14 +59,16 @@ export default function GenerateScreen({
   sections,
   metadata,
   extras,
+  epc = null,
   warnings = [],
   flaggedCount,
   onRestart,
   skipLibrary = false
 }: Props) {
+  const t = useT();
   const recommendedName = reportFileName(metadata);
   const [fileName, setFileName] = useState(recommendedName);
-  const [progress, setProgress] = useState<string | null>("Preparing report...");
+  const [progress, setProgress] = useState<string | null>(t("generate.preparing"));
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ blob: Blob; name: string } | null>(null);
   const folderCapable = canLinkReportFolder();
@@ -120,7 +124,8 @@ export default function GenerateScreen({
           warnings,
           fileName: name,
           step: "details",
-          sourceFingerprint
+          sourceFingerprint,
+          epc
         })
       );
       const saved = await saveReportToLibrary({
@@ -175,14 +180,14 @@ export default function GenerateScreen({
           await yieldToUi();
         }
         if (cancelled) return;
-        setProgress("Assembling document...");
+        setProgress(t("generate.assembling"));
         await yieldToUi();
         if (cancelled) return;
         const blob = await generateReportBlob({ sections, metadata, extras, images });
         if (cancelled) return;
         setResult({ blob, name });
         if (!skipLibrary) {
-          setProgress("Saving to library...");
+          setProgress(t("generate.savingLibrary"));
           await persistToLibrary(blob, name);
         }
       } catch (err) {
@@ -208,7 +213,7 @@ export default function GenerateScreen({
     setLibraryError(null);
     const name = resolveFileName(fileName, recommendedName);
     setFileName(name);
-    setProgress("Preparing report...");
+    setProgress(t("generate.preparing"));
     try {
       const images = new Map<number, DocImage>();
       let done = 0;
@@ -223,12 +228,12 @@ export default function GenerateScreen({
         );
         await yieldToUi();
       }
-      setProgress("Assembling document...");
+      setProgress(t("generate.assembling"));
       await yieldToUi();
       const blob = await generateReportBlob({ sections, metadata, extras, images });
       setResult({ blob, name });
       if (!skipLibrary) {
-        setProgress("Saving to library...");
+        setProgress(t("generate.savingLibrary"));
         await persistToLibrary(blob, name);
       }
     } catch (err) {
@@ -262,24 +267,24 @@ export default function GenerateScreen({
     () => [
       {
         id: "docx",
-        label: "Word (.docx)",
-        hint: "Finished client report for Word / email",
+        label: t("generate.word"),
+        hint: t("generate.wordHint"),
         available: !!result
       },
       {
         id: "pdf",
-        label: "PDF",
-        hint: "Opens print dialog — choose Save as PDF",
+        label: t("generate.pdf"),
+        hint: t("generate.pdfHint"),
         available: !!result
       },
       {
         id: "project",
-        label: "Survey project (.dmsr)",
-        hint: "Reopenable design file for this app",
+        label: t("generate.project"),
+        hint: t("generate.projectHint"),
         available: !!result
       }
     ],
-    [result]
+    [result, t]
   );
 
   const buildProjectFile = (name: string): File => {
@@ -290,7 +295,8 @@ export default function GenerateScreen({
         extras,
         warnings,
         fileName: name,
-        step: "details"
+        step: "details",
+        epc
       })
     );
     return new File([projectBlob], projectFileNameFromDocx(name), {
@@ -350,7 +356,7 @@ export default function GenerateScreen({
   return (
     <div className="generate">
       <section className="panel">
-        <h2>Report summary</h2>
+        <h2>{t("generate.summary")}</h2>
         <ul className="summary-list">
           <li>
             <strong>{sections.length}</strong> photo sections
@@ -390,7 +396,7 @@ export default function GenerateScreen({
 
       {result && (
         <section className="panel generate-preview-panel">
-          <h2>Document preview</h2>
+          <h2>{t("generate.preview")}</h2>
           <DocxPreview blob={result.blob} />
         </section>
       )}
@@ -399,7 +405,7 @@ export default function GenerateScreen({
         <div className="banner error">
           {error}
           <button className="btn small" onClick={retry} style={{ marginLeft: 10 }}>
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       )}
@@ -407,10 +413,10 @@ export default function GenerateScreen({
 
       {result && (
         <section className="panel success">
-          <h2>Report ready</h2>
+          <h2>{t("generate.ready")}</h2>
           <p>{(result.blob.size / 1024 / 1024).toFixed(1)} MB</p>
           <label className="field file-name-field">
-            <span>Document name</span>
+            <span>{t("generate.docName")}</span>
             <input
               type="text"
               value={fileName}
@@ -439,7 +445,7 @@ export default function GenerateScreen({
                 disabled={libraryBusy}
                 onClick={() => void onLinkFolder()}
               >
-                Link a reports folder
+                {t("generate.linkFolder")}
               </button>
             )}
 
@@ -457,7 +463,7 @@ export default function GenerateScreen({
               disabled={exportBusy}
               onClick={() => void share()}
             >
-              Share
+              {t("generate.share")}
             </button>
 
             <button
@@ -466,7 +472,7 @@ export default function GenerateScreen({
               disabled={exportBusy}
               onClick={() => setShowDownloadFormats(true)}
             >
-              Download a copy
+              {t("generate.downloadCopy")}
             </button>
             <p className="download-copy-note">
               Not recommended — only if you need an extra file outside the
@@ -475,7 +481,7 @@ export default function GenerateScreen({
             </p>
           </div>
           <button className="btn small" onClick={onRestart}>
-            Start a new report
+            {t("generate.startAnother")}
           </button>
         </section>
       )}

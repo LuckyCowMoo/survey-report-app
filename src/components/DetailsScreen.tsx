@@ -22,9 +22,13 @@ import {
   type SearchableItem
 } from "../lib/fuzzySearch";
 import { scrollElementIntoViewCentered } from "../lib/scrollRoot";
-import type { CostLine, LibraryCostItem, LibraryRecommendation, ReportExtras, ReportMetadata } from "../types";
+import type { CostLine, LibraryCostItem, LibraryRecommendation, PropertyEpcSummary, ReportExtras, ReportMetadata } from "../types";
 import SheetShell from "./SheetShell";
 import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
+import PropertyAddressForm from "./PropertyAddressForm";
+import PropertyEpcPanel from "./PropertyEpcPanel";
+import AskAiButton from "./AskAiButton";
+import { useT } from "../lib/i18n";
 
 interface Props {
   metadata: ReportMetadata;
@@ -41,20 +45,15 @@ interface Props {
   suggestBusy: DetailsSuggestScope | null;
   suggestError: { scope: DetailsSuggestScope; message: string } | null;
   onAskAi: (scope: DetailsSuggestScope) => void;
+  onAskCleanup: () => void;
   onDismissSuggestError: () => void;
   tutorial?: boolean;
   lockContinue?: boolean;
+  epc?: PropertyEpcSummary | null;
+  epcLoading?: boolean;
+  epcError?: string | null;
+  onRefreshEpc?: () => void;
 }
-
-const PROPERTY_TYPES = [
-  "end-of-terrace dwelling",
-  "mid-terrace dwelling",
-  "detached dwelling",
-  "semi-detached dwelling",
-  "flat/apartment",
-  "commercial premises",
-  "hotel"
-];
 
 let costIdCounter = 1;
 
@@ -76,38 +75,9 @@ function AutoGrowTextarea({
 }
 
 function AiPickReason({ text }: { text?: string }) {
-  const trimmed = text?.trim() || "Suggested from the survey wording.";
+  const t = useT();
+  const trimmed = text?.trim() || t("details.aiPickFallback");
   return <p className="ai-pick-reason">{trimmed}</p>;
-}
-
-function AskAiButton({
-  busy,
-  disabled,
-  onClick,
-  label = "Ask AI"
-}: {
-  busy: boolean;
-  disabled: boolean;
-  onClick: () => void;
-  label?: string;
-}) {
-  return (
-    <button
-      type="button"
-      className={`btn small details-ask-ai${busy ? " ai-busy" : ""}`}
-      disabled={disabled || busy}
-      onClick={onClick}
-    >
-      {busy ? (
-        <>
-          <span className="ai-spinner" aria-hidden />
-          Writing…
-        </>
-      ) : (
-        label
-      )}
-    </button>
-  );
 }
 
 function DetailsAiErrorOverlay({
@@ -125,13 +95,14 @@ function DetailsAiErrorOverlay({
   onDismiss: () => void;
   onRetry: () => void;
 }) {
+  const t = useT();
   return (
     <div className="ai-error-overlay details-ai-error-overlay" role="alert">
       <p className="ai-error-title">{title}</p>
       <p className="ai-error-message">{message}</p>
       <div className="ai-error-actions">
         <button type="button" className="btn small" onClick={onDismiss}>
-          Dismiss
+          {t("common.dismiss")}
         </button>
         <button
           type="button"
@@ -139,7 +110,7 @@ function DetailsAiErrorOverlay({
           disabled={!aiConfigured || busy}
           onClick={onRetry}
         >
-          Try again
+          {t("details.tryAgain")}
         </button>
       </div>
     </div>
@@ -178,10 +149,16 @@ export default function DetailsScreen({
   suggestBusy,
   suggestError,
   onAskAi,
+  onAskCleanup,
   onDismissSuggestError,
   tutorial = false,
-  lockContinue = false
+  lockContinue = false,
+  epc = null,
+  epcLoading = false,
+  epcError = null,
+  onRefreshEpc
 }: Props) {
+  const t = useT();
   const [recPreview, setRecPreview] = useState<string | null>(null);
   const [costPreview, setCostPreview] = useState<string | null>(null);
   const [recQuery, setRecQuery] = useState("");
@@ -331,7 +308,7 @@ export default function DetailsScreen({
   const costLineLabel = (line: CostLine) =>
     line.label ||
     library.costItems.find((c) => c.id === line.itemId)?.label ||
-    (line.itemId === "custom" ? "Custom item" : "Cost item");
+    (line.itemId === "custom" ? t("details.customItem") : t("details.costItem"));
 
   const updateCostLine = (id: string, patch: Partial<CostLine>) =>
     onExtras({
@@ -456,57 +433,10 @@ export default function DetailsScreen({
   return (
     <div className="details">
       <section className="panel">
-        <h2>Property & survey</h2>
+        <h2>{t("address.title")}</h2>
+        <PropertyAddressForm metadata={metadata} onMetadata={onMetadata} />
         <label className="field">
-          <span>Property address</span>
-          <input
-            type="text"
-            value={metadata.propertyAddress}
-            placeholder="9 Example Road, Cardiff, CF24 ..."
-            onChange={(e) => setMeta("propertyAddress", e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>Client name</span>
-          <input
-            type="text"
-            value={metadata.clientName}
-            onChange={(e) => setMeta("clientName", e.target.value)}
-          />
-        </label>
-        <div className="field-row">
-          <label className="field">
-            <span>Phone (page header)</span>
-            <input
-              type="tel"
-              value={metadata.phone}
-              onChange={(e) => setMeta("phone", e.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>Email (page header)</span>
-            <input
-              type="email"
-              value={metadata.email}
-              onChange={(e) => setMeta("email", e.target.value)}
-            />
-          </label>
-        </div>
-        <label className="field">
-          <span>Property type</span>
-          <select
-            value={metadata.propertyType}
-            onChange={(e) => setMeta("propertyType", e.target.value)}
-          >
-            {PROPERTY_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Survey date</span>
+          <span>{t("details.surveyDate")}</span>
           <input
             type="text"
             value={metadata.surveyDate}
@@ -514,26 +444,26 @@ export default function DetailsScreen({
           />
         </label>
         <label className="field">
-          <span>Document id (footer, optional)</span>
+          <span>{t("details.docId")}</span>
           <input
             type="text"
             value={metadata.docId}
-            placeholder="112.1"
+            placeholder={t("details.docIdPlaceholder")}
             onChange={(e) => setMeta("docId", e.target.value)}
           />
         </label>
         <div className="field-row">
           <label className="field">
-            <span>Weather</span>
+            <span>{t("details.weather")}</span>
             <input
               type="text"
               value={metadata.weatherDesc}
-              placeholder="dry conditions"
+              placeholder={t("details.weatherPlaceholder")}
               onChange={(e) => setMeta("weatherDesc", e.target.value)}
             />
           </label>
           <label className="field narrow">
-            <span>Temp (°C)</span>
+            <span>{t("details.temp")}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -543,33 +473,32 @@ export default function DetailsScreen({
           </label>
         </div>
         <label className="field">
-          <span>Sky</span>
+          <span>{t("details.sky")}</span>
           <input
             type="text"
             value={metadata.skyDesc}
-            placeholder="intermittent cloud cover"
+            placeholder={t("details.skyPlaceholder")}
             onChange={(e) => setMeta("skyDesc", e.target.value)}
           />
         </label>
       </section>
 
+      <PropertyEpcPanel
+        epc={epc}
+        loading={epcLoading}
+        error={epcError}
+        onRefresh={onRefreshEpc}
+      />
+
       <div className="details-ai-toolbar">
-        <button
-          type="button"
-          className={`btn primary details-ask-ai-all${allBusy ? " ai-busy" : ""}`}
-          disabled={!aiConfigured || (anyBusy && !allBusy) || allBusy}
-          title={aiConfigured ? "" : "Add your API key in Settings"}
-          onClick={() => onAskAi("all")}
-        >
-          {allBusy ? (
-            <>
-              <span className="ai-spinner" aria-hidden />
-              Writing…
-            </>
-          ) : (
-            "Ask AI about all"
-          )}
-        </button>
+        <AskAiButton
+          configured={aiConfigured}
+          busy={allBusy}
+          disabled={anyBusy && !allBusy}
+          onAsk={() => onAskAi("all")}
+          label={t("askAi.aboutAll")}
+          className="btn primary details-ask-ai-all"
+        />
       </div>
 
       <section
@@ -577,7 +506,7 @@ export default function DetailsScreen({
       >
         {issuesError && (
           <DetailsAiErrorOverlay
-            title="AI couldn’t finish issues"
+            title={t("details.issuesError")}
             message={issuesError}
             aiConfigured={aiConfigured}
             busy={anyBusy}
@@ -586,7 +515,7 @@ export default function DetailsScreen({
           />
         )}
         <div className="details-panel-head">
-          <h2>Issues found at this property</h2>
+          <h2>{t("details.issuesTitle")}</h2>
           <div className="details-panel-actions">
             <button
               type="button"
@@ -594,12 +523,14 @@ export default function DetailsScreen({
               disabled={issuesBusy}
               onClick={deselectIssues}
             >
-              Deselect
+              {t("details.deselect")}
             </button>
             <AskAiButton
+              configured={aiConfigured}
               busy={issuesBusy}
-              disabled={!aiConfigured || (anyBusy && !issuesBusy)}
-              onClick={() => onAskAi("issues")}
+              disabled={anyBusy && !issuesBusy}
+              onAsk={() => onAskAi("issues")}
+              className="btn small details-ask-ai"
             />
           </div>
         </div>
@@ -608,10 +539,10 @@ export default function DetailsScreen({
             <span className="ai-writing-pulse" />
             <span className="ai-writing-pulse" />
             <span className="ai-writing-pulse" />
-            <span className="ai-writing-label">Drafting issues…</span>
+            <span className="ai-writing-label">{t("details.draftingIssues")}</span>
           </div>
         )}
-        <p className="muted">Tick the damp issues identified on site.</p>
+        <p className="muted">{t("details.issuesHint")}</p>
         <div className="details-tick-block">
           <label className="toggle">
             <input
@@ -621,7 +552,7 @@ export default function DetailsScreen({
               disabled={issuesBusy}
               onChange={() => toggleIssue("risingDamp")}
             />
-            <span>Rising damp</span>
+            <span>{t("details.risingDamp")}</span>
           </label>
           {aiSuggested.issues.risingDamp && (
             <AiPickReason text={aiSuggested.issueReasons.risingDamp} />
@@ -638,7 +569,7 @@ export default function DetailsScreen({
               disabled={issuesBusy}
               onChange={() => toggleIssue("penetratingDamp")}
             />
-            <span>Penetrating damp</span>
+            <span>{t("details.penetratingDamp")}</span>
           </label>
           {aiSuggested.issues.penetratingDamp && (
             <AiPickReason text={aiSuggested.issueReasons.penetratingDamp} />
@@ -653,7 +584,7 @@ export default function DetailsScreen({
               disabled={issuesBusy}
               onChange={() => toggleIssue("condensation")}
             />
-            <span>Condensation</span>
+            <span>{t("details.condensation")}</span>
           </label>
           {aiSuggested.issues.condensation && (
             <AiPickReason text={aiSuggested.issueReasons.condensation} />
@@ -670,10 +601,10 @@ export default function DetailsScreen({
         </label>
         {extras.dampIssues.other && (
           <label className="field">
-            <span>Describe the other issue</span>
+            <span>{t("details.otherIssue")}</span>
             <textarea
               rows={4}
-              placeholder="Explain the issue and wording for the report…"
+              placeholder={t("details.otherIssuePlaceholder")}
               value={extras.otherIssueText}
               disabled={issuesBusy}
               onChange={(e) => onExtras({ ...extras, otherIssueText: e.target.value })}
@@ -687,7 +618,7 @@ export default function DetailsScreen({
       >
         {recsError && (
           <DetailsAiErrorOverlay
-            title="AI couldn’t finish recommendations"
+            title={t("details.recsError")}
             message={recsError}
             aiConfigured={aiConfigured}
             busy={anyBusy}
@@ -698,7 +629,7 @@ export default function DetailsScreen({
           />
         )}
         <div className="details-panel-head">
-          <h2>Recommendations</h2>
+          <h2>{t("details.recsTitle")}</h2>
           <div className="details-panel-actions">
             <button
               type="button"
@@ -706,12 +637,14 @@ export default function DetailsScreen({
               disabled={recsBusy}
               onClick={deselectRecommendations}
             >
-              Deselect
+              {t("details.deselect")}
             </button>
             <AskAiButton
+              configured={aiConfigured}
               busy={recsBusy}
-              disabled={!aiConfigured || (anyBusy && !recsBusy)}
-              onClick={() => onAskAi("recommendations")}
+              disabled={anyBusy && !recsBusy}
+              onAsk={() => onAskAi("recommendations")}
+              className="btn small details-ask-ai"
             />
           </div>
         </div>
@@ -720,14 +653,14 @@ export default function DetailsScreen({
             <span className="ai-writing-pulse" />
             <span className="ai-writing-pulse" />
             <span className="ai-writing-pulse" />
-            <span className="ai-writing-label">Drafting recommendations…</span>
+            <span className="ai-writing-label">{t("details.draftingRecs")}</span>
           </div>
         )}
-        <p className="muted">Tick the standard recommendations to include.</p>
+        <p className="muted">{t("details.recsHint")}</p>
         <input
           className="search details-list-search"
           type="search"
-          placeholder="Search recommendations..."
+          placeholder={t("details.recsSearch")}
           value={recQuery}
           onChange={(e) => setRecQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -770,7 +703,7 @@ export default function DetailsScreen({
               {recPreview === r.id ? "Hide" : "View"}
             </button>
             {highlighted && (
-              <em className="picker-best-hint">Press Enter to select</em>
+              <em className="picker-best-hint">{t("details.enterToSelect")}</em>
             )}
             {aiSuggested.recommendationIds.includes(r.id) && (
               <AiPickReason text={aiSuggested.recommendationReasons[r.id]} />
@@ -792,10 +725,10 @@ export default function DetailsScreen({
         </label>
         {extras.otherRecommendation && (
           <label className="field">
-            <span>Other recommendation</span>
+            <span>{t("details.otherRec")}</span>
             <textarea
               rows={4}
-              placeholder="Write the recommendation wording for the report…"
+              placeholder={t("details.otherRecPlaceholder")}
               value={extras.otherRecommendationText}
               disabled={recsBusy}
               onChange={(e) =>
@@ -812,7 +745,7 @@ export default function DetailsScreen({
       >
         {costsError && !excludePlanCosts && (
           <DetailsAiErrorOverlay
-            title="AI couldn’t finish project plan & costs"
+            title={t("details.costsError")}
             message={costsError}
             aiConfigured={aiConfigured}
             busy={anyBusy}
@@ -821,7 +754,7 @@ export default function DetailsScreen({
           />
         )}
         <div className="details-panel-head">
-          <h2>Project plan & costs</h2>
+          <h2>{t("details.planTitle")}</h2>
           <div className="details-panel-actions">
             {!excludePlanCosts && (
               <>
@@ -831,12 +764,14 @@ export default function DetailsScreen({
                   disabled={costsBusy}
                   onClick={deselectCosts}
                 >
-                  Deselect
+                  {t("details.deselect")}
                 </button>
                 <AskAiButton
+                  configured={aiConfigured}
                   busy={costsBusy}
-                  disabled={!aiConfigured || (anyBusy && !costsBusy)}
-                  onClick={() => onAskAi("costs")}
+                  disabled={anyBusy && !costsBusy}
+                  onAsk={() => onAskAi("costs")}
+                  className="btn small details-ask-ai"
                 />
               </>
             )}
@@ -857,11 +792,8 @@ export default function DetailsScreen({
             <span className="pill-switch-thumb" aria-hidden />
           </button>
           <div className="details-exclude-copy">
-            <span className="details-exclude-label">Exclude plan &amp; costs</span>
-            <span className="details-exclude-hint">
-              For recommendation-only reports — omit the project plan, prices,
-              finance offer, and related service paragraphs from the export.
-            </span>
+            <span className="details-exclude-label">{t("details.excludePlan")}</span>
+            <span className="details-exclude-hint">{t("details.excludeHint")}</span>
           </div>
         </div>
 
@@ -870,7 +802,7 @@ export default function DetailsScreen({
             <span className="ai-writing-pulse" />
             <span className="ai-writing-pulse" />
             <span className="ai-writing-pulse" />
-            <span className="ai-writing-label">Drafting costs…</span>
+            <span className="ai-writing-label">{t("details.draftingCosts")}</span>
           </div>
         )}
 
@@ -880,7 +812,7 @@ export default function DetailsScreen({
         >
           <div className="details-costs-collapse-inner">
         <label className="field">
-          <span>Areas of work (one line per room/area)</span>
+          <span>{t("details.areasOfWork")}</span>
           <textarea
             rows={4}
             placeholder={"Living area: all exterior walls from floor to 1.2 meters\nHallway: interior wall from floor to 1.2 meters"}
@@ -890,14 +822,11 @@ export default function DetailsScreen({
           />
         </label>
 
-        <p className="muted">
-          Tick the standard cost items. Enter a price for each selected item
-          (and a work location where the job is room-specific) before generating.
-        </p>
+        <p className="muted">{t("details.costsHint")}</p>
         <input
           className="search details-list-search"
           type="search"
-          placeholder="Search project plan & costs..."
+          placeholder={t("details.costsSearch")}
           value={costQuery}
           disabled={costsBusy || excludePlanCosts}
           onChange={(e) => setCostQuery(e.target.value)}
@@ -939,7 +868,7 @@ export default function DetailsScreen({
               {costPreview === c.id ? "Hide" : "View"}
             </button>
             {highlighted && (
-              <em className="picker-best-hint">Press Enter to select</em>
+              <em className="picker-best-hint">{t("details.enterToSelect")}</em>
             )}
             {aiSuggested.costItemIds.includes(c.id) && (
               <AiPickReason text={aiSuggested.costReasons[c.id]} />
@@ -963,12 +892,12 @@ export default function DetailsScreen({
             <div className="cost-line-label">{costLineLabel(line)}</div>
             {costItemNeedsLocation(line.itemId) ? (
             <label className="field cost-location-field">
-              <span>Where / areas *</span>
+              <span>{t("details.whereAreas")}</span>
               <input
                 id={`cost-${line.id}-location`}
                 type="text"
                 value={line.location ?? ""}
-                placeholder="e.g. rear reception & hallway exterior walls to 1.2m"
+                placeholder={t("details.wherePlaceholder")}
                 disabled={costsBusy || excludePlanCosts}
                 required
                 onChange={(e) =>
@@ -989,7 +918,7 @@ export default function DetailsScreen({
             </div>
             <AutoGrowTextarea
               value={line.description}
-              placeholder="Describe the work item..."
+              placeholder={t("details.describeWork")}
               disabled={costsBusy || excludePlanCosts}
               onChange={(e) => updateCostLine(line.id, { description: e.target.value })}
             />
@@ -1023,7 +952,7 @@ export default function DetailsScreen({
             <div className="cost-line-label">Other</div>
             <AutoGrowTextarea
               value={extras.otherCostDescription}
-              placeholder="Describe the other work item..."
+              placeholder={t("details.otherWork")}
               disabled={costsBusy || excludePlanCosts}
               onChange={(e) =>
                 onExtras({ ...extras, otherCostDescription: e.target.value })
@@ -1051,13 +980,13 @@ export default function DetailsScreen({
 
         {(extras.costLines.length > 0 || extras.otherCost) && (
           <p className="total">
-            Total: <strong>£{total}</strong> + VAT
+            {t("details.total")} <strong>£{total}</strong> {t("details.plusVat")}
           </p>
         )}
 
         <div className="field-row">
           <label className="field">
-            <span>Survey fee refunded if work goes ahead (£)</span>
+            <span>{t("details.surveyFee")}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -1067,11 +996,11 @@ export default function DetailsScreen({
             />
           </label>
           <label className="field">
-            <span>Estimated duration</span>
+            <span>{t("details.duration")}</span>
             <input
               type="text"
               value={extras.timeEstimate}
-              placeholder="5-7 days"
+              placeholder={t("details.durationPlaceholder")}
               disabled={costsBusy || excludePlanCosts}
               onChange={(e) => onExtras({ ...extras, timeEstimate: e.target.value })}
             />
@@ -1081,7 +1010,35 @@ export default function DetailsScreen({
         </div>
       </section>
 
-      <section className="panel details-limitations-panel">
+      {!excludePlanCosts && (
+        <section className="panel details-ai-panel">
+          <div className="details-panel-head">
+            <h2>{t("details.cleanupTitle")}</h2>
+            <AskAiButton
+              configured={aiConfigured}
+              busy={costsBusy}
+              disabled={anyBusy && !costsBusy}
+              onAsk={onAskCleanup}
+              className="btn small details-ask-ai"
+            />
+          </div>
+          <p className="muted">{t("details.cleanupHint")}</p>
+          <label className="field">
+            <span className="visually-hidden">{t("details.cleanupTitle")}</span>
+            <textarea
+              rows={6}
+              placeholder={t("details.cleanupPlaceholder")}
+              value={extras.postProjectCleanup}
+              disabled={costsBusy}
+              onChange={(e) =>
+                onExtras({ ...extras, postProjectCleanup: e.target.value })
+              }
+            />
+          </label>
+        </section>
+      )}
+
+      <section className="panel">
         <div className="details-exclude-row">
           <button
             type="button"
@@ -1097,13 +1054,13 @@ export default function DetailsScreen({
           <div className="details-exclude-copy">
             <span className="details-exclude-label">
               {extras.invasiveSurvey
-                ? "Invasive survey limitations"
-                : "Non-invasive survey limitations"}
+                ? t("details.invasiveOn")
+                : t("details.invasiveOff")}
             </span>
             <span className="details-exclude-hint">
               {extras.invasiveSurvey
-                ? "The final section will use invasive-survey limitations wording."
-                : "The final section will use the standard non-invasive limitations wording."}
+                ? t("details.invasiveOnHint")
+                : t("details.invasiveOffHint")}
             </span>
           </div>
         </div>
@@ -1119,7 +1076,7 @@ export default function DetailsScreen({
             setShowSave(true);
           }}
         >
-          Save & leave
+          {t("finish.saveLeave")}
         </button>
       </div>
 
@@ -1130,17 +1087,15 @@ export default function DetailsScreen({
         >
           {({ requestClose }) => (
             <>
-              <h2 id="details-incomplete-title">Fill in the remaining details?</h2>
+              <h2 id="details-incomplete-title">{t("details.incompleteTitle")}</h2>
               <p className="muted">{costsBlockReason}</p>
-              <p className="muted">
-                You can still generate if you are sure this is complete enough.
-              </p>
+              <p className="muted">{t("details.incompleteBody")}</p>
               <div className="sheet-actions">
                 <button type="button" className="btn" onClick={jumpToIncomplete}>
-                  Go to issue
+                  {t("details.goToIssue")}
                 </button>
                 <button type="button" className="btn" onClick={requestClose}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -1150,7 +1105,7 @@ export default function DetailsScreen({
                     onContinue();
                   }}
                 >
-                  Ignore and generate
+                  {t("details.ignoreGenerate")}
                 </button>
               </div>
             </>
@@ -1161,7 +1116,7 @@ export default function DetailsScreen({
       {showSave && (
         <FieldNotesFinishSheet
           busy={busy}
-          summary="This report’s sections, details, and options will be saved in the app."
+          summary={t("finish.detailsSummary")}
           onClose={() => setShowSave(false)}
           onSaveInApp={() => {
             setShowSave(false);
@@ -1185,7 +1140,7 @@ export default function DetailsScreen({
           disabled={!canContinue}
           onClick={requestContinue}
         >
-          Continue to generate
+          {t("details.continueGenerate")}
         </button>
       </div>
     </div>

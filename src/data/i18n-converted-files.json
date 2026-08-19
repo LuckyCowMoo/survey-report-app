@@ -1,0 +1,41 @@
+{
+  "note": "Files whose user-facing chrome was migrated to src/data/ui-strings.json. Remaining empty cy/ga/gd values are filled later. Domain library wording (content-library.json, keyword phrases, report boilerplate) is document content, not interface chrome.",
+  "converted": [
+    "src/lib/i18n.ts",
+    "src/data/ui-strings.json",
+    "src/components/AskAiButton.tsx",
+    "src/components/ThemeToggle.tsx",
+    "src/components/CountryLanguageGrid.tsx",
+    "src/components/TutorialOnboarding.tsx",
+    "src/components/TutorialHomeIntro.tsx",
+    "src/components/TutorialExitButton.tsx",
+    "src/components/TutorialCoach.tsx",
+    "src/lib/tutorial/flow.ts",
+    "src/components/SettingsSheet.tsx",
+    "src/components/PropertyAddressForm.tsx",
+    "src/components/PropertyEpcPanel.tsx",
+    "src/components/FieldNotesGate.tsx",
+    "src/components/FieldNotesFinishSheet.tsx",
+    "src/components/ExportFormatSheet.tsx",
+    "src/components/HomeScreen.tsx",
+    "src/components/StudioAside.tsx",
+    "src/components/DetailsScreen.tsx",
+    "src/components/FieldNotesScreen.tsx",
+    "src/components/ReviewScreen.tsx",
+    "src/components/EntryCard.tsx",
+    "src/components/KeywordGuide.tsx",
+    "src/lib/pipLegend.ts",
+    "src/components/AnnotationOverlay.tsx",
+    "src/components/LibraryPicker.tsx",
+    "src/components/GenerateScreen.tsx",
+    "src/components/PastReportsScreen.tsx",
+    "src/App.tsx"
+  ],
+  "deferred": [
+    "src/components/ProviderKeyGuide.tsx",
+    "src/components/HomeScreenGuide.tsx",
+    "src/lib/aiProviderGuide.ts",
+    "src/lib/homeScreenGuide.ts",
+    "src/components/KeywordGuide.tsx (smart-phrase table + matching tips remain English pending translation)"
+  ]
+}

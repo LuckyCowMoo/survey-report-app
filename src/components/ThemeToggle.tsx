@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { applyTheme, loadTheme, type Theme } from "../lib/theme";
-
-const themes: { value: Theme; label: string; swatch: string }[] = [
-  { value: "expressive", label: "Studio", swatch: "Coral" },
-  { value: "dark", label: "Dark", swatch: "Ink" },
-  { value: "original", label: "Original", swatch: "Blue" }
-];
+import { useT } from "../lib/i18n";
 
 interface Props {
   /** Fired after a new theme is applied (e.g. close Settings to show the fade). */
@@ -13,7 +8,20 @@ interface Props {
 }
 
 export default function ThemePicker({ onThemeApplied }: Props) {
+  const t = useT();
   const [theme, setTheme] = useState<Theme>(loadTheme);
+  const themes: { value: Theme; label: string; swatch: string }[] = [
+    {
+      value: "expressive",
+      label: t("settings.themeStudio"),
+      swatch: t("settings.themeStudioSwatch")
+    },
+    {
+      value: "dark",
+      label: t("settings.themeDark"),
+      swatch: t("settings.themeDarkSwatch")
+    }
+  ];
 
   const selectTheme = (next: Theme) => {
     if (next === theme) return;
@@ -24,8 +32,8 @@ export default function ThemePicker({ onThemeApplied }: Props) {
 
   return (
     <div className="theme-field">
-      <span className="theme-field-label">Appearance</span>
-      <div className="theme-options" role="radiogroup" aria-label="Appearance">
+      <span className="theme-field-label">{t("settings.appearance")}</span>
+      <div className="theme-options" role="radiogroup" aria-label={t("settings.appearance")}>
         {themes.map((option) => (
           <button
             key={option.value}
@@ -38,7 +46,7 @@ export default function ThemePicker({ onThemeApplied }: Props) {
             <span className={`theme-swatch ${option.value}`} aria-hidden>
               <i />
             </span>
-            <strong>{option.label}</strong>
+            <strong data-fit-text>{option.label}</strong>
             <small>{option.swatch}</small>
           </button>
         ))}

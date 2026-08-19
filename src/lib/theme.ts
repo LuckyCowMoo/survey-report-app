@@ -1,4 +1,4 @@
-export type Theme = "expressive" | "dark" | "original";
+export type Theme = "expressive" | "dark";
 
 const THEME_KEY = "survey-report-theme";
 /** Keep in sync with `--theme-transition-ms` in styles.css */
@@ -8,9 +8,8 @@ let themeTransitionTimer = 0;
 
 export function loadTheme(): Theme {
   const saved = localStorage.getItem(THEME_KEY);
-  if (saved === "expressive" || saved === "dark" || saved === "original") {
-    return saved;
-  }
+  if (saved === "expressive" || saved === "dark") return saved;
+  if (saved === "original") return "expressive";
   return "dark";
 }
 
@@ -19,7 +18,7 @@ export function applyTheme(
   options?: { animate?: boolean }
 ): void {
   const root = document.documentElement;
-  const previous = root.dataset.theme as Theme | undefined;
+  const previous = root.dataset.theme as Theme | "original" | undefined;
   const reduceMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
   ).matches;

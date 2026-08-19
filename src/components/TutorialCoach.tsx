@@ -1,5 +1,6 @@
-import { REVIEW_PIP_LEGEND } from "../lib/pipLegend";
+import { reviewPipLegend } from "../lib/pipLegend";
 import type { CoachSpec } from "../lib/tutorial/flow";
+import { useT } from "../lib/i18n";
 
 type Props = {
   spec: CoachSpec;
@@ -9,6 +10,8 @@ type Props = {
 };
 
 export default function TutorialCoach({ spec, onNext, onSkip, onFinish }: Props) {
+  useT();
+  const pipLegend = reviewPipLegend();
   if (!spec.body && !spec.kicker && !spec.nextLabel) return null;
   return (
     <div className={`tutorial-coach placement-${spec.placement}`}>
@@ -23,7 +26,7 @@ export default function TutorialCoach({ spec, onNext, onSkip, onFinish }: Props)
           : null}
         {spec.showPipLegend ? (
           <ul className="guide-pip-legend tutorial-pip-legend">
-            {REVIEW_PIP_LEGEND.map((p) => (
+            {pipLegend.map((p) => (
               <li key={p.tone}>
                 <span className={`guide-pip-swatch tone-${p.tone}`} aria-hidden />
                 <span>

@@ -587,8 +587,10 @@ function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
       body(`Time to complete the job estimated between ${extras.timeEstimate.trim()}`)
     );
   }
-  // Bold in the example document.
-  out.push(body(COST_FOOTNOTES.skirtingNote, { bold: true }));
+  const cleanup = extras.postProjectCleanup.trim();
+  if (cleanup) {
+    out.push(body(cleanup, { bold: true }));
+  }
   // Finance: plain text line followed by the centred finance graphic.
   out.push(body(COST_FOOTNOTES.financeNote));
   out.push(

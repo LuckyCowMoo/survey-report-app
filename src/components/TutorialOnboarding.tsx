@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { applyTheme, loadTheme, type Theme } from "../lib/theme";
 import { useTextReveal } from "../lib/textReveal";
+import { setUiLanguage, useT } from "../lib/i18n";
 import {
   loadTutorialLanguage,
-  saveTutorialLanguage,
   type TutorialLanguage
 } from "../lib/tutorial/progress";
+import { loadSettings } from "../lib/settings";
 import type { TutorialBeat } from "../lib/tutorial/flow";
 import CountryLanguageGrid from "./CountryLanguageGrid";
 
@@ -14,30 +15,32 @@ type Props = {
   onBack: () => void;
   onLanguage: () => void;
   onChooseTheme: () => void;
+  onSurveyorName: (name: string) => void;
   onTake: () => void;
   onSkip: () => void;
 };
-
-const PITCH_INTRO =
-  "Dampmaster report studio is a bespoke tool created to help Dampmaster franchisees quickly and easily create notes while out in the field and seamlessly convert observations into finished documents";
 
 export default function TutorialOnboarding({
   beat,
   onBack,
   onLanguage,
   onChooseTheme,
+  onSurveyorName,
   onTake,
   onSkip
 }: Props) {
+  const t = useT();
   const [lang, setLang] = useState<TutorialLanguage | null>(loadTutorialLanguage);
   const [theme, setTheme] = useState<Theme>(() => loadTheme());
+  const [name, setName] = useState(() => loadSettings().surveyorName);
   const { revealDisplay, triggerTextReveal } = useTextReveal();
   const [pitchReady, setPitchReady] = useState(false);
+  const pitchIntro = t("tutorial.pitchIntro");
 
   useEffect(() => {
     if (beat !== "welcome") return;
-    const t = window.setTimeout(onLanguage, 1800);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(onLanguage, 1800);
+    return () => window.clearTimeout(timer);
   }, [beat, onLanguage]);
 
   useEffect(() => {
@@ -45,8 +48,8 @@ export default function TutorialOnboarding({
       setPitchReady(false);
       return;
     }
-    triggerTextReveal("", PITCH_INTRO, { onDone: () => setPitchReady(true) });
-  }, [beat, triggerTextReveal]);
+    triggerTextReveal("", pitchIntro, { onDone: () => setPitchReady(true) });
+  }, [beat, pitchIntro, triggerTextReveal]);
 
   const pickTheme = (next: Theme) => {
     setTheme(next);
@@ -56,20 +59,18 @@ export default function TutorialOnboarding({
   return (
     <div className="tutorial-onboarding">
       {beat === "welcome" && (
-        <h1 className="tutorial-welcome-title">Welcome to Dampmaster report studio</h1>
+        <h1 className="tutorial-welcome-title">{t("tutorial.welcomeTitle")}</h1>
       )}
 
       {beat === "language" && (
         <div className="tutorial-onboard-block tutorial-fade-in">
-          <p className="tutorial-onboard-copy">
-            Please choose a language: English, Welsh, Irish, Scottish
-          </p>
-          <p className="tutorial-onboard-sub">You can change these settings at any time</p>
+          <p className="tutorial-onboard-copy">{t("tutorial.languageCopy")}</p>
+          <p className="tutorial-onboard-sub">{t("tutorial.changeAnytime")}</p>
           <CountryLanguageGrid
             value={lang}
             onChange={(next) => {
               setLang(next);
-              saveTutorialLanguage(next);
+              setUiLanguage(next);
               window.setTimeout(onLanguage, 280);
             }}
           />
@@ -78,26 +79,56 @@ export default function TutorialOnboarding({
 
       {beat === "theme" && (
         <div className="tutorial-onboard-block tutorial-fade-in">
-          <p className="tutorial-onboard-copy">Please choose a theme: light / dark</p>
-          <p className="tutorial-onboard-sub">You can change these settings at any time</p>
-          <div className="tutorial-theme-row" role="radiogroup" aria-label="Theme">
+          <p className="tutorial-onboard-copy">{t("tutorial.themeCopy")}</p>
+          <p className="tutorial-onboard-sub">{t("tutorial.changeAnytime")}</p>
+          <div className="tutorial-theme-row" role="radiogroup" aria-label={t("tutorial.themeAria")}>
             <ThemeLogo
               value="expressive"
-              label="Light"
-              swatch="Studio"
+              label={t("tutorial.themeLight")}
+              swatch={t("tutorial.themeStudioSwatch")}
               active={theme === "expressive"}
               onSelect={() => pickTheme("expressive")}
             />
             <ThemeLogo
               value="dark"
-              label="Dark"
-              swatch="Ink"
+              label={t("tutorial.themeDark")}
+              swatch={t("tutorial.themeInkSwatch")}
               active={theme === "dark"}
               onSelect={() => pickTheme("dark")}
             />
           </div>
           <button type="button" className="btn primary tutorial-choose-theme" onClick={onChooseTheme}>
-            Choose
+            {t("common.choose")}
+          </button>
+        </div>
+      )}
+
+      {beat === "surveyorName" && (
+        <div className="tutorial-onboard-block tutorial-fade-in">
+          <p className="tutorial-onboard-copy">{t("tutorial.nameCopy")}</p>
+          <p className="tutorial-onboard-sub">{t("tutorial.nameHint")}</p>
+          <label className="field">
+            <input
+              type="text"
+              autoComplete="name"
+              value={name}
+              placeholder={t("tutorial.namePlaceholder")}
+              aria-label={t("tutorial.nameCopy")}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && name.trim()) {
+                  onSurveyorName(name.trim());
+                }
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            className="btn primary tutorial-choose-theme"
+            disabled={!name.trim()}
+            onClick={() => onSurveyorName(name.trim())}
+          >
+            {t("common.continue")}
           </button>
         </div>
       )}
@@ -105,20 +136,17 @@ export default function TutorialOnboarding({
       {beat === "pitch" && (
         <div className="tutorial-onboard-block tutorial-pitch">
           <p className="tutorial-pitch-intro">
-            {revealDisplay !== null ? revealDisplay : PITCH_INTRO}
+            {revealDisplay !== null ? revealDisplay : pitchIntro}
           </p>
           {pitchReady && (
             <div className="tutorial-fade-in">
-              <p className="tutorial-onboard-copy">
-                Please consider taking this quick interactive tutorial to learn how to
-                use report studio
-              </p>
+              <p className="tutorial-onboard-copy">{t("tutorial.pitchPrompt")}</p>
               <div className="tutorial-coach-actions">
                 <button type="button" className="btn" onClick={onSkip}>
-                  Skip
+                  {t("tutorial.skip")}
                 </button>
                 <button type="button" className="btn primary" onClick={onTake}>
-                  Take tutorial
+                  {t("tutorial.take")}
                 </button>
               </div>
             </div>
@@ -127,7 +155,7 @@ export default function TutorialOnboarding({
       )}
 
       <button type="button" className="tutorial-onboard-back" onClick={onBack}>
-        Back
+        {t("common.back")}
       </button>
     </div>
   );

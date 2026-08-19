@@ -1,4 +1,5 @@
 import SheetShell, { type SheetExitApi } from "./SheetShell";
+import { useT } from "../lib/i18n";
 
 type Props = {
   onClose: () => void;
@@ -21,7 +22,7 @@ type Props = {
 export default function FieldNotesFinishSheet({
   onClose,
   busy,
-  title = "Save & leave",
+  title,
   summary,
   actionsDisabled = false,
   onSaveInApp,
@@ -31,7 +32,7 @@ export default function FieldNotesFinishSheet({
   dmsrDisabled = false,
   leave = true
 }: Props) {
-  const suffix = leave ? " & leave" : "";
+  const t = useT();
   const blocked = busy || actionsDisabled;
 
   return (
@@ -39,14 +40,16 @@ export default function FieldNotesFinishSheet({
       {({ requestClose }: SheetExitApi) => (
         <>
           <div className="sheet-header">
-            <h2 id="field-notes-save-title">{title}</h2>
+            <h2 id="field-notes-save-title">
+              {title ?? t("finish.saveLeave")}
+            </h2>
             <button
               type="button"
               className="btn small"
               disabled={busy}
               onClick={requestClose}
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
           <p className="muted field-notes-finish-summary">{summary}</p>
@@ -58,7 +61,7 @@ export default function FieldNotesFinishSheet({
                 disabled={blocked}
                 onClick={onSaveInApp}
               >
-                {`Save in app${suffix}`}
+                {leave ? t("finish.saveInAppLeave") : t("finish.saveInApp")}
               </button>
             ) : null}
             <button
@@ -67,7 +70,7 @@ export default function FieldNotesFinishSheet({
               disabled={blocked || docxDisabled}
               onClick={onExportDocx}
             >
-              {`Export .docx${suffix}`}
+              {leave ? t("finish.exportDocxLeave") : t("finish.exportDocx")}
             </button>
             <button
               type="button"
@@ -75,7 +78,7 @@ export default function FieldNotesFinishSheet({
               disabled={blocked || dmsrDisabled}
               onClick={onExportDmsr}
             >
-              {`Export .dmsr${suffix}`}
+              {leave ? t("finish.exportDmsrLeave") : t("finish.exportDmsr")}
             </button>
           </div>
         </>

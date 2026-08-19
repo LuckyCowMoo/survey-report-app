@@ -126,6 +126,47 @@ export interface SectionState {
   suggestions: string[];
 }
 
+/** Cached England & Wales domestic EPC snapshot stored in the .dmsr. */
+export interface PropertyEpcSummary {
+  lmkKey: string;
+  address: string;
+  postcode: string;
+  inspectionDate?: string;
+  lodgementDate?: string;
+  constructionAgeBand?: string;
+  propertyType?: string;
+  builtForm?: string;
+  walls?: string;
+  wallsEnergy?: string;
+  roof?: string;
+  roofEnergy?: string;
+  floor?: string;
+  floorEnergy?: string;
+  windows?: string;
+  windowsEnergy?: string;
+  glazedType?: string;
+  glazedArea?: string;
+  mainHeating?: string;
+  mainHeatingEnergy?: string;
+  hotWater?: string;
+  lighting?: string;
+  mainFuel?: string;
+  tenure?: string;
+  currentEnergyRating?: string;
+  potentialEnergyRating?: string;
+  currentEnergyEfficiency?: number | null;
+  totalFloorArea?: number | null;
+  extensionsCount?: number | null;
+  habitableRoomCount?: number | null;
+  heatedRoomCount?: number | null;
+  floorHeight?: number | null;
+  mainsGas?: boolean | null;
+  solarWaterHeating?: boolean | null;
+  photoSupply?: number | null;
+  mechanicalVentilation?: string;
+  queriedAt: number;
+}
+
 export interface ReportMetadata {
   companyName: string;
   website: string;
@@ -183,10 +224,15 @@ export interface ReportExtras {
   surveyDiscount: string;
   timeEstimate: string;
   /**
-   * When true, omit the project plan, costs, finance graphic and related
-   * service paragraphs from the exported report (recommendations-only).
+   * When true, omit the project plan, costs, finance graphic, post-project
+   * clean-up and related service paragraphs from the exported report.
    */
   excludePlanCosts: boolean;
+  /**
+   * Optional reinstatement / close-out paragraph after the project plan.
+   * Omitted from the Word export when blank or when excludePlanCosts is on.
+   */
+  postProjectCleanup: string;
   /**
    * When true, the generated report uses invasive-survey limitations wording
    * instead of the default non-invasive limitations section.

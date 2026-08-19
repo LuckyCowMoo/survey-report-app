@@ -6,6 +6,7 @@ import {
   type MouseEvent,
   type ReactNode
 } from "react";
+import { createPortal } from "react-dom";
 
 export type SheetExitApi = {
   exiting: boolean;
@@ -67,7 +68,7 @@ export default function SheetShell({
   const api: SheetExitApi = { exiting, requestClose };
   const body = typeof children === "function" ? children(api) : children;
 
-  return (
+  return createPortal(
     <div
       className={`sheet-backdrop${exiting ? " is-exiting" : ""}${backdropClassName ? ` ${backdropClassName}` : ""}`}
       onClick={onBackdropClick}
@@ -83,6 +84,7 @@ export default function SheetShell({
       >
         {body}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -11,6 +11,7 @@ import { IMPORT_NOTES_ACCEPT, type ReportProject } from "../lib/reportProject";
 import { downloadFile, shareOrDownload } from "../lib/webShare";
 import FieldNotesFinishSheet from "./FieldNotesFinishSheet";
 import SheetShell from "./SheetShell";
+import { t, useT } from "../lib/i18n";
 
 interface Props {
   onOpenProject: (project: ReportProject) => void;
@@ -21,7 +22,7 @@ interface Props {
 function displayTitle(report: LibraryReportMeta): string {
   return (
     report.fileName.replace(/\.docx$/i, "").replace(/\.dmsr$/i, "") ||
-    "Untitled report"
+    t("common.untitled")
   );
 }
 
@@ -42,7 +43,7 @@ function reportMatchesQuery(report: LibraryReportMeta, query: string): boolean {
 }
 
 function formatDiskSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "Size unknown";
+  if (!Number.isFinite(bytes) || bytes <= 0) return t("past.sizeUnknown");
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -63,6 +64,7 @@ function ReportTile({
   onDownload: (report: LibraryReportMeta) => void;
   onRequestDelete: (report: LibraryReportMeta) => void;
 }) {
+  const tr = useT();
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,34 +86,34 @@ function ReportTile({
         onClick={() => onOpen(report)}
         aria-label={
           report.hasProject
-            ? `Open ${displayTitle(report)}`
-            : `${displayTitle(report)} (cannot reopen design state)`
+            ? tr("past.openAria", { title: displayTitle(report) })
+            : tr("past.cannotReopen", { title: displayTitle(report) })
         }
       >
         <div className={`past-tile-media${thumbUrl ? "" : " is-empty"}`}>
           {thumbUrl ? (
             <img src={thumbUrl} alt="" draggable={false} />
           ) : (
-            <span className="past-tile-placeholder">No photo</span>
+            <span className="past-tile-placeholder">{tr("past.noPhoto")}</span>
           )}
         </div>
         <div className="past-tile-body">
           <h3 className="past-tile-title">{displayTitle(report)}</h3>
           <p className="past-tile-meta">
-            {report.surveyDate || "Survey date unknown"}
+            {report.surveyDate || tr("past.surveyDateUnknown")}
           </p>
           <p className="past-tile-meta">
-            {report.clientName || "Owner unknown"}
+            {report.clientName || tr("past.ownerUnknown")}
           </p>
           <p className="past-tile-meta">
-            {report.houseName || report.propertyAddress || "Property unknown"}
+            {report.houseName || report.propertyAddress || tr("past.propertyUnknown")}
           </p>
           <p className="past-tile-meta past-tile-size">
-            {formatDiskSize(report.size)} on disk
+            {tr("past.onDisk", { size: formatDiskSize(report.size) })}
           </p>
           {!report.hasProject && (
             <p className="past-tile-meta past-tile-note">
-              Word copy only — reopen needs a newer save
+              {tr("past.wordOnly")}
             </p>
           )}
         </div>
@@ -123,7 +125,7 @@ function ReportTile({
           disabled={busy}
           onClick={() => onShare(report)}
         >
-          Share
+          {tr("common.share")}
         </button>
         <button
           type="button"
@@ -131,7 +133,7 @@ function ReportTile({
           disabled={busy}
           onClick={() => onDownload(report)}
         >
-          Download
+          {tr("common.download")}
         </button>
         <button
           type="button"
@@ -139,7 +141,7 @@ function ReportTile({
           disabled={busy}
           onClick={() => onRequestDelete(report)}
         >
-          Delete
+          {tr("common.delete")}
         </button>
       </div>
     </article>
@@ -151,6 +153,7 @@ export default function PastReportsScreen({
   onImportFile,
   busy = false
 }: Props) {
+  const t = useT();
   const importRef = useRef<HTMLInputElement>(null);
   const [reports, setReports] = useState<LibraryReportMeta[] | null>(null);
   const [query, setQuery] = useState("");
@@ -285,20 +288,18 @@ export default function PastReportsScreen({
     <div className="past-reports">
       <header className="past-reports-intro">
         <div className="past-reports-intro-top">
-          <h2>Past reports</h2>
+          <h2>{t("topbar.pastReports")}</h2>
           <button
             type="button"
             className="btn"
             disabled={busy || deleting}
             onClick={() => importRef.current?.click()}
           >
-            Import
+            {t("past.importShort")}
           </button>
         </div>
         <p className="muted">
-          Tap a tile to reopen the survey design (sections, status, and options).
-          Share opens your device share sheet when available; Download exports a
-          .docx or .dmsr. Import a .docx field-notes file or a .dmsr project.
+          {t("past.intro")}
         </p>
         <input
           ref={importRef}
@@ -315,11 +316,11 @@ export default function PastReportsScreen({
 
       {error && <div className="banner error">{error}</div>}
 
-      {reports === null && <p className="muted">Loading…</p>}
+      {reports === null && <p className="muted">{t("past.loading")}</p>}
 
       {reports && reports.length === 0 && !error && (
         <p className="muted past-reports-empty">
-          No saved reports yet. Generate a report to see it here.
+          {t("past.emptyYet")}
         </p>
       )}
 
@@ -328,17 +329,17 @@ export default function PastReportsScreen({
           <input
             type="search"
             className="search past-reports-search"
-            placeholder="Search by name, owner, house, or date"
+            placeholder={t("past.searchPh")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoComplete="off"
             spellCheck={false}
-            aria-label="Search past reports"
+            aria-label={t("past.searchAria")}
           />
 
           {filtered.length === 0 ? (
             <p className="muted past-reports-empty">
-              No reports match “{query.trim()}”.
+              {t("past.noMatchQuery", { query: query.trim() })}
             </p>
           ) : (
             <div className="past-reports-grid">
@@ -360,8 +361,8 @@ export default function PastReportsScreen({
 
       {downloadTarget && (
         <FieldNotesFinishSheet
-          title="Download"
-          summary={`Export ${displayTitle(downloadTarget)} as a Word copy or a .dmsr you can import on another device.`}
+          title={t("past.downloadTitle")}
+          summary={t("past.downloadSummary", { title: displayTitle(downloadTarget) })}
           busy={busyId === downloadTarget.id}
           leave={false}
           docxDisabled={false}
@@ -385,7 +386,7 @@ export default function PastReportsScreen({
         >
           {({ requestClose }) => (
             <>
-              <h2 id="past-delete-title">Delete report?</h2>
+              <h2 id="past-delete-title">{t("past.deleteTitle")}</h2>
               <p>
                 Remove{" "}
                 <strong>{displayTitle(pendingDelete)}</strong> from past reports
@@ -401,7 +402,7 @@ export default function PastReportsScreen({
                   disabled={deleting}
                   onClick={requestClose}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -409,7 +410,7 @@ export default function PastReportsScreen({
                   disabled={deleting || !deleteArmed}
                   onClick={() => void confirmDelete()}
                 >
-                  <span>{deleting ? "Deleting…" : "Delete"}</span>
+                  <span>{deleting ? t("common.loading") : t("common.delete")}</span>
                 </button>
               </div>
             </>

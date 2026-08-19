@@ -21,6 +21,7 @@ import {
 import type { LibraryParagraph } from "../types";
 import { DirectionCompass } from "./DirectionCompass";
 import SheetShell from "./SheetShell";
+import { useT } from "../lib/i18n";
 
 interface Props {
   onPick: (paragraph: LibraryParagraph) => void;
@@ -120,6 +121,7 @@ function bestSearchMatch(query: string): LibraryParagraph | null {
 }
 
 export default function LibraryPicker({ onPick, onClose }: Props) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const onCloseRef = useRef(onClose);
@@ -172,12 +174,12 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
         };
         return (
           <>
-            <h2>Standard wording</h2>
+            <h2>{t("picker.title")}</h2>
             <input
               ref={searchRef}
               className="search"
               type="search"
-              placeholder="Search topics..."
+              placeholder={t("picker.search")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -234,12 +236,12 @@ export default function LibraryPicker({ onPick, onClose }: Props) {
                   </div>
                 ))}
               {!showBest && groups.length === 0 && (
-                <p className="muted">No matches.</p>
+                <p className="muted">{t("picker.noMatches")}</p>
               )}
             </div>
             <div className="sheet-actions">
               <button className="btn" onClick={requestClose}>
-                Close
+                {t("common.close")}
               </button>
             </div>
           </>

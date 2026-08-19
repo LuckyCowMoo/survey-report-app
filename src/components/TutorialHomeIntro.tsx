@@ -3,6 +3,7 @@ import HomeCtaMorph from "./HomeCtaMorph";
 import { IconCamera, IconFileUp } from "./icons";
 import TutorialCoach from "./TutorialCoach";
 import { coachFor, type TutorialBeat } from "../lib/tutorial/flow";
+import { useT } from "../lib/i18n";
 
 type Props = {
   beat: TutorialBeat;
@@ -15,6 +16,7 @@ export default function TutorialHomeIntro({
   onNewReport,
   onCreateFieldNotes
 }: Props) {
+  const t = useT();
   const splitRootRef = useRef<HTMLDivElement>(null);
   const [ctaSplit, setCtaSplit] = useState(beat === "createFieldNotes");
   const [ctaMerging, setCtaMerging] = useState(false);
@@ -63,12 +65,12 @@ export default function TutorialHomeIntro({
           onClick={openSplit}
         >
           <span className="home-btn-label">
-            <span className="home-btn-title">Start new report</span>
-            <span className="home-upload-meta">Import or create</span>
+            <span className="home-btn-title">{t("home.startNew")}</span>
+            <span className="home-upload-meta">{t("home.importOrCreate")}</span>
           </span>
         </button>
 
-        <div className="home-cta-pair" role="group" aria-label="Start new report">
+        <div className="home-cta-pair" role="group" aria-label={t("home.startNewAria")}>
           <button
             type="button"
             className="home-cta-half home-cta-import"
@@ -81,8 +83,8 @@ export default function TutorialHomeIntro({
               <IconFileUp className="home-cta-glyph-svg" />
             </span>
             <span className="home-cta-copy">
-              <span className="home-btn-title">Import field notes</span>
-              <span className="home-upload-meta">.DOCX · .DMSR ↗</span>
+              <span className="home-btn-title">{t("home.importTitle")}</span>
+              <span className="home-upload-meta">{t("home.importMeta")}</span>
             </span>
           </button>
           <button
@@ -100,8 +102,8 @@ export default function TutorialHomeIntro({
               <IconCamera className="home-cta-glyph-svg" />
             </span>
             <span className="home-cta-copy">
-              <span className="home-btn-title">Create new field notes</span>
-              <span className="home-upload-meta">Camera</span>
+              <span className="home-btn-title">{t("home.create")}</span>
+              <span className="home-upload-meta">{t("home.createMeta")}</span>
             </span>
           </button>
         </div>

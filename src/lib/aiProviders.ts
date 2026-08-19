@@ -3,6 +3,8 @@
  * endpoint metadata for browser-side Ask AI.
  */
 
+import providerCopy from "../data/ai-providers.json";
+
 export type AiProvider =
   | "claude"
   | "gemini"
@@ -41,9 +43,7 @@ export interface AiProviderInfo {
 export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   claude: {
     id: "claude",
-    label: "Claude (Anthropic)",
-    keyHint: "Anthropic Claude",
-    keyPrefix: "sk-ant-",
+    ...providerCopy.claude,
     auth: "anthropic",
     defaultModel: "claude-sonnet-5",
     defaultDetailsModel: "claude-sonnet-5",
@@ -51,9 +51,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   gemini: {
     id: "gemini",
-    label: "Gemini (Google)",
-    keyHint: "Google Gemini",
-    keyPrefix: "AIza",
+    ...providerCopy.gemini,
     auth: "gemini",
     defaultModel: "gemini-3.6-flash",
     defaultDetailsModel: "gemini-3.6-flash",
@@ -61,9 +59,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   openai: {
     id: "openai",
-    label: "OpenAI",
-    keyHint: "OpenAI (GPT)",
-    keyPrefix: "sk- / sk-proj-",
+    ...providerCopy.openai,
     auth: "bearer",
     openaiBaseUrl: "https://api.openai.com/v1",
     defaultModel: "gpt-4.1-mini",
@@ -72,9 +68,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   xai: {
     id: "xai",
-    label: "Grok (xAI)",
-    keyHint: "xAI Grok",
-    keyPrefix: "xai-",
+    ...providerCopy.xai,
     auth: "bearer",
     openaiBaseUrl: "https://api.x.ai/v1",
     defaultModel: "grok-2-vision-1212",
@@ -83,9 +77,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   groq: {
     id: "groq",
-    label: "Groq (Llama & others)",
-    keyHint: "Groq — Meta Llama and other open models",
-    keyPrefix: "gsk_",
+    ...providerCopy.groq,
     auth: "bearer",
     openaiBaseUrl: "https://api.groq.com/openai/v1",
     defaultModel: "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -94,9 +86,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   openrouter: {
     id: "openrouter",
-    label: "OpenRouter",
-    keyHint: "OpenRouter (many models via one key)",
-    keyPrefix: "sk-or-",
+    ...providerCopy.openrouter,
     auth: "bearer",
     openaiBaseUrl: "https://openrouter.ai/api/v1",
     defaultModel: "openai/gpt-4.1-mini",
@@ -105,9 +95,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   deepseek: {
     id: "deepseek",
-    label: "DeepSeek",
-    keyHint: "DeepSeek (OpenAI-style sk-… keys)",
-    keyPrefix: "sk-…",
+    ...providerCopy.deepseek,
     auth: "bearer",
     openaiBaseUrl: "https://api.deepseek.com/v1",
     defaultModel: "deepseek-chat",
@@ -116,9 +104,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   mistral: {
     id: "mistral",
-    label: "Mistral",
-    keyHint: "Mistral (no fixed prefix — tap to select)",
-    keyPrefix: "(no fixed prefix)",
+    ...providerCopy.mistral,
     auth: "bearer",
     openaiBaseUrl: "https://api.mistral.ai/v1",
     defaultModel: "mistral-small-latest",
@@ -127,9 +113,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   together: {
     id: "together",
-    label: "Together AI",
-    keyHint: "Together AI (Llama and open models)",
-    keyPrefix: "(no fixed prefix)",
+    ...providerCopy.together,
     auth: "bearer",
     openaiBaseUrl: "https://api.together.xyz/v1",
     defaultModel: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
@@ -138,9 +122,7 @@ export const AI_PROVIDERS: Record<AiProvider, AiProviderInfo> = {
   },
   fireworks: {
     id: "fireworks",
-    label: "Fireworks",
-    keyHint: "Fireworks AI",
-    keyPrefix: "fw_",
+    ...providerCopy.fireworks,
     auth: "bearer",
     openaiBaseUrl: "https://api.fireworks.ai/inference/v1",
     defaultModel: "accounts/fireworks/models/llama4-scout-instruct-basic",

@@ -10,6 +10,7 @@ import { imagePreviewUrl } from "../lib/imageUtils";
 import { PIP_DWELL_MS, PIP_FLASH_MS, PIP_REVERSE_MS } from "../lib/pipTiming";
 import { scrollElementIntoViewCentered } from "../lib/scrollRoot";
 import { matchesStudioLayout } from "../lib/studioLayout";
+import { useT } from "../lib/i18n";
 import type { SectionState } from "../types";
 
 const LOUPE_ZOOM_DEFAULT = 2.65;
@@ -99,6 +100,8 @@ interface Props {
    * When true, studio photo scrolls through in-between section images on long jumps.
    */
   studioPhotoPassThrough?: boolean;
+  /** Review only: show the current section wording instead of the photo. */
+  showSectionText?: boolean;
   onJumpSection?: (index: number) => void;
   /** Fired when a pending-review / note-confirm pip fill reaches completion. */
   onDwellComplete?: (index: number) => void;
@@ -272,9 +275,11 @@ export default function StudioAside({
   aiErrorSectionNums,
   pipJumpOnHover = true,
   studioPhotoPassThrough = false,
+  showSectionText = false,
   onJumpSection,
   onDwellComplete
 }: Props) {
+  const t = useT();
   const section =
     focusedIndex == null
       ? undefined
@@ -889,7 +894,7 @@ export default function StudioAside({
   const useStudioHero = step === "details" || step === "generate";
   const photoSrc = useStudioHero ? studioHero : reviewSlide?.src ?? null;
   const heroCaption = step === "generate" ? "Generate report" : "Report details";
-  const loupeEnabled = step === "review";
+  const loupeEnabled = step === "review" && !showSectionText;
 
   const updateLoupe = (clientX: number, clientY: number, zoom = loupeZoomRef.current) => {
     if (!loupeEnabled) {
@@ -1099,7 +1104,15 @@ export default function StudioAside({
             : undefined
         }
       >
-        {useStudioHero ? (
+        {showSectionText && step === "review" ? (
+          <div className="studio-aside-section-text">
+            <p>
+              {section?.text.trim() ||
+                section?.entry.note.trim() ||
+                t("studio.emptyText")}
+            </p>
+          </div>
+        ) : useStudioHero ? (
           <img
             ref={photoImgRef}
             key={studioHero}

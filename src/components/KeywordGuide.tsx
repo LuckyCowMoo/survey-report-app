@@ -8,7 +8,8 @@ import { usePointerInputModeValue } from "../lib/pointerInput";
 import HomeScreenGuide from "./HomeScreenGuide";
 import ProviderKeyGuide from "./ProviderKeyGuide";
 import SheetShell from "./SheetShell";
-import { REVIEW_PIP_LEGEND } from "../lib/pipLegend";
+import { reviewPipLegend } from "../lib/pipLegend";
+import { useT } from "../lib/i18n";
 
 /**
  * Compass abbreviations accepted by specialRules() but omitted from library
@@ -171,6 +172,8 @@ export default function KeywordGuide({
   onApiKeyChange,
   onStartTutorial
 }: Props) {
+  const tr = useT();
+  const pipLegend = reviewPipLegend();
   const [query, setQuery] = useState("");
   const [viewingId, setViewingId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -237,7 +240,7 @@ export default function KeywordGuide({
     "jump-on-hover",
     "coloured column"
   );
-  const pipHits = REVIEW_PIP_LEGEND.filter((p) =>
+  const pipHits = pipLegend.filter((p) =>
     matchesQuery(q, p.tone, p.label, p.meaning)
   );
   const showPips = q === "" || pipsSectionHit || pipHits.length > 0;
@@ -264,7 +267,7 @@ export default function KeywordGuide({
     q === "" || topicsSectionHit || visibleGroups.length > 0;
 
   const tipsToShow = q === "" || matchingSectionHit ? TIPS : tipHits;
-  const pipsToShow = q === "" || pipsSectionHit ? REVIEW_PIP_LEGEND : pipHits;
+  const pipsToShow = q === "" || pipsSectionHit ? pipLegend : pipHits;
   const smartToShow = q === "" || smartSectionHit ? SMART_PHRASES : smartHits;
 
   const anyHit =
@@ -280,13 +283,13 @@ export default function KeywordGuide({
     <SheetShell onClose={onClose} sheetClassName="sheet tall guide">
       {({ requestClose }) => (
         <>
-        <h2>Guide</h2>
+        <h2>{tr("guide.title")}</h2>
 
         <input
           ref={searchRef}
           type="search"
           className="guide-search"
-          placeholder="Filter guide, topics, and keywords..."
+          placeholder={tr("guide.filter")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -327,34 +330,21 @@ export default function KeywordGuide({
             onPointerCancel={stopTutorialHold}
             onContextMenu={(e) => e.preventDefault()}
           >
-            Retake the tutorial
+            {tr("guide.retakeTutorial")}
           </button>
         )}
 
         {showPurpose && (
           <>
-            <h3 className="guide-heading">What this tool is for</h3>
-            <p className="muted">
-              This app helps a damp and timber surveyor turn numbered photo field
-              notes into a polished, client-ready report. Start a new report to
-              create field notes with the device camera, or import a Report and
-              Run <code>.docx</code>. Everything stays on this device.
-            </p>
-            <p className="muted">
-              For each photo it tries to match the note to the firm&apos;s
-              approved standard wording, filling in values from the note (such
-              as humidity or pin readings). You then review every section, edit
-              or swap wording, add property and client details, choose which
-              damp issues and recommendations apply, and generate the finished
-              report — cover, contents, photo sections, explainers, costs, and
-              limitations — again entirely on the device.
-            </p>
+            <h3 className="guide-heading">{tr("guide.whatTitle")}</h3>
+            <p className="muted">{tr("guide.purposeP1")}</p>
+            <p className="muted">{tr("guide.purposeP2")}</p>
           </>
         )}
 
         {showMatching && (
           <>
-            <h3 className="guide-heading">How matching works</h3>
+            <h3 className="guide-heading">{tr("guide.matchingTitle")}</h3>
             <ul className="guide-tips">
               {tipsToShow.map((t) => (
                 <li key={t}>{t}</li>
@@ -365,28 +355,22 @@ export default function KeywordGuide({
 
         {showApi && (
           <>
-            <h3 className="guide-heading">AI API keys</h3>
+            <h3 className="guide-heading">{tr("guide.aiKeys")}</h3>
             <ProviderKeyGuide apiKeys={apiKeys} onApiKeyChange={onApiKeyChange} />
           </>
         )}
 
         {showHomeScreen && (
           <>
-            <h3 className="guide-heading">Add to Home Screen</h3>
+            <h3 className="guide-heading">{tr("guide.homeScreen")}</h3>
             <HomeScreenGuide />
           </>
         )}
 
         {showPips && (
           <>
-            <h3 className="guide-heading">Review status pips</h3>
-            <p className="muted">
-              On the review screen, the thin coloured column on the right shows
-              each photo section&apos;s status at a glance. Colour changes fill
-              top-to-bottom (about 0.7s, or ~5s while you review a yellow pip). Click
-              or tap a pip to jump to that section — or turn on jump-on-hover in
-              Settings.
-            </p>
+            <h3 className="guide-heading">{tr("guide.pipsTitle")}</h3>
+            <p className="muted">{tr("guide.pipsIntro")}</p>
             <ul className="guide-pip-legend">
               {pipsToShow.map((p) => (
                 <li key={p.tone}>
@@ -402,11 +386,8 @@ export default function KeywordGuide({
 
         {showSmart && (
           <>
-            <h3 className="guide-heading">Smart phrases</h3>
-            <p className="muted">
-              These are understood directly, including common misspellings
-              (e.g. "infa red", "dew piont", "r.h.").
-            </p>
+            <h3 className="guide-heading">{tr("guide.smartTitle")}</h3>
+            <p className="muted">{tr("guide.smartIntro")}</p>
             <table className="guide-table">
               <tbody>
                 {smartToShow.map((s) => (
@@ -422,13 +403,8 @@ export default function KeywordGuide({
 
         {showTopics && (
           <>
-            <h3 className="guide-heading">All topics & keywords</h3>
-            <p className="muted">
-              <span className="chip kw shared">outlined</span> keywords are used by
-              more than one topic - add a context word (e.g. "pin skirting" rather
-              than just "pin") so the right wording is chosen; otherwise the
-              section is flagged for review with all candidates suggested.
-            </p>
+            <h3 className="guide-heading">{tr("guide.topicsTitle")}</h3>
+            <p className="muted">{tr("guide.topicsIntro")}</p>
             {visibleGroups.map(([group, paragraphs]) => (
               <section key={group} className="guide-group">
                 <h4>{group}</h4>
@@ -460,7 +436,7 @@ export default function KeywordGuide({
                           setViewingId((cur) => (cur === p.id ? null : p.id))
                         }
                       >
-                        {viewingId === p.id ? "Hide text" : "View text"}
+                        {viewingId === p.id ? tr("guide.hideText") : tr("guide.viewText")}
                       </button>
                       {viewingId === p.id && (
                         <p className="guide-topic-text">{p.text}</p>
@@ -474,12 +450,14 @@ export default function KeywordGuide({
         )}
 
         {q !== "" && !anyHit && (
-          <p className="muted guide-empty">No guide sections match “{query.trim()}”.</p>
+          <p className="muted guide-empty">
+            {tr("guide.empty", { query: query.trim() })}
+          </p>
         )}
 
         <div className="sheet-actions">
           <button className="btn primary" onClick={requestClose}>
-            Close
+            {tr("common.close")}
           </button>
         </div>
         </>
