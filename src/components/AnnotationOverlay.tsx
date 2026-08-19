@@ -1777,6 +1777,7 @@ function Handle({
   style: { left: string; top: string };
   onPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -1898,6 +1899,7 @@ function CalloutLabel({
   onLiveChange: (text: string) => void;
   onCommit: (from: string, to: string) => void;
 }) {
+  const t = useT();
   const originRef = useRef(ann.text);
   const m = calloutMetrics(ann.text, aspect);
   const fontPx = calloutFontPx(photoWidth, photoHeight);

@@ -601,7 +601,6 @@ export default function EntryCard({
       );
     }
 
-    const textFrom = text?.getBoundingClientRect().height ?? 0;
     const mainFrom = main.getBoundingClientRect().height;
     const thumbFrom =
       lastThumbHeightRef.current ||
