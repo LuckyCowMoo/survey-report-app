@@ -265,6 +265,7 @@ export default function DetailsScreen({
         risingDamp: false,
         penetratingDamp: false,
         condensation: false,
+        woodworm: false,
         other: false
       },
       aiSuggested: {
@@ -272,7 +273,8 @@ export default function DetailsScreen({
         issues: {
           risingDamp: false,
           penetratingDamp: false,
-          condensation: false
+          condensation: false,
+          woodworm: false
         },
         issueReasons: {}
       }
@@ -588,6 +590,21 @@ export default function DetailsScreen({
           </label>
           {aiSuggested.issues.condensation && (
             <AiPickReason text={aiSuggested.issueReasons.condensation} />
+          )}
+        </div>
+        <div className="details-tick-block">
+          <label className="toggle">
+            <input
+              type="checkbox"
+              className={aiSuggested.issues.woodworm ? "ai-suggested" : undefined}
+              checked={extras.dampIssues.woodworm}
+              disabled={issuesBusy}
+              onChange={() => toggleIssue("woodworm")}
+            />
+            <span>{t("details.woodworm")}</span>
+          </label>
+          {aiSuggested.issues.woodworm && (
+            <AiPickReason text={aiSuggested.issueReasons.woodworm} />
           )}
         </div>
         <label className="toggle">

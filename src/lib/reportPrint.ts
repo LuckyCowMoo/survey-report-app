@@ -58,6 +58,7 @@ export function buildReportPrintHtml(input: {
   if (extras.dampIssues.risingDamp) issues.push("Rising damp");
   if (extras.dampIssues.penetratingDamp) issues.push("Penetrating damp");
   if (extras.dampIssues.condensation) issues.push("Condensation");
+  if (extras.dampIssues.woodworm) issues.push("Woodworm");
   if (extras.dampIssues.other && extras.otherIssueText.trim()) {
     issues.push(extras.otherIssueText.trim());
   }

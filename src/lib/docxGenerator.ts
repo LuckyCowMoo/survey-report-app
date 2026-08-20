@@ -516,7 +516,8 @@ function dampTypePages(extras: ReportExtras): Paragraph[] {
   const enabled: Array<[string, boolean]> = [
     ["rising-damp", extras.dampIssues.risingDamp],
     ["penetrating-damp", extras.dampIssues.penetratingDamp],
-    ["condensation", extras.dampIssues.condensation]
+    ["condensation", extras.dampIssues.condensation],
+    ["woodworm", extras.dampIssues.woodworm]
   ];
   const out: Paragraph[] = [];
   for (const [id, on] of enabled) {

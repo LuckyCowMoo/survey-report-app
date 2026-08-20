@@ -130,7 +130,7 @@
   {
     "id": "woodworm",
     "diagnosis": "Woodworm / Wood-boring Beetle Infestation",
-    "issueKey": null,
+    "issueKey": "woodworm",
     "signs": "Flight holes visible in timber surface; Frass (bore dust) present in attic or subfloor joists.",
     "recommendationIds": ["rec-ulv-roof", "rec-boron-rods"],
     "costItemIds": ["cost-ulv-fogging"],

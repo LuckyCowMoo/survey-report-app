@@ -174,6 +174,7 @@ const defaultExtras: ReportExtras = {
     risingDamp: false,
     penetratingDamp: false,
     condensation: false,
+    woodworm: false,
     other: false
   },
   otherIssueText: "",
@@ -194,7 +195,8 @@ const defaultExtras: ReportExtras = {
     issues: {
       risingDamp: false,
       penetratingDamp: false,
-      condensation: false
+      condensation: false,
+      woodworm: false
     },
     issueReasons: {},
     recommendationIds: [],

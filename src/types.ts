@@ -205,6 +205,7 @@ export interface ReportExtras {
     risingDamp: boolean;
     penetratingDamp: boolean;
     condensation: boolean;
+    woodworm: boolean;
     other: boolean;
   };
   /** Free-text explainer when dampIssues.other is ticked. */
@@ -248,11 +249,13 @@ export interface ReportExtras {
       risingDamp: boolean;
       penetratingDamp: boolean;
       condensation: boolean;
+      woodworm: boolean;
     };
     issueReasons: {
       risingDamp?: string;
       penetratingDamp?: string;
       condensation?: string;
+      woodworm?: string;
     };
     recommendationIds: string[];
     recommendationReasons: Record<string, string>;

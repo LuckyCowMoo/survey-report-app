@@ -14,7 +14,11 @@ import type { CostLine, ReportExtras, SectionState } from "../types";
 
 export type DetailsSuggestScope = "all" | "issues" | "recommendations" | "costs";
 
-export type IssueSuggestKey = "risingDamp" | "penetratingDamp" | "condensation";
+export type IssueSuggestKey =
+  | "risingDamp"
+  | "penetratingDamp"
+  | "condensation"
+  | "woodworm";
 
 export interface DetailsSuggestResult {
   dampIssues?: Partial<Record<IssueSuggestKey, boolean>>;
@@ -32,7 +36,8 @@ export interface DetailsSuggestResult {
 const ISSUE_KEYS: IssueSuggestKey[] = [
   "risingDamp",
   "penetratingDamp",
-  "condensation"
+  "condensation",
+  "woodworm"
 ];
 const REC_IDS = new Set(library.recommendations.map((r) => r.id));
 const COST_IDS = new Set(library.costItems.map((c) => c.id));
@@ -135,7 +140,10 @@ function buildUserPrompt(sections: SectionState[], scope: DetailsSuggestScope): 
     ""
   ];
   if (wantIssues) {
-    parts.push("ALLOWED ISSUE KEYS: risingDamp, penetratingDamp, condensation", "");
+    parts.push(
+      "ALLOWED ISSUE KEYS: risingDamp, penetratingDamp, condensation, woodworm",
+      ""
+    );
   }
   if (wantRecs) {
     parts.push("ALLOWED RECOMMENDATION IDS:", recList, "");
@@ -475,7 +483,8 @@ export function emptyAiSuggested(): ReportExtras["aiSuggested"] {
     issues: {
       risingDamp: false,
       penetratingDamp: false,
-      condensation: false
+      condensation: false,
+      woodworm: false
     },
     issueReasons: {},
     recommendationIds: [],
@@ -501,8 +510,16 @@ function cleanReasonMap(
 export function normalizeReportExtras(extras: ReportExtras): ReportExtras {
   const ai = extras.aiSuggested;
   const issueReasons = cleanReasonMap(ai?.issueReasons);
+  const damp = extras.dampIssues ?? ({} as ReportExtras["dampIssues"]);
   return {
     ...extras,
+    dampIssues: {
+      risingDamp: Boolean(damp.risingDamp),
+      penetratingDamp: Boolean(damp.penetratingDamp),
+      condensation: Boolean(damp.condensation),
+      woodworm: Boolean(damp.woodworm),
+      other: Boolean(damp.other)
+    },
     excludePlanCosts: Boolean(extras.excludePlanCosts),
     postProjectCleanup:
       typeof extras.postProjectCleanup === "string"
@@ -513,7 +530,8 @@ export function normalizeReportExtras(extras: ReportExtras): ReportExtras {
       issues: {
         risingDamp: Boolean(ai?.issues?.risingDamp),
         penetratingDamp: Boolean(ai?.issues?.penetratingDamp),
-        condensation: Boolean(ai?.issues?.condensation)
+        condensation: Boolean(ai?.issues?.condensation),
+        woodworm: Boolean(ai?.issues?.woodworm)
       },
       issueReasons: {
         ...(issueReasons.risingDamp
@@ -524,7 +542,8 @@ export function normalizeReportExtras(extras: ReportExtras): ReportExtras {
           : {}),
         ...(issueReasons.condensation
           ? { condensation: issueReasons.condensation }
-          : {})
+          : {}),
+        ...(issueReasons.woodworm ? { woodworm: issueReasons.woodworm } : {})
       },
       recommendationIds: Array.isArray(ai?.recommendationIds)
         ? ai.recommendationIds.filter((id): id is string => typeof id === "string")
@@ -558,13 +577,15 @@ export function applyDetailsSuggestions(
       ...next.dampIssues,
       risingDamp: Boolean(suggestion.dampIssues.risingDamp),
       penetratingDamp: Boolean(suggestion.dampIssues.penetratingDamp),
-      condensation: Boolean(suggestion.dampIssues.condensation)
+      condensation: Boolean(suggestion.dampIssues.condensation),
+      woodworm: Boolean(suggestion.dampIssues.woodworm)
       // never touch other
     };
     aiSuggested.issues = {
       risingDamp: dampIssues.risingDamp,
       penetratingDamp: dampIssues.penetratingDamp,
-      condensation: dampIssues.condensation
+      condensation: dampIssues.condensation,
+      woodworm: dampIssues.woodworm
     };
     const issueReasons: ReportExtras["aiSuggested"]["issueReasons"] = {};
     for (const key of ISSUE_KEYS) {
