@@ -62,6 +62,7 @@ import {
   type ReportProject
 } from "./lib/reportProject";
 import { reportFileName } from "./lib/docxGenerator";
+import { COST_FOOTNOTES } from "./data/boilerplate";
 import { coverThumbnailBlob, houseNameFromAddress } from "./lib/reportCover";
 import {
   getScrollRoot,
@@ -187,7 +188,7 @@ const defaultExtras: ReportExtras = {
   surveyDiscount: "",
   timeEstimate: "5-7 days",
   excludePlanCosts: false,
-  postProjectCleanup: "",
+  postProjectCleanup: COST_FOOTNOTES.skirtingNote,
   invasiveSurvey: false,
   aiSuggested: {
     issues: {

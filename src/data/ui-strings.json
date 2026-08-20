@@ -2,3223 +2,3223 @@
   "common": {
     "back": {
       "en": "Back",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nôl",
+      "ga": "Siar",
+      "gd": "Air ais"
     },
     "done": {
       "en": "Done",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Wedi'i gwblhau",
+      "ga": "Déanta",
+      "gd": "Dèanta"
     },
     "continue": {
       "en": "Continue",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau",
+      "ga": "Ar aghaidh",
+      "gd": "Lean air adhart"
     },
     "skip": {
       "en": "Skip",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Hepgor",
+      "ga": "Scipeáil",
+      "gd": "Leum"
     },
     "cancel": {
       "en": "Cancel",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Canslo",
+      "ga": "Cealaigh",
+      "gd": "Sguir dheth"
     },
     "save": {
       "en": "Save",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cadw",
+      "ga": "Sábháil",
+      "gd": "Sàbhail"
     },
     "retry": {
       "en": "Retry",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ceisio eto",
+      "ga": "Atriail",
+      "gd": "Feuch a-rithist"
     },
     "dismiss": {
       "en": "Dismiss",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Diystyru",
+      "ga": "Dún",
+      "gd": "Cuir às"
     },
     "hide": {
       "en": "Hide",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cuddio",
+      "ga": "Folaigh",
+      "gd": "Falaich"
     },
     "show": {
       "en": "Show",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dangos",
+      "ga": "Taispeáin",
+      "gd": "Seall"
     },
     "view": {
       "en": "View",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gweld",
+      "ga": "Féach",
+      "gd": "Seall"
     },
     "deselect": {
       "en": "Deselect",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dad-ddewis",
+      "ga": "Díroghnaigh",
+      "gd": "Dì-thaghadh"
     },
     "delete": {
       "en": "Delete",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dileu",
+      "ga": "Scrios",
+      "gd": "Sguab às"
     },
     "next": {
       "en": "Next",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nesaf",
+      "ga": "Ar aghaidh",
+      "gd": "Air adhart"
     },
     "finish": {
       "en": "Finish",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gorffen",
+      "ga": "Críochnaigh",
+      "gd": "Crìochnaich"
     },
     "choose": {
       "en": "Choose",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewis",
+      "ga": "Roghnaigh",
+      "gd": "Tagh"
     },
     "loading": {
       "en": "Loading…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn llwytho…",
+      "ga": "Ag lódáil…",
+      "gd": "A' luchdachadh…"
     },
     "writing": {
       "en": "Writing…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn ysgrifennu…",
+      "ga": "Ag scríobh…",
+      "gd": "A' sgrìobhadh…"
     },
     "other": {
       "en": "Other",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Arall",
+      "ga": "Eile",
+      "gd": "Eile"
     },
     "tapToDismiss": {
       "en": "(tap to dismiss)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "(tapiwch i ddiystyru)",
+      "ga": "(cnag chun dúnadh)",
+      "gd": "(tap gus cur às)"
     },
     "close": {
       "en": "Close",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cau",
+      "ga": "Dún",
+      "gd": "Dùin"
     },
     "share": {
       "en": "Share",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Rhannu",
+      "ga": "Comhroinn",
+      "gd": "Co-roinn"
     },
     "download": {
       "en": "Download",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lawrlwytho",
+      "ga": "Íoslódáil",
+      "gd": "Luchdaich a-nuas"
     },
     "opening": {
       "en": "Opening…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn agor…",
+      "ga": "Ag oscailt…",
+      "gd": "A' fosgladh…"
     },
     "saving": {
       "en": "Saving…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cadw…",
+      "ga": "Ag sábháil…",
+      "gd": "A' sàbhaladh…"
     },
     "untitled": {
       "en": "Untitled report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Adroddiad heb deitl",
+      "ga": "Tuairisc gan teideal",
+      "gd": "Aithisg gun tiotal"
     }
   },
   "askAi": {
     "label": {
       "en": "Ask AI",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gofyn i AI",
+      "ga": "Fiafraigh d'AI",
+      "gd": "Faighnich do AI"
     },
     "aboutAll": {
       "en": "Ask AI about all",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gofyn i AI am bopeth",
+      "ga": "Fiafraigh d'AI faoi gach rud",
+      "gd": "Faighnich do AI mun a h-uile rud"
     },
     "aboutFlagged": {
       "en": "Ask AI about all flagged ({count})",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gofyn i AI am bob un sydd wedi'i fflagio ({count})",
+      "ga": "Fiafraigh d'AI faoi gach ceann atá bratachaithe ({count})",
+      "gd": "Faighnich don AI mu na h-uile a chaidh a chomharrachadh ({count})"
     },
     "addKey": {
       "en": "Add API key in settings",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu allwedd API yn y gosodiadau",
+      "ga": "Cuir eochair API leis sna socruithe",
+      "gd": "Cuir iuchair API ris sna roghainnean"
     },
     "stop": {
       "en": "Stop AI",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Atal yr AI",
+      "ga": "Stad an AI",
+      "gd": "Stad an AI"
     }
   },
   "topbar": {
     "back": {
       "en": "Back",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nôl",
+      "ga": "Siar",
+      "gd": "Air ais"
     },
     "settings": {
       "en": "Settings",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gosodiadau",
+      "ga": "Socruithe",
+      "gd": "Roghainnean"
     },
     "pastReports": {
       "en": "Past reports",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Hen adroddiadau",
+      "ga": "Sean-thuairiscí",
+      "gd": "Seann aithisgean"
     },
     "fieldNotes": {
       "en": "Field notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nodiadau maes",
+      "ga": "Nótaí allamuigh",
+      "gd": "Notaichean làraich"
     },
     "tutorial": {
       "en": "Tutorial",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tiwtorial",
+      "ga": "Teagasc",
+      "gd": "Oideachadh"
     },
     "review": {
       "en": "Review sections",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Adolygu'r adrannau",
+      "ga": "Athbhreithnigh na ranna",
+      "gd": "Dèan lèirmheas air earrannan"
     },
     "details": {
       "en": "Report details",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Manylion yr adroddiad",
+      "ga": "Sonraí na tuairisce",
+      "gd": "Mion-fhiosrachadh na h-aithisg"
     },
     "generate": {
       "en": "Generate",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cynhyrchu",
+      "ga": "Gin",
+      "gd": "Cruthaich"
     }
   },
   "settings": {
     "title": {
       "en": "Settings",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gosodiadau",
+      "ga": "Socruithe",
+      "gd": "Roghainnean"
     },
     "appearance": {
       "en": "Appearance",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ymddangosiad",
+      "ga": "Cuma",
+      "gd": "Coltas"
     },
     "themeStudio": {
       "en": "Studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Stiwdio",
+      "ga": "Stiúideo",
+      "gd": "Stiùidio"
     },
     "themeStudioSwatch": {
       "en": "Coral",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cwrel",
+      "ga": "Coiréal",
+      "gd": "Coireal"
     },
     "themeDark": {
       "en": "Dark",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tywyll",
+      "ga": "Dorcha",
+      "gd": "Dorcha"
     },
     "themeDarkSwatch": {
       "en": "Ink",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Inc",
+      "ga": "Dúch",
+      "gd": "Inc"
     },
     "language": {
       "en": "Language",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Iaith",
+      "ga": "Teanga",
+      "gd": "Cànan"
     },
     "textScale": {
       "en": "Text size",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Maint testun",
+      "ga": "Méid téacs",
+      "gd": "Meud teacsa"
     },
     "textScaleHint": {
       "en": "Grows labels and body text. Tight buttons and tiles shrink back if they would overflow.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn chwyddo labeli a thestun corff. Bydd botymau a theils tynn yn crebachu'n ôl os byddant yn gorlifo.",
+      "ga": "Méadaíonn sé seo lipéid agus gnáth-théacs. Crapfaidh cnaipí agus tíleanna atá ró-ghar dá chéile siar má dhéanann siad as-sreabhadh.",
+      "gd": "Nì seo na bileagan agus an teacsa nas motha. Lùghdaichidh putanan is leacan a tha teann ma tha iad a' cur thairis."
     },
     "studioSectionText": {
       "en": "Show section text in studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dangos testun yr adran yn y stiwdio",
+      "ga": "Taispeáin téacs na roinne sa stiúideo",
+      "gd": "Seall teacsa na h-earrann san stiùidio"
     },
     "studioSectionTextAria": {
       "en": "show section text instead of the photo in review studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "dangos testun yr adran yn hytrach na'r llun yn y stiwdio adolygu",
+      "ga": "taispeáin téacs na roinne in áit an ghrianghraif sa stiúideo athbhreithnithe",
+      "gd": "seall teacsa na h-earrann an àite an deilbh san stiùidio lèirmheis"
     },
     "epcToken": {
       "en": "Energy certificate token",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tocyn tystysgrif ynni",
+      "ga": "Ceadhartha teastais fuinnimh",
+      "gd": "Tòcan teisteanas lùtha"
     },
     "epcTokenHint": {
       "en": "Copied from My account → Bearer token (for developers) on get-energy-performance-data.communities.gov.uk. Paste the token only — not the word Bearer. Leave blank to use the built-in key.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Wedi'i gopïo o Fy nghyfrif → Tocyn cludwr (ar gyfer datblygwyr) ar get-energy-performance-data.communities.gov.uk. Gludwch y tocyn yn unig — nid y gair Bearer. Gadewch yn wag i ddefnyddio'r allwedd adeiledig.",
+      "ga": "Cóipeáilte ó Mo chuntas → Ceadhartha iompróra (d'fhorbróirí) ar get-energy-performance-data.communities.gov.uk. Greamaigh an ceadhartha amháin — ní an focal Bearer. Fág bán chun an eochair ionsuite a úsáid.",
+      "gd": "Air a chopaigeadh bho Mo chunntas → Tòcan neach-giùlain (do luchd-leasachaidh) air get-energy-performance-data.communities.gov.uk. Cuir a-steach an tòcan a-mhàin — chan e am facal Bearer. Fàg bàn gus an iuchair thogte a chleachdadh."
     },
     "pipJumpHover": {
       "en": "hover pip to move",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "hofran dros y pip i symud",
+      "ga": "ainligh thar píp chun bogadh",
+      "gd": "faoit thairis air a' phìob gus gluasad"
     },
     "pipJumpClick": {
       "en": "click pip to move",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "cliciwch ar y pip i symud",
+      "ga": "cliceáil píp chun bogadh",
+      "gd": "dèan briogadh air pìob gus gluasad"
     },
     "pipJumpTap": {
       "en": "tap pip to move",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "tapiwch y pip i symud",
+      "ga": "cnag píp chun bogadh",
+      "gd": "thoir gnogag air pìob gus gluasad"
     },
     "passThrough": {
       "en": "scroll through in-between photos",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "sgrolio drwodd rhwng lluniau",
+      "ga": "scrollaigh tríd idir grianghraif",
+      "gd": "sgrolaich troimhe eadar dealbhan"
     },
     "autoSuggest": {
       "en": "auto-suggest issues, recommendations & costs",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "awgrymu problemau, argymhellion a chostau yn awtomatig",
+      "ga": "uath-mholadh fadhbanna, moltaí agus costais",
+      "gd": "fèin-mholadh cùisean, molaidhean agus cosgaisean"
     },
     "homeCtaMorph": {
       "en": "animate Start new report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "animeiddio Cychwyn adroddiad newydd",
+      "ga": "beoigh Tosaigh tuairisc nua",
+      "gd": "beothaich Tòisich aithisg ùr"
     },
     "libraryLabel": {
       "en": "Report library",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Llyfrgell adroddiadau",
+      "ga": "Leabharlann tuairiscí",
+      "gd": "Leabharlann aithisgean"
     },
     "libraryLinked": {
       "en": "Finished reports are written to “{name}” on this computer.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Caiff adroddiadau gorffenedig eu hysgrifennu i “{name}” ar y cyfrifiadur hwn.",
+      "ga": "Scríobhtar tuairiscí críochnaithe chuig “{name}” ar an ríomhaire seo.",
+      "gd": "Bidh aithisgean deiseil air an sgrìobhadh gu “{name}” air a' choimpiutair seo."
     },
     "libraryUnlinked": {
       "en": "This browser can link a folder. That’s the recommended place to keep finished reports so they aren’t downloaded twice.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gall y porwr hwn gysylltu ffolder. Dyna'r lle argymelledig i gadw adroddiadau gorffenedig fel na chânt eu lawrlwytho ddwywaith.",
+      "ga": "Is féidir leis an mbrabhsálaí seo fillteán a nascadh. Sin í an áit mholta chun tuairiscí críochnaithe a choinneáil ionas nach n-íoslódáiltear faoi dhó iad.",
+      "gd": "Faodaidh am brabhsair seo pasgan a cheangal. Sin an t-àite a thathar a' moladh airson aithisgean deiseil a chumail gus nach tèid an luchdachadh a-nuas dà uair."
     },
     "libraryUnsupported": {
       "en": "This device can’t link a disk folder, so finished reports are kept in this app’s storage as reopenable projects (with a Word copy for share and download).",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni all y ddyfais hon gysylltu ffolder disg, felly cedwir adroddiadau gorffenedig yn storfa'r ap hwn fel prosiectau y gellir eu hailagor (gyda chopi Word i'w rannu a'i lawrlwytho).",
+      "ga": "Ní féidir leis an ngléas seo fillteán diosca a nascadh, mar sin coinnítear tuairiscí críochnaithe i stóráil na haipe seo mar thionscadail is féidir a athoscailt (le cóip Word le roinnt agus le híoslódáil).",
+      "gd": "Chan urrainn don inneal seo pasgan diosca a cheangal, mar sin bidh aithisgean deiseil air an cumail ann an stòradh na h-aplacaid mar phròiseactan as urrainnear fosgladh a-rithist (le leth-bhreac Word airson a cho-roinn agus a luchdachadh a-nuas)."
     },
     "changeFolder": {
       "en": "Change folder",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Newid ffolder",
+      "ga": "Athraigh fillteán",
+      "gd": "Atharraich pasgan"
     },
     "linkFolder": {
       "en": "Link a reports folder",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cysylltu ffolder adroddiadau",
+      "ga": "Nasc fillteán tuairiscí",
+      "gd": "Ceangail pasgan aithisgean"
     },
     "useAppStorage": {
       "en": "Use app storage instead",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Defnyddio storfa'r ap yn lle",
+      "ga": "Úsáid stóráil na haipe ina áit sin",
+      "gd": "Cleachd stòradh na h-aplacaid an àite sin"
     },
     "activeAi": {
       "en": "Active AI service",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwasanaeth AI gweithredol",
+      "ga": "Seirbhís ghníomhach AI",
+      "gd": "Seirbheis AI gnìomhach"
     },
     "addOther": {
       "en": "Add other",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu arall",
+      "ga": "Cuir ceann eile leis",
+      "gd": "Cuir fear eile ris"
     },
     "keySaved": {
       "en": "Key saved",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allwedd wedi'i chadw",
+      "ga": "Eochair shábháilte",
+      "gd": "Iuchair air a sàbhaladh"
     },
     "apiKeyLabel": {
       "en": "{provider} API key",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allwedd API {provider}",
+      "ga": "Eochair API {provider}",
+      "gd": "Iuchair API {provider}"
     },
     "pasteKey": {
       "en": "Paste key here",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gludwch yr allwedd yma",
+      "ga": "Greamaigh an eochair anseo",
+      "gd": "Cuir a-steach an iuchair an seo"
     },
     "apiKeyHint": {
       "en": "Saved on this device only. Ask AI uses this active service — tap Add other to store a key for another provider and switch to it.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gedwir ar y ddyfais hon yn unig. Mae Gofyn i AI yn defnyddio'r gwasanaeth gweithredol hwn — tapiwch Ychwanegu arall i gadw allwedd ar gyfer darparwr arall a newid iddo.",
+      "ga": "Sábháilte ar an ngléas seo amháin. Úsáideann Fiafraigh d'AI an tseirbhís ghníomhach seo — cnag ar Cuir ceann eile leis chun eochair do sholáthraí eile a stóráil agus aistrigh chuige.",
+      "gd": "Air a shàbhaladh air an inneal seo a-mhàin. Bidh Faighnich do AI a' cleachdadh na seirbheis ghnìomhach seo — thoir gnogag air Cuir fear eile ris gus iuchair airson solaraiche eile a stòradh agus tionndaidh thuige."
     },
     "hideKey": {
       "en": "Hide API key",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cuddio allwedd API",
+      "ga": "Folaigh eochair API",
+      "gd": "Falaich iuchair API"
     },
     "showKey": {
       "en": "Show API key",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dangos allwedd API",
+      "ga": "Taispeáin eochair API",
+      "gd": "Seall iuchair API"
     },
     "openaiCorsTitle": {
       "en": "This browser can’t use OpenAI from the app.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni all y porwr hwn ddefnyddio OpenAI o'r ap.",
+      "ga": "Ní féidir leis an mbrabhsálaí seo OpenAI a úsáid ón aip.",
+      "gd": "Chan urrainn don bhrabhsair seo OpenAI a chleachdadh on aplacaid."
     },
     "openaiCorsBody": {
       "en": "OpenAI blocks the request (CORS), so Ask AI will fail with a network error. Switch to Claude, Gemini, or OpenRouter instead.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae OpenAI yn rhwystro'r cais (CORS), felly bydd Gofyn i AI yn methu gyda gwall rhwydwaith. Newidiwch i Claude, Gemini, neu OpenRouter yn lle hynny.",
+      "ga": "Cuireann OpenAI bac ar an iarratas (CORS), mar sin teipfidh ar Fiafraigh d'AI le hearráid líonra. Aistrigh go Claude, Gemini, nó OpenRouter ina áit sin.",
+      "gd": "Tha OpenAI a' bacadh an iarrtais (CORS), mar sin fàilligidh Faighnich do AI le mearachd lìonraidh. Tionndaidh gu Claude, Gemini, no OpenRouter an àite sin."
     },
     "sectionModel": {
       "en": "Section AI model",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Model AI adran",
+      "ga": "Múnla AI na roinne",
+      "gd": "Modail AI na h-earrann"
     },
     "detailsModel": {
       "en": "Details suggestions model",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Model awgrymiadau manylion",
+      "ga": "Múnla moltaí sonraí",
+      "gd": "Modail mholaidhean mion-fhiosrachaidh"
     },
     "noVisionModels": {
       "en": "No vision models found",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni chanfuwyd unrhyw fodelau gweledigaeth",
+      "ga": "Níor aimsíodh aon mhúnlaí físe",
+      "gd": "Cha deach modalan lèirsinn a lorg"
     },
     "loadingModels": {
       "en": "Loading models…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn llwytho modelau…",
+      "ga": "Ag lódáil múnlaí…",
+      "gd": "A' luchdachadh mhodalan…"
     },
     "modelsLive": {
       "en": "Vision + text models from {provider}.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Modelau gweledigaeth + testun o {provider}.",
+      "ga": "Múnlaí físe agus téacs ó {provider}.",
+      "gd": "Modalan lèirsinn is teacsa bho {provider}."
     },
     "modelsBuiltin": {
       "en": "Using built-in vision model list.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn defnyddio'r rhestr fodelau gweledigaeth adeiledig.",
+      "ga": "Ag úsáid an liosta múnlaí físe ionsuite.",
+      "gd": "A' cleachdadh liosta mhodalan lèirsinn a tha togte ann."
     },
     "detailsModelHint": {
       "en": "Used for issues, recommendations, and cost suggestions. Pick a higher-tier model here if you want.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Fe'i defnyddir ar gyfer problemau, argymhellion ac awgrymiadau cost. Dewiswch fodel haen uwch yma os dymunwch.",
+      "ga": "Úsáidtear seo le haghaidh fadhbanna, moltaí agus moltaí costais. Roghnaigh múnla níos airde anseo más mian leat.",
+      "gd": "Air a chleachdadh airson cùisean, molaidhean, agus molaidhean cosgais. Tagh modail ìre nas àirde an seo ma thogras tu."
     },
     "costSections": {
       "en": "Est. {cost} for {count} photo sections",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Amcangyfrif {cost} ar gyfer {count} adran luniau",
+      "ga": "Meast. {cost} ar {count} roinn ghrianghraf",
+      "gd": "Tuairmse. {cost} airson {count} earrannan deilbh"
     },
     "liveRates": {
       "en": "(live rates)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "(cyfraddau byw)",
+      "ga": "(rátaí beo)",
+      "gd": "(reataichean beò)"
     },
     "costDetails": {
       "en": "Est. {cost} for report details suggestions",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Amcangyfrif {cost} ar gyfer awgrymiadau manylion yr adroddiad",
+      "ga": "Meast. {cost} ar mholtaí sonraí na tuairisce",
+      "gd": "Tuairmse. {cost} airson molaidhean mion-fhiosrachadh na h-aithisg"
     },
     "combinedEstimate": {
       "en": "Combined estimate: {cost}",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Amcangyfrif cyfunol: {cost}",
+      "ga": "Meastachán iomlán: {cost}",
+      "gd": "Tuairmse iomlan: {cost}"
     },
     "combinedEstimateBody": {
       "en": " for {count} image sections + details suggestions (typical token use × {rates} rates). Actual spend varies with photo size and answers.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": " ar gyfer {count} adran luniau + awgrymiadau manylion (defnydd tocyn arferol × {rates} cyfradd). Mae'r gwariant gwirioneddol yn amrywio yn dibynnu ar faint y llun a'r atebion.",
+      "ga": " do {count} rannán íomhá + moltaí sonraí (gnáthúsáid ceadhartha × {rates} rátaí). Athraíonn an caiteachas iarbhír ag brath ar mhéid an ghrianghraif agus ar na freagraí.",
+      "gd": " airson {count} earrannan deilbh + molaidhean mion-fhiosrachaidh (cleachdadh tòcan àbhaisteach × reataichean {rates}). Bidh an cosgais dha-rìribh ag atharrachadh a rèir meud an deilbh agus nam freagairtean."
     },
     "liveCatalog": {
       "en": "live catalog",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "catalog byw",
+      "ga": "catalóg bheo",
+      "gd": "catalog beò"
     },
     "estimated": {
       "en": "estimated",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "amcangyfrifedig",
+      "ga": "measta",
+      "gd": "tuairmseach"
     },
     "yourName": {
       "en": "Your name (report Contact)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eich enw (Cyswllt yr adroddiad)",
+      "ga": "D'ainm (Teagmhálaí na tuairisce)",
+      "gd": "D'ainm (Neach-aithris na h-aithisg)"
     },
     "yourNamePlaceholder": {
       "en": "e.g. Alex Morgan",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "e.e. Alex Morgan",
+      "ga": "m.sh. Alex Morgan",
+      "gd": "m.e. Alex Morgan"
     },
     "yourNameHint": {
       "en": "Shown as Contact in the page header. Required before generating a report.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dangosir fel Cyswllt ym mhennawd y dudalen. Angenrheidiol cyn cynhyrchu adroddiad.",
+      "ga": "Taispeántar mar Theagmhálaí i gceanntásc an leathanaigh é. Riachtanach sula ngintear tuairisc.",
+      "gd": "Air a shealltainn mar Neach-fios sa cheann-sgrìobhadh. Tha seo a dhìth mus cruthaichear aithisg."
     },
     "companyName": {
       "en": "Company name",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Enw'r cwmni",
+      "ga": "Ainm na cuideachta",
+      "gd": "Ainm na companaidh"
     },
     "requiredBeforeGenerate": {
       "en": "Required before generating a report.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Angenrheidiol cyn cynhyrchu adroddiad.",
+      "ga": "Riachtanach sula ngintear tuairisc.",
+      "gd": "Tha seo a dhìth mus cruthaichear aithisg."
     },
     "website": {
       "en": "Website (shown on the cover page)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwefan (dangosir ar y dudalen flaen)",
+      "ga": "Suíomh Gréasáin (taispeántar ar an leathanach clúdaigh)",
+      "gd": "Làrach-lìn (air a shealltainn air an duilleag-chòmhdaich)"
     }
   },
   "tutorial": {
     "welcomeTitle": {
       "en": "Welcome to Dampmaster report studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Croeso i stiwdio adroddiadau Dampmaster",
+      "ga": "Fáilte chuig stiúideo tuairiscithe Dampmaster",
+      "gd": "Fàilte gu stiùidio aithisgean Dampmaster"
     },
     "languageCopy": {
       "en": "Please choose a language: English, Welsh, Irish, Scottish",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewiswch iaith, os gwelwch yn dda: Saesneg, Cymraeg, Gwyddeleg, Gaeleg",
+      "ga": "Roghnaigh teanga, le do thoil: Béarla, Breatnais, Gaeilge, Gaeilge na hAlban",
+      "gd": "Tagh cànan, mas e do thoil e: Beurla, Cuimris, Gàidhlig na h-Èireann, Gàidhlig"
     },
     "changeAnytime": {
       "en": "You can change these settings at any time",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gallwch newid y gosodiadau hyn unrhyw bryd",
+      "ga": "Is féidir leat na socruithe seo a athrú am ar bith",
+      "gd": "Faodaidh tu na roghainnean seo atharrachadh aig àm sam bith"
     },
     "themeCopy": {
       "en": "Please choose a theme: light / dark",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewiswch thema, os gwelwch yn dda: golau / tywyll",
+      "ga": "Roghnaigh téama, le do thoil: solas / dorcha",
+      "gd": "Tagh cuspair, mas e do thoil e: solas / dorcha"
     },
     "themeLight": {
       "en": "Light",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Golau",
+      "ga": "Solas",
+      "gd": "Solas"
     },
     "themeDark": {
       "en": "Dark",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tywyll",
+      "ga": "Dorcha",
+      "gd": "Dorcha"
     },
     "themeStudioSwatch": {
       "en": "Studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Stiwdio",
+      "ga": "Stiúideo",
+      "gd": "Stiùidio"
     },
     "themeInkSwatch": {
       "en": "Ink",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Inc",
+      "ga": "Dúch",
+      "gd": "Inc"
     },
     "themeAria": {
       "en": "Theme",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Thema",
+      "ga": "Téama",
+      "gd": "Cuspair"
     },
     "nameCopy": {
       "en": "What is your name?",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Beth yw eich enw?",
+      "ga": "Cad is ainm duit?",
+      "gd": "Dè an t-ainm a th' ort?"
     },
     "nameHint": {
       "en": "This is saved in Settings and shown as Contact on generated reports.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae hyn yn cael ei gadw yn Gosodiadau ac yn cael ei ddangos fel Cyswllt ar adroddiadau sy'n cael eu cynhyrchu.",
+      "ga": "Sábháiltear é seo sna Socruithe agus taispeántar é mar Theagmhálaí ar thuairiscí a gintear.",
+      "gd": "Tha seo air a shàbhaladh ann an Roghainnean agus air a shealltainn mar Neach-fios air aithisgean a chaidh a chruthachadh."
     },
     "namePlaceholder": {
       "en": "Your name",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eich enw",
+      "ga": "D'ainm",
+      "gd": "D'ainm"
     },
     "pitchIntro": {
       "en": "Dampmaster report studio is a bespoke tool created to help Dampmaster franchisees quickly and easily create notes while out in the field and seamlessly convert observations into finished documents",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae stiwdio adroddiadau Dampmaster yn offeryn pwrpasol a grëwyd i helpu masnachfreintiau Dampmaster i greu nodiadau yn gyflym ac yn hawdd tra allan yn y maes, a throsi arsylwadau'n ddogfennau gorffenedig yn ddi-dor",
+      "ga": "Is uirlis shaincheaptha í stiúideo tuairiscithe Dampmaster a cruthaíodh chun cabhrú le saincheadúnaithe Dampmaster nótaí a chruthú go tapa agus go héasca agus iad amuigh sa réimse agus a gcuid breathnuithe a thiontú ina ndoiciméid chríochnaithe gan stró",
+      "gd": "Tha stiùidio aithisgean Dampmaster na inneal sònraichte a chaidh a chruthachadh gus cuideachadh le luchd-bhòtaidh Dampmaster notaichean a chruthachadh gu sgiobalta agus gu furasta fhad 's a tha iad a-muigh air an raon agus an cuid amharc a thionndadh gu sgrìobhainnean deiseil gun strì"
     },
     "pitchPrompt": {
       "en": "Please consider taking this quick interactive tutorial to learn how to use report studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ystyriwch ddilyn y tiwtorial rhyngweithiol cyflym hwn i ddysgu sut i ddefnyddio'r stiwdio adroddiadau",
+      "ga": "Tóg an teagasc gearr idirghníomhach seo le do thoil chun foghlaim conas stiúideo na dtuairiscí a úsáid",
+      "gd": "Gabh an t-oideachadh goirid eadar-ghnìomhach seo, mas e do thoil e, gus ionnsachadh mar a chleachdas tu stiùidio nan aithisgean"
     },
     "take": {
       "en": "Take tutorial",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dilyn y tiwtorial",
+      "ga": "Tosaigh an teagasc",
+      "gd": "Tòisich an t-oideachadh"
     },
     "skip": {
       "en": "Skip",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Hepgor",
+      "ga": "Scipeáil",
+      "gd": "Leum"
     },
     "english": {
       "en": "English",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Saesneg",
+      "ga": "Béarla",
+      "gd": "Beurla"
     },
     "welsh": {
       "en": "Welsh",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cymraeg",
+      "ga": "Breatnais",
+      "gd": "Cuimris"
     },
     "irish": {
       "en": "Irish",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwyddeleg",
+      "ga": "Gaeilge",
+      "gd": "Gàidhlig na h-Èireann"
     },
     "scottish": {
       "en": "Scottish",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gaeleg yr Alban",
+      "ga": "Gaeilge na hAlban",
+      "gd": "Gàidhlig"
     },
     "england": {
       "en": "England",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lloegr",
+      "ga": "Sasana",
+      "gd": "Sasainn"
     },
     "wales": {
       "en": "Wales",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cymru",
+      "ga": "An Bhreatain Bheag",
+      "gd": "A' Chuimrigh"
     },
     "ireland": {
       "en": "Ireland",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Iwerddon",
+      "ga": "Éire",
+      "gd": "Èirinn"
     },
     "northernIreland": {
       "en": "Northern Ireland",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gogledd Iwerddon",
+      "ga": "Tuaisceart Éireann",
+      "gd": "Èirinn a Tuath"
     },
     "scotland": {
       "en": "Scotland",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yr Alban",
+      "ga": "Albain",
+      "gd": "Alba"
     },
     "exit": {
       "en": "Exit tutorial",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gadael y tiwtorial",
+      "ga": "Fág an teagasc",
+      "gd": "Fàg an t-oideachadh"
     },
     "next": {
       "en": "Next",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nesaf",
+      "ga": "Ar aghaidh",
+      "gd": "Air adhart"
     }
   },
   "address": {
     "title": {
       "en": "Property & client",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eiddo a chleient",
+      "ga": "Réadmhaoin & cliant",
+      "gd": "Seilbh & neach-dèiligidh"
     },
     "intro": {
       "en": "Start with the property address and client name. These details are saved with this survey and appear on the finished report.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dechreuwch gyda chyfeiriad yr eiddo ac enw'r cleient. Cedwir y manylion hyn gyda'r arolwg hwn ac maent yn ymddangos ar yr adroddiad gorffenedig.",
+      "ga": "Tosaigh le seoladh na réadmhaoine agus ainm an chliaint. Sábháiltear na sonraí seo leis an suirbhé seo agus bíonn siad le feiceáil ar an tuairisc chríochnaithe.",
+      "gd": "Tòisich le seòladh na seilbh agus ainm an neach-dèiligidh. Bidh am mion-fhiosrachadh seo air a shàbhaladh leis an sgrùdadh seo agus nochdaidh e air an aithisg deiseil."
     },
     "propertyAddress": {
       "en": "Property address",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyfeiriad yr eiddo",
+      "ga": "Seoladh na réadmhaoine",
+      "gd": "Seòladh na seilbh"
     },
     "addressPlaceholder": {
       "en": "9 Example Road, Cardiff, CF24 …",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "e.e. 9 Ffordd Enghreifftiol, Caerdydd, CF24...",
+      "ga": "m.sh. 9 Bóthar Samplach, Caerdydd, CF24...",
+      "gd": "m.e. 9 Rathad Eisimpleir, Caerdydd, CF24..."
     },
     "clientName": {
       "en": "Client name",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Enw'r cleient",
+      "ga": "Ainm an chliaint",
+      "gd": "Ainm an neach-dèiligidh"
     },
     "phone": {
       "en": "Phone (page header)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ffôn (pennawd tudalen)",
+      "ga": "Fón (ceanntásc an leathanaigh)",
+      "gd": "Fòn (ceann-sgrìobhadh duilleig)"
     },
     "email": {
       "en": "Email (page header)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "E-bost (pennawd tudalen)",
+      "ga": "Ríomhphost (ceanntásc an leathanaigh)",
+      "gd": "Post-d (ceann-sgrìobhadh duilleig)"
     },
     "propertyType": {
       "en": "Property type",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Math o eiddo",
+      "ga": "Cineál réadmhaoine",
+      "gd": "Seòrsa seilbh"
     },
     "postcode": {
       "en": "Postcode",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cod post",
+      "ga": "Cód poist",
+      "gd": "Còd-puist"
     },
     "postcodePlaceholder": {
       "en": "CF24 0AA",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "CF24 0AA",
+      "ga": "CF24 0AA",
+      "gd": "CF24 0AA"
     },
     "detectLocation": {
       "en": "Use my location",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Defnyddio fy lleoliad",
+      "ga": "Úsáid mo shuíomh",
+      "gd": "Cleachd mo shuidheachadh"
     },
     "detecting": {
       "en": "Finding address…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn chwilio am gyfeiriad…",
+      "ga": "Ag aimsiú seolta…",
+      "gd": "A' lorg seòlaidh…"
     },
     "findProperties": {
       "en": "Find properties",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Canfod eiddo",
+      "ga": "Aimsigh réadmhaoine",
+      "gd": "Lorg togalaichean"
     },
     "searching": {
       "en": "Searching…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn chwilio…",
+      "ga": "Ag cuardach…",
+      "gd": "A' lorg…"
     },
     "nearbyTitle": {
       "en": "Nearby properties",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eiddo gerllaw",
+      "ga": "Réadmhaoine in aice láimhe",
+      "gd": "Togalaichean faisg air làimh"
     },
     "atPostcodeTitle": {
       "en": "Properties at this postcode",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eiddo yn y cod post hwn",
+      "ga": "Réadmhaoine ag an gcód poist seo",
+      "gd": "Togalaichean aig a' chòd-puist seo"
     },
     "noProperties": {
       "en": "No properties were found at this postcode. You can type the address by hand.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni chanfuwyd unrhyw eiddo yn y cod post hwn. Gallwch deipio'r cyfeiriad â llaw.",
+      "ga": "Níor aimsíodh aon réadmhaoin ag an gcód poist seo. Is féidir leat an seoladh a chlóscríobh de láimh.",
+      "gd": "Cha deach togalaichean a lorg aig a' chòd-puist seo. Faodaidh tu an seòladh a sgrìobhadh le làimh."
     },
     "locationDenied": {
       "en": "Location permission was not granted. Enter a postcode instead.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni roddwyd caniatâd lleoliad. Nodwch god post yn lle hynny.",
+      "ga": "Níor deonaíodh cead suímh. Cuir isteach cód poist ina áit sin.",
+      "gd": "Cha deach cead àite a thoirt seachad. Cuir a-steach còd-puist an àite sin."
     },
     "locationFailed": {
       "en": "Could not read this phone’s position.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd modd darllen safle'r ffôn hwn.",
+      "ga": "Níorbh fhéidir suíomh an ghutháin seo a léamh.",
+      "gd": "Cha b' urrainn dhuinn suidheachadh an fhòn seo a leughadh."
     },
     "epcFailed": {
       "en": "Could not query the energy-certificate register. Street addresses below may not include every flat.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Methu holi'r gofrestr tystysgrifau ynni. Efallai na fydd y cyfeiriadau stryd isod yn cynnwys pob fflat.",
+      "ga": "Níorbh fhéidir clár na dteastas fuinnimh a cheistiú. B'fhéidir nach n-áireofaí gach árasán sna seoltaí sráide thíos.",
+      "gd": "Cha b' urrainn dhuinn rannsachadh a dhèanamh air clàr nan teisteanasan lùtha. Dh'fhaodadh nach bi a h-uile flat anns na seòlaidhean sràide gu h-ìosal."
     },
     "lookupFailed": {
       "en": "Could not look up addresses right now. Check the connection and try again.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd modd chwilio am gyfeiriadau ar hyn o bryd. Gwiriwch y cysylltiad a cheisiwch eto.",
+      "ga": "Níorbh fhéidir seoltaí a chuardach faoi láthair. Seiceáil an ceangal agus bain triail eile as.",
+      "gd": "Cha b' urrainn dhuinn seòlaidhean a lorg an-dràsta. Dèan cinnteach mun cheangal is feuch a-rithist."
     },
     "skipPhotos": {
       "en": "Skip to photos",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Sgipio i'r lluniau",
+      "ga": "Scipeáil go dtí na grianghraif",
+      "gd": "Leum gu na dealbhan"
     },
     "continueEpc": {
       "en": "Continue",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau",
+      "ga": "Ar aghaidh",
+      "gd": "Lean air adhart"
     }
   },
   "epc": {
     "title": {
       "en": "Energy certificate",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tystysgrif ynni",
+      "ga": "Teastas fuinnimh",
+      "gd": "Teisteanas lùtha"
     },
     "subtitle": {
       "en": "England & Wales EPC register — age, construction, insulation and size when a certificate exists for this address.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cofrestr EPC Lloegr a Chymru — oedran, adeiladwaith, inswleiddio a maint pan fydd tystysgrif yn bodoli ar gyfer y cyfeiriad hwn.",
+      "ga": "Clár EPC Shasana & na Breataine Bige — aois, tógáil, insliú agus méid nuair a bhíonn teastas ann don seoladh seo.",
+      "gd": "Clàr EPC Shasainn is na Cuimrigh — aois, togail, còmhdach-blàthachaidh is meud nuair a tha teisteanas ann airson an t-seòlaidh seo."
     },
     "open": {
       "en": "Energy certificate",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tystysgrif ynni",
+      "ga": "Teastas fuinnimh",
+      "gd": "Teisteanas lùtha"
     },
     "loading": {
       "en": "Looking up the energy certificate…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn chwilio am y dystysgrif ynni…",
+      "ga": "Ag cuardach an teastais fuinnimh…",
+      "gd": "A' lorg an teisteanais lùtha…"
     },
     "none": {
       "en": "No England & Wales energy certificate was found for this address. You can still continue.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni chanfuwyd tystysgrif ynni Lloegr a Chymru ar gyfer y cyfeiriad hwn. Gallwch barhau beth bynnag.",
+      "ga": "Níor aimsíodh aon teastas fuinnimh do Shasana agus don Bhreatain Bheag don seoladh seo. Is féidir leat leanúint ar aghaidh fós.",
+      "gd": "Cha deach teisteanas lùtha Sasainn is na Cuimrigh a lorg airson an t-seòlaidh seo. Faodaidh tu leantainn air adhart fhathast."
     },
     "error": {
       "en": "The energy certificate service could not be reached.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd modd cyrraedd y gwasanaeth tystysgrifau ynni.",
+      "ga": "Níorbh fhéidir an tseirbhís teastais fuinnimh a shroicheadh.",
+      "gd": "Cha b' urrainn dhuinn an t-seirbheis teisteanais lùtha a ruighinn."
     },
     "refresh": {
       "en": "Look up again",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Chwilio eto",
+      "ga": "Cuardaigh arís",
+      "gd": "Lorg a-rithist"
     },
     "continueNotes": {
       "en": "Continue to photos",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau i'r lluniau",
+      "ga": "Ar aghaidh go dtí na grianghraif",
+      "gd": "Lean air adhart gu dealbhan"
     },
     "built": {
       "en": "Built",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Adeiladwyd",
+      "ga": "Tógtha",
+      "gd": "Air a thogail"
     },
     "property": {
       "en": "Property",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eiddo",
+      "ga": "Réadmhaoin",
+      "gd": "Seilbh"
     },
     "form": {
       "en": "Built form",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ffurf adeiledig",
+      "ga": "Foirm thógtha",
+      "gd": "Cruth togte"
     },
     "floorArea": {
       "en": "Total floor area",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyfanswm arwynebedd y llawr",
+      "ga": "Achar iomlán an urláir",
+      "gd": "Farsaingeachd iomlan an ùrlair"
     },
     "extensions": {
       "en": "Extensions",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Estyniadau",
+      "ga": "Eisínteachtaí",
+      "gd": "Leudachaidhean"
     },
     "rooms": {
       "en": "Habitable / heated rooms",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ystafelloedd preswyl / wedi'u gwresogi",
+      "ga": "Seomraí ináitrithe / téite",
+      "gd": "Seòmraichean còmhnaidh / teasachaidh"
     },
     "walls": {
       "en": "Walls",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Waliau",
+      "ga": "Ballaí",
+      "gd": "Ballaichean"
     },
     "roof": {
       "en": "Roof / ceiling",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "To / nenfwd",
+      "ga": "Díon / síleáil",
+      "gd": "Mullach / mullach-seòmair"
     },
     "floor": {
       "en": "Floors",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lloriau",
+      "ga": "Urláir",
+      "gd": "Làir"
     },
     "windows": {
       "en": "Glazing",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwydro",
+      "ga": "Gloiniú",
+      "gd": "Glainneachadh"
     },
     "heating": {
       "en": "Main heating",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Prif wresogi",
+      "ga": "Príomhthéamh",
+      "gd": "Prìomh theas"
     },
     "hotWater": {
       "en": "Hot water",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dŵr poeth",
+      "ga": "Uisce te",
+      "gd": "Uisge teth"
     },
     "lighting": {
       "en": "Lighting",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Goleuadau",
+      "ga": "Soilsiú",
+      "gd": "Solais"
     },
     "fuel": {
       "en": "Main fuel",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Prif danwydd",
+      "ga": "Príomhbhreosla",
+      "gd": "Prìomh chonnadh"
     },
     "rating": {
       "en": "Energy rating",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Sgôr ynni",
+      "ga": "Rátáil fuinnimh",
+      "gd": "Ìre lùtha"
     },
     "tenure": {
       "en": "Tenure",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Daliadaeth",
+      "ga": "Tionacht",
+      "gd": "Gabhaltas"
     },
     "inspected": {
       "en": "Inspected",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Archwiliwyd",
+      "ga": "Iniúchta",
+      "gd": "Air a sgrùdadh"
     },
     "mainsGas": {
       "en": "Mains gas",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Prif gyflenwad nwy",
+      "ga": "Gás príomhlíonra",
+      "gd": "Gas a' phrìomh-phìob"
     },
     "solarHotWater": {
       "en": "Solar water heating",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwresogi dŵr heulol",
+      "ga": "Téamh uisce gréine",
+      "gd": "Teas uisge grèine"
     },
     "pv": {
       "en": "Photovoltaic supply",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyflenwad ffotofoltäig",
+      "ga": "Soláthar fótavoltach",
+      "gd": "Solarachadh fòta-voltaigeach"
     },
     "ventilation": {
       "en": "Mechanical ventilation",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Awyru mecanyddol",
+      "ga": "Aeráil mheicniúil",
+      "gd": "Fionnarachadh meacanaigeach"
     },
     "yes": {
       "en": "Yes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ie",
+      "ga": "Tá",
+      "gd": "Tha"
     },
     "no": {
       "en": "No",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Na",
+      "ga": "Níl",
+      "gd": "Chan eil"
     },
     "sqm": {
       "en": "{n} m²",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{n} m²",
+      "ga": "{n} m²",
+      "gd": "{n} m²"
     }
   },
   "details": {
     "propertySurvey": {
       "en": "Property & survey",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eiddo ac arolwg",
+      "ga": "Réadmhaoin & suirbhé",
+      "gd": "Seilbh & sgrùdadh"
     },
     "surveyDate": {
       "en": "Survey date",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dyddiad yr arolwg",
+      "ga": "Dáta an tsuirbhé",
+      "gd": "Ceann-latha an sgrùdaidh"
     },
     "docId": {
       "en": "Document id (footer, optional)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "ID dogfen (troedyn, dewisol)",
+      "ga": "ID doiciméid (buntásc, roghnach)",
+      "gd": "ID sgrìobhainn (bonn-coise, roghainneil)"
     },
     "docIdPlaceholder": {
       "en": "112.1",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "112.1",
+      "ga": "112.1",
+      "gd": "112.1"
     },
     "weather": {
       "en": "Weather",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tywydd",
+      "ga": "Aimsir",
+      "gd": "Sìde"
     },
     "weatherPlaceholder": {
       "en": "dry conditions",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "amodau sych",
+      "ga": "coinníollacha tirime",
+      "gd": "suidheachaidhean tioram"
     },
     "temp": {
       "en": "Temp (°C)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tymheredd (°C)",
+      "ga": "Teocht (°C)",
+      "gd": "Teòthachd (°C)"
     },
     "sky": {
       "en": "Sky",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Awyr",
+      "ga": "Spéir",
+      "gd": "Speur"
     },
     "skyPlaceholder": {
       "en": "intermittent cloud cover",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "cymylau ysbeidiol",
+      "ga": "clúdach scamaill ó am go ham",
+      "gd": "sgòthan bho àm gu àm"
     },
     "issuesTitle": {
       "en": "Issues found at this property",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Problemau a ganfuwyd yn yr eiddo hwn",
+      "ga": "Fadhbanna a aimsíodh ag an réadmhaoin seo",
+      "gd": "Duilgheadasan a chaidh a lorg san togalach seo"
     },
     "issuesHint": {
       "en": "Tick the damp issues identified on site.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ticiwch y problemau lleithder a nodwyd ar y safle.",
+      "ga": "Cuir tic leis na fadhbanna taise a aithníodh ar an suíomh.",
+      "gd": "Cuir strìochag air na cùisean taiseachd a chaidh a chomharrachadh air an làrach."
     },
     "risingDamp": {
       "en": "Rising damp",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lleithder esgynnol",
+      "ga": "Taise éiritheach",
+      "gd": "Taiseachd ag èirigh"
     },
     "penetratingDamp": {
       "en": "Penetrating damp",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lleithder treiddiol",
+      "ga": "Taise threáiteach",
+      "gd": "Taiseachd a' drùidheadh"
     },
     "condensation": {
       "en": "Condensation",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Anwedd",
+      "ga": "Comhdhlúthú",
+      "gd": "Dlùthachadh"
     },
     "otherIssue": {
       "en": "Describe the other issue",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Disgrifiwch y broblem arall",
+      "ga": "Déan cur síos ar an bhfadhb eile",
+      "gd": "Thoir iomradh air a' chùis eile"
     },
     "otherIssuePlaceholder": {
       "en": "Explain the issue and wording for the report…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eglurwch y broblem a'r geiriad ar gyfer yr adroddiad…",
+      "ga": "Mínigh an fhadhb agus an fhoclaíocht don tuairisc…",
+      "gd": "Mìnich a' chùis agus am briathrachas airson na h-aithisg…"
     },
     "recsTitle": {
       "en": "Recommendations",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Argymhellion",
+      "ga": "Moltaí",
+      "gd": "Molaidhean"
     },
     "recsHint": {
       "en": "Tick the standard recommendations to include.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ticiwch yr argymhellion safonol i'w cynnwys.",
+      "ga": "Cuir tic leis na gnáth-mholtaí le cur san áireamh.",
+      "gd": "Cuir strìochag air na molaidhean àbhaisteach a bu chòir a chur a-steach."
     },
     "recsSearch": {
       "en": "Search recommendations...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Chwilio argymhellion...",
+      "ga": "Cuardaigh moltaí...",
+      "gd": "Lorg molaidhean..."
     },
     "otherRec": {
       "en": "Other recommendation",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Argymhelliad arall",
+      "ga": "Moladh eile",
+      "gd": "Moladh eile"
     },
     "otherRecPlaceholder": {
       "en": "Write the recommendation wording for the report…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ysgrifennwch eiriad yr argymhelliad ar gyfer yr adroddiad…",
+      "ga": "Scríobh foclaíocht an mholta don tuairisc…",
+      "gd": "Sgrìobh briathrachas a' mholaidh airson na h-aithisg…"
     },
     "planTitle": {
       "en": "Project plan & costs",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cynllun prosiect a chostau",
+      "ga": "Plean tionscadail & costais",
+      "gd": "Plana pròiseict & cosgaisean"
     },
     "excludePlan": {
       "en": "Exclude plan & costs",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Hepgor cynllun a chostau",
+      "ga": "Fág amach an plean & costais",
+      "gd": "Fàg am plana & cosgaisean a-mach"
     },
     "excludeHint": {
       "en": "For recommendation-only reports — omit the project plan, prices, finance offer, and related service paragraphs from the export.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ar gyfer adroddiadau argymhellion yn unig — hepgor y cynllun prosiect, y prisiau, y cynnig cyllid, a'r paragraffau gwasanaeth cysylltiedig o'r allforiad.",
+      "ga": "I gcás tuairiscí molta amháin — fág an plean tionscadail, na praghsanna, an tairiscint airgeadais agus ailt na seirbhísí gaolmhara as an easpórtáil.",
+      "gd": "Airson aithisgean molaidh a-mhàin — fàg am plana pròiseict, na prìsean, an tairgse ionmhais, agus paragrafan seirbheis co-cheangailte a-mach às an às-mhalairt."
     },
     "areasOfWork": {
       "en": "Areas of work (one line per room/area)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Meysydd gwaith (un llinell am bob ystafell/ardal)",
+      "ga": "Réimsí oibre (líne amháin in aghaidh an tseomra/limistéir)",
+      "gd": "Raointean obrach (aon loidhne airson gach seòmar/àite)"
     },
     "costsHint": {
       "en": "Tick the standard cost items. Enter a price for each selected item (and a work location where the job is room-specific) before generating.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ticiwch yr eitemau cost safonol. Rhowch bris ar gyfer pob eitem a ddewiswyd (a lleoliad gwaith lle mae'r swydd yn benodol i ystafell) cyn cynhyrchu.",
+      "ga": "Cuir tic leis na gnáth-mhíreanna costais. Iontráil praghas do gach mír roghnaithe (agus suíomh oibre nuair a bhaineann an jab le seomra faoi leith) sula ngintear é.",
+      "gd": "Cuir strìochag air na nithean cosgais àbhaisteach. Cuir a-steach prìs airson gach nì a thagh thu (agus àite obrach far a bheil an obair a' buntainn ri seòmar sònraichte) mus cruthaich thu."
     },
     "costsSearch": {
       "en": "Search project plan & costs...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Chwilio cynllun prosiect a chostau...",
+      "ga": "Cuardaigh an plean tionscadail & costais...",
+      "gd": "Lorg plana pròiseict & cosgaisean..."
     },
     "cleanupTitle": {
       "en": "Post project clean-up",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Glanhau ar ôl y prosiect",
+      "ga": "Glanadh iar-thionscadail",
+      "gd": "Glanadh às dèidh pròiseict"
     },
     "cleanupHint": {
       "en": "Optional wording after the project plan — reinstatement, decorating, radiators, coving, and similar close-out notes. Leave blank to omit this paragraph.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Geiriad dewisol ar ôl y cynllun prosiect — adfer, addurno, rheiddiaduron, cornisiau, a nodiadau cau tebyg. Gadewch yn wag i hepgor y paragraff hwn.",
+      "ga": "Foclaíocht roghnach i ndiaidh an phlean tionscadail — athchóiriú, maisiú, radaitheoirí, cuasú, agus nótaí críochnaithe comhchosúla. Fág bán chun an t-alt seo a fhágáil ar lár.",
+      "gd": "Briathrachas roghainneil às deidh a' phlana pròiseict — ath-shuidheachadh, sgeadachadh, rèididheatoran, còmhdach, agus notaichean crìochnachaidh coltach ris. Fàg bàn gus am paragraf seo a fàgail às."
     },
     "cleanupPlaceholder": {
       "en": "e.g. New skirting boards will need to be fitted after the damp-proofing process is completed…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "e.e. Bydd angen gosod byrddau sgyrtin newydd ar ôl i'r broses atal lleithder gael ei chwblhau…",
+      "ga": "m.sh. Beidh gá le cláir sciorta nua a fheistiú tar éis don phróiseas díonta taise a bheith críochnaithe…",
+      "gd": "m.e. Bidh feum air bùird-sgiortaidh ùra a chur a-steach às deidh dhan phròiseas dìon-taiseachd a bhith air a chrìochnachadh…"
     },
     "continueGenerate": {
       "en": "Continue to generate",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau i gynhyrchu",
+      "ga": "Ar aghaidh chun giniúna",
+      "gd": "Lean air adhart gu cruthachadh"
     },
     "enterToSelect": {
       "en": "Press Enter to select",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch Enter i ddewis",
+      "ga": "Brúigh Iontráil chun roghnú",
+      "gd": "Brùth Enter gus taghadh"
     },
     "issuesError": {
       "en": "AI couldn’t finish issues",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd yr AI yn gallu gorffen y problemau",
+      "ga": "Níorbh fhéidir leis an AI na fadhbanna a chríochnú",
+      "gd": "Cha b' urrainn don AI na cùisean a chrìochnachadh"
     },
     "recsError": {
       "en": "AI couldn’t finish recommendations",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd yr AI yn gallu gorffen yr argymhellion",
+      "ga": "Níorbh fhéidir leis an AI na moltaí a chríochnú",
+      "gd": "Cha b' urrainn don AI na molaidhean a chrìochnachadh"
     },
     "costsError": {
       "en": "AI couldn’t finish project plan & costs",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd yr AI yn gallu gorffen y cynllun prosiect a'r costau",
+      "ga": "Níorbh fhéidir leis an AI an plean tionscadail & na costais a chríochnú",
+      "gd": "Cha b' urrainn don AI am plana pròiseict & cosgaisean a chrìochnachadh"
     },
     "cleanupError": {
       "en": "AI couldn’t finish clean-up notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd yr AI yn gallu gorffen y nodiadau glanhau",
+      "ga": "Níorbh fhéidir leis an AI na nótaí glantacháin a chríochnú",
+      "gd": "Cha b' urrainn don AI na notaichean glanaidh a chrìochnachadh"
     },
     "tryAgain": {
       "en": "Try again",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ceisiwch eto",
+      "ga": "Bain triail eile as",
+      "gd": "Feuch a-rithist"
     },
     "draftingIssues": {
       "en": "Drafting issues…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn llunio problemau…",
+      "ga": "Ag dréachtú fadhbanna…",
+      "gd": "A' dreachdadh chùisean…"
     },
     "draftingRecs": {
       "en": "Drafting recommendations…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn llunio argymhellion…",
+      "ga": "Ag dréachtú moltaí…",
+      "gd": "A' dreachdadh mholaidhean…"
     },
     "draftingCosts": {
       "en": "Drafting costs…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn llunio costau…",
+      "ga": "Ag dréachtú costais…",
+      "gd": "A' dreachdadh chosgaisean…"
     },
     "draftingCleanup": {
       "en": "Drafting clean-up…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn llunio nodiadau glanhau…",
+      "ga": "Ag dréachtú glantacháin…",
+      "gd": "A' dreachdadh glanaidh…"
     },
     "aiPickFallback": {
       "en": "Suggested from the survey wording.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Awgrymwyd o eiriad yr arolwg.",
+      "ga": "Molta ó fhoclaíocht an tsuirbhé.",
+      "gd": "Air a mholadh bho bhriathrachas an sgrùdaidh."
     },
     "total": {
       "en": "Total:",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyfanswm:",
+      "ga": "Iomlán:",
+      "gd": "Iomlan:"
     },
     "plusVat": {
       "en": "+ VAT",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "+ TAW",
+      "ga": "+ CBL",
+      "gd": "+ VAT"
     },
     "surveyFee": {
       "en": "Survey fee refunded if work goes ahead (£)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Caiff y ffi arolwg ei had-dalu os aiff y gwaith yn ei flaen (£)",
+      "ga": "Aisíoctar táille an tsuirbhé má théann an obair ar aghaidh (£)",
+      "gd": "Thèid cìs an sgrùdaidh a phàigheadh air ais ma thèid an obair air adhart (£)"
     },
     "duration": {
       "en": "Estimated duration",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Amcangyfrif o'r hyd",
+      "ga": "Fad measta",
+      "gd": "Faid thuairmseach"
     },
     "durationPlaceholder": {
       "en": "5-7 days",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "5-7 diwrnod",
+      "ga": "5-7 lá",
+      "gd": "5-7 latha"
     },
     "invasiveOn": {
       "en": "Invasive survey limitations",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyfyngiadau arolwg ymyrrol",
+      "ga": "Teorainneacha suirbhé ionracha",
+      "gd": "Cuingeachaidhean sgrùdaidh ionnsaigheach"
     },
     "invasiveOff": {
       "en": "Non-invasive survey limitations",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyfyngiadau arolwg an-ymyrrol",
+      "ga": "Teorainneacha suirbhé neamh-ionracha",
+      "gd": "Cuingeachaidhean sgrùdaidh neo-ionnsaigheach"
     },
     "invasiveOnHint": {
       "en": "The final section will use invasive-survey limitations wording.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Bydd yr adran derfynol yn defnyddio geiriad cyfyngiadau arolwg ymyrrol.",
+      "ga": "Úsáidfidh an chuid dheireanach foclaíocht teorainneacha suirbhé ionracha.",
+      "gd": "Cleachdaidh an earrann mu dheireadh briathrachas cuingeachaidhean sgrùdaidh ionnsaigheach."
     },
     "invasiveOffHint": {
       "en": "The final section will use the standard non-invasive limitations wording.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Bydd yr adran derfynol yn defnyddio'r geiriad cyfyngiadau an-ymyrrol safonol.",
+      "ga": "Úsáidfidh an chuid dheireanach foclaíocht chaighdeánach theorainneacha neamh-ionracha.",
+      "gd": "Cleachdaidh an earrann mu dheireadh briathrachas cuingeachaidhean àbhaisteach neo-ionnsaigheach."
     },
     "incompleteTitle": {
       "en": "Fill in the remaining details?",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Llenwi'r manylion sy'n weddill?",
+      "ga": "Líon na sonraí atá fágtha?",
+      "gd": "An lìon thu am mion-fhiosrachadh a tha air fhàgail?"
     },
     "incompleteBody": {
       "en": "You can still generate if you are sure this is complete enough.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gallwch gynhyrchu o hyd os ydych yn siŵr bod hyn yn ddigon cyflawn.",
+      "ga": "Is féidir leat an tuairisc a ghiniúint fós má tá tú cinnte go bhfuil sé seo sách iomlán.",
+      "gd": "Faodaidh tu cruthachadh fhathast ma tha thu cinnte gu bheil seo coileanta gu leòr."
     },
     "goToIssue": {
       "en": "Go to issue",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mynd i'r broblem",
+      "ga": "Téigh go dtí an fhadhb",
+      "gd": "Rach chun na cùise"
     },
     "ignoreGenerate": {
       "en": "Ignore and generate",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Anwybyddu a chynhyrchu",
+      "ga": "Déan neamhaird agus gin",
+      "gd": "Leig seachad is cruthaich"
     },
     "customItem": {
       "en": "Custom item",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eitem arferol",
+      "ga": "Mír shaincheaptha",
+      "gd": "Nì gnàthaichte"
     },
     "costItem": {
       "en": "Cost item",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eitem cost",
+      "ga": "Mír chostais",
+      "gd": "Nì cosgais"
     },
     "deselect": {
       "en": "Deselect",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dad-ddewis",
+      "ga": "Díroghnaigh",
+      "gd": "Dì-thaghadh"
     },
     "whereAreas": {
       "en": "Where / areas *",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lleoliad / ardaloedd *",
+      "ga": "Cá háit / réimsí *",
+      "gd": "Àite / raointean *"
     },
     "wherePlaceholder": {
       "en": "e.g. rear reception & hallway exterior walls to 1.2m",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "e.e. waliau allanol y dderbynfa gefn a'r cyntedd hyd at 1.2m",
+      "ga": "m.sh. ballaí seachtracha an fháiltithe chúil agus an halla suas go 1.2m",
+      "gd": "m.e. ballaichean a-muigh an fhàilteachaidh chùil agus an trannsa suas gu 1.2m"
     },
     "describeWork": {
       "en": "Describe the work item...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Disgrifiwch yr eitem waith...",
+      "ga": "Déan cur síos ar an mír oibre...",
+      "gd": "Thoir iomradh air an nì obrach..."
     },
     "otherWork": {
       "en": "Describe the other work item...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Disgrifiwch yr eitem waith arall...",
+      "ga": "Déan cur síos ar an mír oibre eile...",
+      "gd": "Thoir iomradh air an nì obrach eile..."
     },
     "priceZero": {
       "en": "0",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "0",
+      "ga": "0",
+      "gd": "0"
     }
   },
   "fieldNotes": {
     "photosTaken": {
       "en": "photo{s} taken",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "llun(iau) wedi'u tynnu",
+      "ga": "grianghraf(anna) glactha",
+      "gd": "dealbh(an) air an togail"
     },
     "notesMatched": {
       "en": "notes matched {x}/{y}",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "nodiadau yn cyfateb {x}/{y}",
+      "ga": "nótaí meaitseáilte {x}/{y}",
+      "gd": "notaichean a' maidseadh {x}/{y}"
     },
     "saveLeave": {
       "en": "Save & leave",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cadw a gadael",
+      "ga": "Sábháil & fág",
+      "gd": "Sàbhail & fàg"
     },
     "continueDoc": {
       "en": "Continue to document",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau i'r ddogfen",
+      "ga": "Ar aghaidh go dtí an doiciméad",
+      "gd": "Lean air adhart chun na sgrìobhainn"
     },
     "stillNeeded": {
       "en": "Still needed",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn dal i fod ei angen",
+      "ga": "Fós ag teastáil",
+      "gd": "Fathast a dhìth"
     },
     "allNoted": {
       "en": "All key wording noted",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pob geiriad allweddol wedi'i nodi",
+      "ga": "Gach eochairfhoclaíocht tugtha faoi deara",
+      "gd": "Gach prìomh bhriathrachas air a chomharrachadh"
     },
     "holdToDelete": {
       "en": "Hold to delete",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch a daliwch i ddileu",
+      "ga": "Brúigh agus coinnigh chun scriosadh",
+      "gd": "Brùth is cùm gus sguabadh às"
     },
     "holdToDeletePhoto": {
       "en": "Hold to delete photo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch a daliwch i ddileu llun",
+      "ga": "Brúigh agus coinnigh chun an grianghraf a scriosadh",
+      "gd": "Brùth is cùm gus an dealbh a sguabadh às"
     },
     "startingCamera": {
       "en": "Starting camera",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cychwyn y camera",
+      "ga": "Ag tosú an cheamara",
+      "gd": "A' tòiseachadh a' chamara"
     },
     "retryCamera": {
       "en": "Retry camera",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ceisio'r camera eto",
+      "ga": "Atriail ceamara",
+      "gd": "Feuch an camara a-rithist"
     },
     "chooseCamera": {
       "en": "Choose camera",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewis camera",
+      "ga": "Roghnaigh ceamara",
+      "gd": "Tagh camara"
     },
     "chooseCameraCurrent": {
       "en": "Choose camera (current: {label})",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewis camera (cyfredol: {label})",
+      "ga": "Roghnaigh ceamara (reatha: {label})",
+      "gd": "Tagh camara (làithreach: {label})"
     },
     "backToCamera": {
       "en": "Back to camera",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nôl i'r camera",
+      "ga": "Siar chuig an gceamara",
+      "gd": "Air ais chun chamara"
     },
     "compass": {
       "en": "Compass orientation",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyfeiriadedd cwmpawd",
+      "ga": "Treoshuíomh compáis",
+      "gd": "Stiùireadh combaist"
     },
     "createdDate": {
       "en": "Created date for new notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dyddiad creu ar gyfer nodiadau newydd",
+      "ga": "Dáta cruthaithe le haghaidh nótaí nua",
+      "gd": "Ceann-latha cruthachaidh airson notaichean ùra"
     },
     "newNote": {
       "en": "New note",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nodyn newydd",
+      "ga": "Nóta nua",
+      "gd": "Nota ùr"
     },
     "takePhoto": {
       "en": "Take photo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tynnu llun",
+      "ga": "Tóg grianghraf",
+      "gd": "Tog dealbh"
     },
     "retake": {
       "en": "Retake",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Aildynnu",
+      "ga": "Athghlac",
+      "gd": "Ath-thog"
     },
     "adding": {
       "en": "Adding…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn ychwanegu…",
+      "ga": "Ag cur leis…",
+      "gd": "A' cur ris…"
     },
     "addFromPictures": {
       "en": "Add from pictures",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu o'r lluniau",
+      "ga": "Cuir ó phictiúir",
+      "gd": "Cuir a-steach bho dhealbhan"
     },
     "camera": {
       "en": "Camera",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Camera",
+      "ga": "Ceamara",
+      "gd": "Camara"
     },
     "holdToRetake": {
       "en": "Hold to retake photo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch a daliwch i aildynnu llun",
+      "ga": "Brúigh agus coinnigh chun grianghraf a athghlacadh",
+      "gd": "Brùth is cùm gus an dealbh ath-thogail"
     },
     "annotatePhoto": {
       "en": "Annotate photo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Anodi llun",
+      "ga": "Anótáil grianghraf",
+      "gd": "Dèan anótachadh air an dealbh"
     },
     "notePlaceholder": {
       "en": "Add a note for this photo…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegwch nodyn ar gyfer y llun hwn…",
+      "ga": "Cuir nóta leis an ngrianghraf seo…",
+      "gd": "Cuir nota ris an dealbh seo…"
     },
     "tutorialFront": {
       "en": "Type “front”",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Teipiwch “blaen”",
+      "ga": "Clóscríobh “tosaigh”",
+      "gd": "Sgrìobh “aghaidh”"
     },
     "tutorialRh": {
       "en": "Type “rh 45”",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Teipiwch “rh 45”",
+      "ga": "Clóscríobh “rh 45”",
+      "gd": "Sgrìobh “rh 45”"
     },
     "tutorialBaseline": {
       "en": "Type “baseline kitchen”",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Teipiwch “baseline cegin”",
+      "ga": "Clóscríobh “baseline cistin”",
+      "gd": "Sgrìobh “baseline cidsin”"
     },
     "tutorialTrees": {
       "en": "Write a short note about the trees",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ysgrifennwch nodyn byr am y coed",
+      "ga": "Scríobh nóta gearr faoi na crainn",
+      "gd": "Sgrìobh nota goirid mu na craobhan"
     },
     "saveNeedPhoto": {
       "en": "Take at least one photo before saving.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tynnwch o leiaf un llun cyn cadw.",
+      "ga": "Tóg grianghraf amháin ar a laghad sula sábhálann tú.",
+      "gd": "Tog co-dhiù aon dealbh mus sàbhail thu."
     },
     "saveSummary": {
       "en": "{count} photo(s) will be saved in the app.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Caiff {count} llun eu cadw yn yr ap.",
+      "ga": "Sábhálfar {count} grianghraf san aip.",
+      "gd": "Bidh {count} dealbh air an sàbhaladh san aplacaid."
     },
     "fieldNoteSections": {
       "en": "Field note sections",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Adrannau nodiadau maes",
+      "ga": "Ranna nótaí allamuigh",
+      "gd": "Earrannan notaichean làraich"
     },
     "goToNew": {
       "en": "Go to new note",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mynd i nodyn newydd",
+      "ga": "Téigh chuig nóta nua",
+      "gd": "Rach gu nota ùr"
     },
     "cameraNotReady": {
       "en": "Camera is not ready yet — wait a moment and try again.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid yw'r camera'n barod eto — arhoswch eiliad a cheisiwch eto.",
+      "ga": "Níl an ceamara réidh fós — fan nóiméad agus bain triail eile as.",
+      "gd": "Chan eil an camara deiseil fhathast — fuirich mionaid agus feuch a-rithist."
     },
     "couldNotAdd": {
       "en": "Could not add that picture.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oedd modd ychwanegu'r llun hwnnw.",
+      "ga": "Níorbh fhéidir an pictiúr sin a chur leis.",
+      "gd": "Cha b' urrainn dhuinn an dealbh sin a chur ris."
     },
     "compassAllow": {
       "en": "Allow compass access to align the rose.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Caniatáu mynediad i gwmpawd i alinio'r rhosyn.",
+      "ga": "Ceadaigh rochtain ar an gcompás chun an rós a ailíniú.",
+      "gd": "Ceadaich inntrigeadh don chombaist gus an ròs a cho-thaobhadh."
     }
   },
   "review": {
     "sectionsFound": {
       "en": "{count} photo sections found",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Canfuwyd {count} adran luniau",
+      "ga": "Aimsíodh {count} roinn ghrianghraf",
+      "gd": "Chaidh {count} earrannan deilbh a lorg"
     },
     "needAttention": {
       "en": ", {count} need attention",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": ", mae angen sylw ar {count}",
+      "ga": ", {count} ag teastáil aird",
+      "gd": ", feumaidh {count} aire"
     },
     "allMatched": {
       "en": " - all matched",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": " - i gyd yn cyfateb",
+      "ga": " - gach meaitseáilte",
+      "gd": " - uile a' maidseadh"
     },
     "reorderHint": {
       "en": "Press and hold a section for 2 seconds, then drag to reorder.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch a daliwch adran am 2 eiliad, yna llusgwch i aildrefnu.",
+      "ga": "Brúigh agus coinnigh roinn ar feadh 2 soicind, ansin tarraing chun ath-ordú a dhéanamh.",
+      "gd": "Brùth is cùm earrann airson 2 dhiog, an uairsin slaod gus ath-òrdachadh."
     },
     "standardWording": {
       "en": "Standard wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Geiriad safonol",
+      "ga": "Foclaíocht chaighdeánach",
+      "gd": "Briathrachas àbhaisteach"
     },
     "annotate": {
       "en": "Annotate",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Anodi",
+      "ga": "Anótáil",
+      "gd": "Anótachadh"
     },
     "holdToDelete": {
       "en": "Hold to delete",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch a daliwch i ddileu",
+      "ga": "Brúigh agus coinnigh chun scriosadh",
+      "gd": "Brùth is cùm gus sguabadh às"
     },
     "holdToDeleteSection": {
       "en": "Hold to delete section",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch a daliwch i ddileu'r adran",
+      "ga": "Brúigh agus coinnigh chun an roinn a scriosadh",
+      "gd": "Brùth is cùm gus an earrann a sguabadh às"
     },
     "fieldNote": {
       "en": "Field note:",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nodyn maes:",
+      "ga": "Nóta allamuigh:",
+      "gd": "Nota làraich:"
     },
     "headingPlaceholder": {
       "en": "Optional heading (e.g. Reading 1)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pennawd dewisol (e.e. Darlleniad 1)",
+      "ga": "Ceannteideal roghnach (m.sh. Léamh 1)",
+      "gd": "Ceann-sgrìobhadh roghainneil (m.e. Leughadh 1)"
     },
     "referTo": {
       "en": "Refer to section...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cyfeirio at adran...",
+      "ga": "Tagair do roinn...",
+      "gd": "Thoir iomradh air earrann..."
     },
     "asIllustrated": {
       "en": "As illustrated in section {n}",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Fel y dangosir yn adran {n}",
+      "ga": "Mar a léirítear i roinn {n}",
+      "gd": "Mar a chithear ann an earrann {n}"
     },
     "useNoteText": {
       "en": "Use note text",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Defnyddio testun y nodyn",
+      "ga": "Úsáid téacs an nóta",
+      "gd": "Cleachd teacsa an nota"
     },
     "yourWording": {
       "en": "Your wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eich geiriad chi",
+      "ga": "D'fhoclaíocht",
+      "gd": "Do bhriathrachas"
     },
     "collapseNote": {
       "en": "Collapse field note",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cuddio nodyn maes",
+      "ga": "Laghdaigh an nóta allamuigh",
+      "gd": "Falaich an nota-làraich"
     },
     "expandNote": {
       "en": "Expand field note",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ehangu'r nodyn maes",
+      "ga": "Leathnaigh an nóta allamuigh",
+      "gd": "Leudaich an nota-làraich"
     },
     "hideWarnings": {
       "en": "Hide {count} parsing warning(s)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cuddio {count} rhybudd dosrannu",
+      "ga": "Folaigh {count} rabhadh parsála",
+      "gd": "Falaich {count} rabhaidhean parsachaidh"
     },
     "showWarnings": {
       "en": "Show {count} parsing warning(s)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dangos {count} rhybudd dosrannu",
+      "ga": "Taispeáin {count} rabhadh parsála",
+      "gd": "Seall {count} rabhaidhean parsachaidh"
     },
     "addMore": {
       "en": "Add more notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu mwy o nodiadau",
+      "ga": "Cuir tuilleadh nótaí leis",
+      "gd": "Cuir barrachd notaichean ris"
     },
     "continueDetails": {
       "en": "Continue to report details",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau i fanylion yr adroddiad",
+      "ga": "Ar aghaidh go sonraí na tuairisce",
+      "gd": "Lean air adhart gu mion-fhiosrachadh na h-aithisg"
     },
     "confirmNote": {
       "en": "Confirm note",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cadarnhau'r nodyn",
+      "ga": "Deimhnigh an nóta",
+      "gd": "Dearbhaich an nota"
     },
     "needsAttention": {
       "en": "Needs attention",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Angen sylw",
+      "ga": "Ag teastáil aird",
+      "gd": "Feumaidh aire"
     },
     "reviewWording": {
       "en": "Review wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Adolygu'r geiriad",
+      "ga": "Athbhreithnigh an fhoclaíocht",
+      "gd": "Dèan lèirmheas air a' bhriathrachas"
     },
     "aiStandard": {
       "en": "AI · standard wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "AI · geiriad safonol",
+      "ga": "AI · foclaíocht chaighdeánach",
+      "gd": "AI · briathrachas àbhaisteach"
     },
     "aiWritten": {
       "en": "AI written",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ysgrifennwyd gan AI",
+      "ga": "Scríofa ag AI",
+      "gd": "Sgrìobhte le AI"
     },
     "crossref": {
       "en": "Cross-reference",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Croesgyfeiriad",
+      "ga": "Tras-tagairt",
+      "gd": "Tar-iomradh"
     },
     "empty": {
       "en": "Empty",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwag",
+      "ga": "Folamh",
+      "gd": "Falamh"
     }
   },
   "studio": {
     "preview": {
       "en": "Studio preview",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Rhagolwg y stiwdio",
+      "ga": "Réamhamharc an stiúideo",
+      "gd": "Ro-shealladh an stiùidio"
     },
     "reportsAlt": {
       "en": "Stack of survey reports",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pentwr o adroddiadau arolwg",
+      "ga": "Carn de thuairiscí suirbhé",
+      "gd": "Cruach de dh'aithisgean sgrùdaidh"
     },
     "dragScroll": {
       "en": "Drag to scroll",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Llusgwch i sgrolio",
+      "ga": "Tarraing chun scrollú",
+      "gd": "Slaod gus sgroladh"
     },
     "emptyText": {
       "en": "No wording for this section yet.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dim geiriad ar gyfer yr adran hon eto.",
+      "ga": "Níl aon fhoclaíocht don roinn seo fós.",
+      "gd": "Chan eil briathrachas airson na h-earrann seo fhathast."
     }
   },
   "home": {
     "startNew": {
       "en": "Start new report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cychwyn adroddiad newydd",
+      "ga": "Tosaigh tuairisc nua",
+      "gd": "Tòisich aithisg ùr"
     },
     "import": {
       "en": "Import field notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mewnforio nodiadau maes",
+      "ga": "Iompórtáil nótaí allamuigh",
+      "gd": "Ion-mhalairt notaichean làraich"
     },
     "create": {
       "en": "Create new field notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Creu nodiadau maes newydd",
+      "ga": "Cruthaigh nótaí allamuigh nua",
+      "gd": "Cruthaich notaichean làraich ùra"
     },
     "past": {
       "en": "Past reports",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Hen adroddiadau",
+      "ga": "Sean-thuairiscí",
+      "gd": "Seann aithisgean"
     },
     "guide": {
       "en": "Guide",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Canllaw",
+      "ga": "Treoir",
+      "gd": "Iùl"
     },
     "settings": {
       "en": "Settings",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gosodiadau",
+      "ga": "Socruithe",
+      "gd": "Roghainnean"
     },
     "kicker": {
       "en": "DampMaster / Report studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "DampMaster / Stiwdio adroddiadau",
+      "ga": "DampMaster / Stiúideo tuairiscithe",
+      "gd": "DampMaster / Stiùidio aithisgean"
     },
     "headlineCreate": {
       "en": "Create",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Creu",
+      "ga": "Cruthaigh",
+      "gd": "Cruthaich"
     },
     "headlineReport": {
       "en": "report.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "adroddiad.",
+      "ga": "tuairisc.",
+      "gd": "aithisg."
     },
     "tagline": {
       "en": "Turn field notes into a client-ready report.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Trowch nodiadau maes yn adroddiad parod ar gyfer cleient.",
+      "ga": "Déan tuairisc réidh don chliant as nótaí allamuigh.",
+      "gd": "Tionndaidh notaichean làraich gu aithisg deiseil airson teachdaiche."
     },
     "importTitle": {
       "en": "Import field notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mewnforio nodiadau maes",
+      "ga": "Iompórtáil nótaí allamuigh",
+      "gd": "Ion-mhalairt notaichean làraich"
     },
     "importMeta": {
       "en": ".DOCX · .DMSR ↗",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": ".DOCX · .DMSR ↗",
+      "ga": ".DOCX · .DMSR ↗",
+      "gd": ".DOCX · .DMSR ↗"
     },
     "createTitle": {
       "en": "Create new notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Creu nodiadau newydd",
+      "ga": "Cruthaigh nótaí nua",
+      "gd": "Cruthaich notaichean ùra"
     },
     "createMeta": {
       "en": "Camera",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Camera",
+      "ga": "Ceamara",
+      "gd": "Camara"
     },
     "importOrCreate": {
       "en": "Import or create",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mewnforio neu greu",
+      "ga": "Iompórtáil nó cruthaigh",
+      "gd": "Ion-mhalairt no cruthaich"
     },
     "startNewAria": {
       "en": "Start new report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cychwyn adroddiad newydd",
+      "ga": "Tosaigh tuairisc nua",
+      "gd": "Tòisich aithisg ùr"
     },
     "readingDocument": {
       "en": "Reading document…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn darllen y ddogfen…",
+      "ga": "Ag léamh an doiciméid…",
+      "gd": "A' leughadh na sgrìobhainn…"
     },
     "pleaseWait": {
       "en": "Please wait",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Arhoswch, os gwelwch yn dda",
+      "ga": "Fan le do thoil",
+      "gd": "Fuirich ort, mas e do thoil e"
     }
   },
   "past": {
     "search": {
       "en": "Search past reports…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Chwilio hen adroddiadau…",
+      "ga": "Cuardaigh sean-thuairiscí…",
+      "gd": "Lorg seann aithisgean…"
     },
     "empty": {
       "en": "No reports saved in this app yet.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dim adroddiadau wedi'u cadw yn yr ap hwn eto.",
+      "ga": "Níl aon tuairiscí sábháilte san aip seo fós.",
+      "gd": "Chan eil aithisgean air an sàbhaladh san aplacaid seo fhathast."
     },
     "noMatch": {
       "en": "No reports match that search.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oes unrhyw adroddiadau'n cyfateb i'r chwiliad hwnnw.",
+      "ga": "Ní mheaitseálann aon thuairiscí leis an gcuardach sin.",
+      "gd": "Chan eil aithisgean sam bith a' maidseadh leis an lorg sin."
     },
     "import": {
       "en": "Import a report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mewnforio adroddiad",
+      "ga": "Iompórtáil tuairisc",
+      "gd": "Ion-mhalairt aithisg"
     },
     "noPhoto": {
       "en": "No photo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dim llun",
+      "ga": "Gan grianghraf",
+      "gd": "Gun dealbh"
     },
     "surveyDateUnknown": {
       "en": "Survey date unknown",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dyddiad yr arolwg yn anhysbys",
+      "ga": "Dáta an tsuirbhé anaithnid",
+      "gd": "Ceann-latha an sgrùdaidh neo-aithnichte"
     },
     "ownerUnknown": {
       "en": "Owner unknown",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Perchennog yn anhysbys",
+      "ga": "Úinéir anaithnid",
+      "gd": "Sealbhadair neo-aithnichte"
     },
     "propertyUnknown": {
       "en": "Property unknown",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eiddo yn anhysbys",
+      "ga": "Réadmhaoin anaithnid",
+      "gd": "Seilbh neo-aithnichte"
     },
     "onDisk": {
       "en": "{size} on disk",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{size} ar y ddisg",
+      "ga": "{size} ar dhiosca",
+      "gd": "{size} air an diosca"
     },
     "wordOnly": {
       "en": "Word copy only — reopen needs a newer save",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Copi Word yn unig — mae angen cadw o'r newydd i ailagor",
+      "ga": "Cóip Word amháin — tá gá le sábháil níos nuaí chun é a athoscailt",
+      "gd": "Leth-bhreac Word a-mhàin — feumaidh tu sàbhaladh nas ùire gus am fosgladh a-rithist"
     },
     "openAria": {
       "en": "Open {title}",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Agor {title}",
+      "ga": "Oscail {title}",
+      "gd": "Fosgail {title}"
     },
     "cannotReopen": {
       "en": "{title} (cannot reopen design state)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{title} (methu ailagor cyflwr y dyluniad)",
+      "ga": "{title} (ní féidir staid an dearaidh a athoscailt)",
+      "gd": "{title} (cha ghabh staid an dealbhaidh fhosgladh a-rithist)"
     },
     "sizeUnknown": {
       "en": "Size unknown",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Maint yn anhysbys",
+      "ga": "Méid anaithnid",
+      "gd": "Meud neo-aithnichte"
     },
     "deleteTitle": {
       "en": "Delete this report?",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dileu'r adroddiad hwn?",
+      "ga": "Scrios an tuairisc seo?",
+      "gd": "Sguab às an aithisg seo?"
     },
     "deleteBody": {
       "en": "This removes the saved copy from this app. Files already exported stay where you saved them.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae hyn yn dileu'r copi sydd wedi'i gadw o'r ap hwn. Mae ffeiliau sydd eisoes wedi'u hallforio yn aros lle bu ichi eu cadw.",
+      "ga": "Bainfidh sé seo an chóip shábháilte den aip seo. Fanann na comhaid atá easpórtáilte cheana féin san áit ar shábháil tú iad.",
+      "gd": "Bheir seo air falbh an leth-bhreac a chaidh a shàbhaladh on aplacaid seo. Bidh faidhlichean a chaidh às-mhalairt mar-thà a' fuireach far an do shàbhail thu iad."
     },
     "holdToDelete": {
       "en": "Hold to confirm delete",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch a daliwch i gadarnhau'r dileu",
+      "ga": "Brúigh agus coinnigh chun an scriosadh a dhearbhú",
+      "gd": "Brùth is cùm gus an sguabadh às a dhearbhadh"
     },
     "confirmDelete": {
       "en": "Delete report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dileu'r adroddiad",
+      "ga": "Scrios an tuairisc",
+      "gd": "Sguab às an aithisg"
     },
     "intro": {
       "en": "Tap a tile to reopen the survey design (sections, status, and options). Share opens your device share sheet when available; Download exports a .docx or .dmsr. Import a .docx field-notes file or a .dmsr project.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tapiwch deilsen i ailagor dyluniad yr arolwg (adrannau, statws, ac opsiynau). Mae Rhannu yn agor tudalen rannu eich dyfais pan fydd ar gael; Mae Lawrlwytho yn allforio .docx neu .dmsr. Mewnforiwch ffeil nodiadau maes .docx neu brosiect .dmsr.",
+      "ga": "Cnag ar thíl chun dearadh an tsuirbhé a athoscailt (ranna, stádas, agus roghanna). Osclaíonn Comhroinn bileog chomhroinnte do ghléis nuair atá sí ar fáil; Easpórtálann Íoslódáil .docx nó .dmsr. Iompórtáil comhad nótaí allamuigh .docx nó tionscadal .dmsr.",
+      "gd": "Thoir gnogag air leacag gus dealbhadh an sgrùdaidh fhosgladh a-rithist (earrannan, inbhe, agus roghainnean). Bidh Co-roinn a' fosgladh duilleag co-roinn an inneil agad nuair a bhios e ri fhaighinn; Bidh Luchdaich a-nuas a' cur a-mach .docx no .dmsr. Thoir a-steach faidhle notaichean-làraich .docx no pròiseact .dmsr."
     },
     "loading": {
       "en": "Loading…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn llwytho…",
+      "ga": "Ag lódáil…",
+      "gd": "A' luchdachadh…"
     },
     "emptyYet": {
       "en": "No saved reports yet. Generate a report to see it here.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dim adroddiadau wedi'u cadw eto. Cynhyrchwch adroddiad i'w weld yma.",
+      "ga": "Níl aon tuairiscí sábháilte fós. Gin tuairisc chun í a fheiceáil anseo.",
+      "gd": "Chan eil aithisgean air an sàbhaladh fhathast. Cruthaich aithisg gus a faicinn an seo."
     },
     "searchPh": {
       "en": "Search by name, owner, house, or date",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Chwilio yn ôl enw, perchennog, tŷ, neu ddyddiad",
+      "ga": "Cuardaigh de réir ainm, úinéara, tí nó dáta",
+      "gd": "Lorg a rèir ainm, sealbhadair, taighe, no ceann-latha"
     },
     "searchAria": {
       "en": "Search past reports",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Chwilio hen adroddiadau",
+      "ga": "Cuardaigh sean-thuairiscí",
+      "gd": "Lorg seann aithisgean"
     },
     "noMatchQuery": {
       "en": "No reports match “{query}”.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dim adroddiadau yn cyfateb i “{query}”.",
+      "ga": "Ní mheaitseálann aon thuairiscí le “{query}”.",
+      "gd": "Chan eil aithisgean sam bith a' maidseadh le “{query}”."
     },
     "downloadTitle": {
       "en": "Download",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lawrlwytho",
+      "ga": "Íoslódáil",
+      "gd": "Luchdaich a-nuas"
     },
     "downloadSummary": {
       "en": "Export {title} as a Word copy or a .dmsr you can import on another device.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allforiwch {title} fel copi Word neu fel .dmsr y gallwch ei fewnforio ar ddyfais arall.",
+      "ga": "Easpórtáil {title} mar chóip Word nó mar .dmsr is féidir leat a iompórtáil ar ghléas eile.",
+      "gd": "Às-mhalairt {title} mar leth-bhreac Word no .dmsr as urrainn dhut a thoirt a-steach air inneal eile."
     },
     "importShort": {
       "en": "Import",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mewnforio",
+      "ga": "Iompórtáil",
+      "gd": "Ion-mhalairt"
     }
   },
   "generate": {
     "preparing": {
       "en": "Preparing report…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn paratoi'r adroddiad…",
+      "ga": "Ag ullmhú na tuairisce…",
+      "gd": "Ag ullachadh na h-aithisg…"
     },
     "assembling": {
       "en": "Assembling document…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cydosod y ddogfen…",
+      "ga": "Ag cur an doiciméid le chéile…",
+      "gd": "A' cur na sgrìobhainn ri chèile…"
     },
     "savingLibrary": {
       "en": "Saving to library…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cadw i'r llyfrgell…",
+      "ga": "Ag sábháil sa leabharlann…",
+      "gd": "A' sàbhaladh dhan leabharlann…"
     },
     "fileName": {
       "en": "File name",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Enw'r ffeil",
+      "ga": "Ainm an chomhaid",
+      "gd": "Ainm an fhaidhle"
     },
     "share": {
       "en": "Share",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Rhannu",
+      "ga": "Comhroinn",
+      "gd": "Co-roinn"
     },
     "download": {
       "en": "Download",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lawrlwytho",
+      "ga": "Íoslódáil",
+      "gd": "Luchdaich a-nuas"
     },
     "downloadFormat": {
       "en": "Download format",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Fformat lawrlwytho",
+      "ga": "Bormáid íoslódála",
+      "gd": "Fòrmat luchdachadh a-nuas"
     },
     "newReport": {
       "en": "Start another report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cychwyn adroddiad arall",
+      "ga": "Tosaigh tuairisc eile",
+      "gd": "Tòisich aithisg eile"
     },
     "word": {
       "en": "Word (.docx)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Word (.docx)",
+      "ga": "Word (.docx)",
+      "gd": "Word (.docx)"
     },
     "wordHint": {
       "en": "Finished client report for Word / email",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Adroddiad gorffenedig i'r cleient ar gyfer Word / e-bost",
+      "ga": "Tuairisc chliaint chríochnaithe do Word / ríomhphost",
+      "gd": "Aithisg teachdaiche deiseil airson Word / post-d"
     },
     "pdf": {
       "en": "PDF",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "PDF",
+      "ga": "PDF",
+      "gd": "PDF"
     },
     "pdfHint": {
       "en": "Opens print dialog — choose Save as PDF",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn agor y deialog argraffu — dewiswch Cadw fel PDF",
+      "ga": "Osclaíonn sé bosca na priontála — roghnaigh Sábháil mar PDF",
+      "gd": "A' fosgladh còmhradh clò-bhualaidh — tagh Sàbhail mar PDF"
     },
     "project": {
       "en": "Survey project (.dmsr)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Prosiect arolwg (.dmsr)",
+      "ga": "Tionscadal suirbhé (.dmsr)",
+      "gd": "Pròiseact sgrùdaidh (.dmsr)"
     },
     "projectHint": {
       "en": "Reopenable design file for this app",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ffeil ddylunio y gellir ei hailagor ar gyfer yr ap hwn",
+      "ga": "Comhad dearaidh in-athoscailte don aip seo",
+      "gd": "Faidhle dealbhaidh as urrainnear fosgladh a-rithist airson na h-aplacaid seo"
     },
     "savingToLibrary": {
       "en": "Saving to your report library…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cadw i'ch llyfrgell adroddiadau…",
+      "ga": "Ag sábháil i do leabharlann tuairiscí…",
+      "gd": "A' sàbhaladh dha do leabharlann aithisgean…"
     },
     "keptInApp": {
       "en": "Kept in this app’s storage as a reopenable project (plus a Word copy for share/download).",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Wedi'i gadw yn storfa'r ap hwn fel prosiect y gellir ei ailagor (ynghyd â chopi Word i'w rannu/lawrlwytho).",
+      "ga": "Coinnithe i stóráil na haipe seo mar thionscadal is féidir a athoscailt (móide cóip Word le roinnt/íoslódáil).",
+      "gd": "Air a chumail ann an stòradh na h-aplacaid seo mar phròiseact as urrainnear fosgladh a-rithist (a bharrachd air leth-bhreac Word airson co-roinn/luchdadh a-nuas)."
     },
     "issues": {
       "en": "{count} issues",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{count} problem",
+      "ga": "{count} fadhb",
+      "gd": "{count} cùisean"
     },
     "recommendations": {
       "en": "{count} recommendations",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{count} argymhelliad",
+      "ga": "{count} moladh",
+      "gd": "{count} molaidhean"
     },
     "flagged": {
       "en": "{count} sections need attention",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "mae angen sylw ar {count} adran",
+      "ga": "{count} roinn ag teastáil aird",
+      "gd": "feumaidh {count} earrannan aire"
     },
     "summary": {
       "en": "Report summary",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Crynodeb o'r adroddiad",
+      "ga": "Achoimre na tuairisce",
+      "gd": "Geàrr-chunntas na h-aithisg"
     },
     "photoSections": {
       "en": "{count} photo sections",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{count} adran luniau",
+      "ga": "{count} roinn ghrianghraf",
+      "gd": "{count} earrannan dealbh"
     },
     "issuesExplainers": {
       "en": "{count} damp issue explainer(s)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{count} eglurhad am broblemau lleithder",
+      "ga": "{count} míniú ar fhadhbanna taise",
+      "gd": "{count} mìneachaidhean air cùisean taiseachd"
     },
     "recsCount": {
       "en": "{count} recommendation(s)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{count} argymhelliad",
+      "ga": "{count} moladh",
+      "gd": "{count} molaidhean"
     },
     "planExcluded": {
       "en": "Plan & costs: excluded",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cynllun a chostau: wedi'u hepgor",
+      "ga": "Plean & costais: fágtha amach",
+      "gd": "Plana & cosgaisean: air am fàgail a-mach"
     },
     "costLines": {
       "en": "{count} cost line(s)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "{count} llinell gost",
+      "ga": "{count} líne chostais",
+      "gd": "{count} loidhnichean cosgais"
     },
     "propertyLabel": {
       "en": "Property:",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eiddo:",
+      "ga": "Réadmhaoin:",
+      "gd": "Seilbh:"
     },
     "addressNotSet": {
       "en": "(address not set)",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "(cyfeiriad heb ei osod)",
+      "ga": "(seoladh gan socrú)",
+      "gd": "(seòladh gun suidheachadh)"
     },
     "flaggedWarn": {
       "en": "{count} section(s) are still marked \"needs attention\" and will appear in the report as they stand. Go back to review them if needed.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae {count} adran yn dal i fod wedi'u marcio \"angen sylw\" a byddant yn ymddangos yn yr adroddiad fel y maent. Ewch yn ôl i'w hadolygu os oes angen.",
+      "ga": "Tá {count} roinn marcáilte fós mar \"ag teastáil aird\" agus beidh siad le feiceáil sa tuairisc mar atá siad. Téigh siar chun iad a athbhreithniú más gá.",
+      "gd": "Tha {count} earrann fhathast air an comharrachadh mar \"feumach air aire\" agus nochdaidh iad san aithisg mar a tha iad. Rach air ais gus lèirmheas a dhèanamh orra ma tha feum air."
     },
     "addressEmpty": {
       "en": "The property address is empty.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae cyfeiriad yr eiddo yn wag.",
+      "ga": "Tá seoladh na réadmhaoine folamh.",
+      "gd": "Tha seòladh na seilbh falamh."
     },
     "preview": {
       "en": "Document preview",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Rhagolwg o'r ddogfen",
+      "ga": "Réamhamharc an doiciméid",
+      "gd": "Ro-shealladh na sgrìobhainn"
     },
     "ready": {
       "en": "Report ready",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae'r adroddiad yn barod",
+      "ga": "Tuairisc réidh",
+      "gd": "Tha an aithisg deiseil"
     },
     "docName": {
       "en": "Document name",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Enw'r ddogfen",
+      "ga": "Ainm an doiciméid",
+      "gd": "Ainm na sgrìobhainn"
     },
     "libraryFailed": {
       "en": "Library save failed: {error}",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Methwyd â chadw i'r llyfrgell: {error}",
+      "ga": "Theip ar shábháil sa leabharlann: {error}",
+      "gd": "Dh'fhàillig sàbhaladh an leabharlainn: {error}"
     },
     "keptFolder": {
       "en": "Kept in your linked folder “{name}”.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Wedi'i gadw yn eich ffolder gysylltiedig “{name}”.",
+      "ga": "Coinnithe i d'fhillteán nasctha “{name}”.",
+      "gd": "Air a chumail sa phasgan cheangailte agad “{name}”."
     },
     "linkFolder": {
       "en": "Link a reports folder",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cysylltu ffolder adroddiadau",
+      "ga": "Nasc fillteán tuairiscí",
+      "gd": "Ceangail pasgan aithisgean"
     },
     "linkHint": {
       "en": "Recommended on this device: choose one folder for finished reports so the app can keep track of them without downloading twice.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Argymhellir ar y ddyfais hon: dewiswch un ffolder ar gyfer adroddiadau gorffenedig fel y gall yr ap gadw golwg arnynt heb eu lawrlwytho ddwywaith.",
+      "ga": "Molta ar an ngléas seo: roghnaigh fillteán amháin le haghaidh tuairiscí críochnaithe ionas gur féidir leis an aip súil a choinneáil orthu gan iad a íoslódáil faoi dhó.",
+      "gd": "Thathas a' moladh air an inneal seo: tagh aon phasgan airson aithisgean deiseil gus an urrainn don aplacaid sùil a chumail orra gun a bhith gan luchdachadh a-nuas dà uair."
     },
     "downloadCopy": {
       "en": "Download a copy",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Lawrlwytho copi",
+      "ga": "Íoslódáil cóip",
+      "gd": "Luchdaich a-nuas leth-bhreac"
     },
     "downloadNoteApp": {
       "en": "Not recommended — only if you need an extra file outside the library. Your report is already kept in app storage.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni argymhellir hyn — dim ond os oes angen ffeil ychwanegol arnoch y tu allan i'r llyfrgell. Mae eich adroddiad eisoes yn cael ei gadw yn storfa'r ap.",
+      "ga": "Ní mholtar seo — ach amháin má theastaíonn comhad breise uait lasmuigh den leabharlann. Tá do thuairisc á coimeád cheana féin i stóráil na haipe.",
+      "gd": "Chan eilear a' moladh seo — a-mhàin ma tha feum agad air faidhle a bharrachd taobh a-muigh an leabharlainn. Tha an aithisg agad air a cumail ann an stòradh na h-aplacaid mu thràth."
     },
     "downloadNoteFolder": {
       "en": "Not recommended — only if you need an extra file outside the library. Your report is already kept in the linked folder.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ni argymhellir hyn — dim ond os oes angen ffeil ychwanegol arnoch y tu allan i'r llyfrgell. Mae eich adroddiad eisoes yn cael ei gadw yn y ffolder gysylltiedig.",
+      "ga": "Ní mholtar seo — ach amháin má theastaíonn comhad breise uait lasmuigh den leabharlann. Tá do thuairisc á coimeád cheana féin san fhillteán nasctha.",
+      "gd": "Chan eilear a' moladh seo — a-mhàin ma tha feum agad air faidhle a bharrachd taobh a-muigh an leabharlainn. Tha an aithisg agad air a cumail sa phasgan cheangailte mu thràth."
     },
     "startAnother": {
       "en": "Start a new report",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cychwyn adroddiad newydd",
+      "ga": "Tosaigh tuairisc nua",
+      "gd": "Tòisich aithisg ùr"
     }
   },
   "export": {
     "title": {
       "en": "Download format",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Fformat lawrlwytho",
+      "ga": "Bormáid íoslódála",
+      "gd": "Fòrmat luchdachadh a-nuas"
     },
     "hint": {
       "en": "Choose how you want the report saved.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewiswch sut rydych chi am i'r adroddiad gael ei gadw.",
+      "ga": "Roghnaigh conas is mian leat an tuairisc a shábháil.",
+      "gd": "Tagh mar a tha thu airson an aithisg a shàbhaladh."
     }
   },
   "finish": {
     "saveLeave": {
       "en": "Save & leave",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cadw a gadael",
+      "ga": "Sábháil & fág",
+      "gd": "Sàbhail & fàg"
     },
     "saveInApp": {
       "en": "Save in app",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cadw yn yr ap",
+      "ga": "Sábháil san aip",
+      "gd": "Sàbhail san aplacaid"
     },
     "saveInAppLeave": {
       "en": "Save in app & leave",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cadw yn yr ap a gadael",
+      "ga": "Sábháil san aip & fág",
+      "gd": "Sàbhail san aplacaid & fàg"
     },
     "exportDocx": {
       "en": "Export .docx",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allforio fel .docx",
+      "ga": "Easpórtáil .docx",
+      "gd": "Às-mhalairt .docx"
     },
     "exportDocxLeave": {
       "en": "Export .docx & leave",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allforio fel .docx a gadael",
+      "ga": "Easpórtáil .docx & fág",
+      "gd": "Às-mhalairt .docx & fàg"
     },
     "exportDmsr": {
       "en": "Export .dmsr",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allforio fel .dmsr",
+      "ga": "Easpórtáil .dmsr",
+      "gd": "Às-mhalairt .dmsr"
     },
     "exportDmsrLeave": {
       "en": "Export .dmsr & leave",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allforio fel .dmsr a gadael",
+      "ga": "Easpórtáil .dmsr & fág",
+      "gd": "Às-mhalairt .dmsr & fàg"
     },
     "detailsSummary": {
       "en": "This report’s sections, details, and options will be saved in the app.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Bydd adrannau, manylion ac opsiynau'r adroddiad hwn yn cael eu cadw yn yr ap.",
+      "ga": "Sábhálfar ranna, sonraí, agus roghanna na tuairisce seo san aip.",
+      "gd": "Bidh earrannan, mion-fhiosrachadh, agus roghainnean na h-aithisg seo air an sàbhaladh san aplacaid."
     }
   },
   "annotate": {
     "title": {
       "en": "Annotate photo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Anodi'r llun",
+      "ga": "Anótáil grianghraf",
+      "gd": "Dèan anótachadh air dealbh"
     },
     "tools": {
       "en": "Annotation tools",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Offer anodi",
+      "ga": "Uirlisí anótála",
+      "gd": "Innealan anótachaidh"
     },
     "autoShape": {
       "en": "Auto shape",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Siâp awtomatig",
+      "ga": "Uath-chruth",
+      "gd": "Fèin-chruth"
     },
     "undo": {
       "en": "Undo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dadwneud",
+      "ga": "Cealaigh",
+      "gd": "Neo-dhèan"
     },
     "redo": {
       "en": "Redo",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ailwneud",
+      "ga": "Athdhéan",
+      "gd": "Ath-dhèan"
     },
     "eraser": {
       "en": "Eraser",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Rhwbiwr",
+      "ga": "Scriosán",
+      "gd": "Suathadair"
     },
     "brush": {
       "en": "Brush",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Brwsh",
+      "ga": "Scuab",
+      "gd": "Bruis"
     },
     "addArrow": {
       "en": "Add arrow",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu saeth",
+      "ga": "Cuir saighead leis",
+      "gd": "Cuir saighead ris"
     },
     "addCircle": {
       "en": "Add circle",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu cylch",
+      "ga": "Cuir ciorcal leis",
+      "gd": "Cuir cearcall ris"
     },
     "addLine": {
       "en": "Add line",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu llinell",
+      "ga": "Cuir líne leis",
+      "gd": "Cuir loidhne ris"
     },
     "addText": {
       "en": "Add text note",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu nodyn testun",
+      "ga": "Cuir nóta téacs leis",
+      "gd": "Cuir nota teacsa ris"
     },
     "cropLeft": {
       "en": "Crop left edge",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tocio'r ymyl chwith",
+      "ga": "Bearr an t-imeall clé",
+      "gd": "Bearr an oir chlì"
     },
     "cropRight": {
       "en": "Crop right edge",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tocio'r ymyl dde",
+      "ga": "Bearr an t-imeall deas",
+      "gd": "Bearr an oir dheas"
     },
     "cropTop": {
       "en": "Crop top edge",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tocio'r ymyl uchaf",
+      "ga": "Bearr an t-imeall uachtarach",
+      "gd": "Bearr an oir àrd"
     },
     "cropBottom": {
       "en": "Crop bottom edge",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tocio'r ymyl isaf",
+      "ga": "Bearr an t-imeall íochtarach",
+      "gd": "Bearr an oir ìosal"
     },
     "resize": {
       "en": "Resize annotation",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Newid maint yr anodiad",
+      "ga": "Athraigh méid an anótála",
+      "gd": "Atharraich meud an anótachaidh"
     },
     "callout": {
       "en": "Callout note text",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Testun nodyn galw allan",
+      "ga": "Téacs an nóta glaoch",
+      "gd": "Teacsa fios-nota"
     },
     "finished": {
       "en": "Finished",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gorffennwyd",
+      "ga": "Críochnaithe",
+      "gd": "Deiseil"
     }
   },
   "picker": {
     "search": {
       "en": "Search topics...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Chwilio pynciau...",
+      "ga": "Cuardaigh ábhair...",
+      "gd": "Lorg cuspairean..."
     },
     "noMatches": {
       "en": "No matches.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dim canlyniadau yn cyfateb.",
+      "ga": "Níl aon mheaitseanna ann.",
+      "gd": "Gun toraidhean."
     },
     "title": {
       "en": "Standard wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Geiriad safonol",
+      "ga": "Foclaíocht chaighdeánach",
+      "gd": "Briathrachas àbhaisteach"
     },
     "pressEnter": {
       "en": "Press Enter to select",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwyswch Enter i ddewis",
+      "ga": "Brúigh Iontráil chun roghnú",
+      "gd": "Brùth Enter gus taghadh"
     }
   },
   "guide": {
     "title": {
       "en": "Guide",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Canllaw",
+      "ga": "Treoir",
+      "gd": "Iùl"
     },
     "filter": {
       "en": "Filter guide, topics, and keywords...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Hidlau canllaw, pynciau, a geiriau allweddol...",
+      "ga": "Scag an treoir, na hábhair agus na heochairfhocail...",
+      "gd": "Criathair iùl, cuspairean, agus prìomh-fhaclan..."
     },
     "pipsTitle": {
       "en": "Review status pips",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pipiau statws adolygu",
+      "ga": "Pípeanna stádais athbhreithnithe",
+      "gd": "Pìoban inbhe lèirmheis"
     },
     "pipsIntro": {
       "en": "On the review screen, the thin coloured column on the right shows each photo section's status at a glance. Colour changes fill top-to-bottom (about 0.7s, or ~5s while you review a yellow pip). Click or tap a pip to jump to that section — or turn on jump-on-hover in Settings.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ar y sgrin adolygu, mae'r golofn lliw tenau ar y dde yn dangos statws pob adran lun ar yr olwg gyntaf. Bydd lliwiau'n newid ac yn llenwi o'r brig i'r gwaelod (tua 0.7s, neu ~5s wrth i chi adolygu pip melyn). Cliciwch neu tapiwch bib i neidio i'r adran honno — neu trowch ymlaen neidio-ar-hofran yn y Gosodiadau.",
+      "ga": "Ar an scáileán athbhreithnithe, taispeánann an colún tanaí daite ar dheis stádas gach roinn ghrianghraf sracfhéachaint. Líonann na dathanna ó bharr go bun (thart ar 0.7s, nó ~5s agus tú ag athbhreithniú píp bhuí). Cliceáil nó cnag píp chun léim go dtí an roinn sin — nó cuir léim-ar-faoite ar siúl sna Socruithe.",
+      "gd": "Air an sgrìn lèirmheis, tha an colbh tana dathach air an taobh cheart a' sealltainn inbhe gach earrann deilbh gu sgiobalta. Bidh dathan ag atharrachadh agus a' lìonadh bhon mhullach chun a' bhonn (timcheall air 0.7s, no ~5s fhad 's a tha thu a' dèanamh lèirmheas air pìob bhuidhe). Dèan briogadh no tap air pìob gus leum chun earrann sin - no tionndaidh air leum-air-faoite anns na Roghainnean."
     },
     "smartTitle": {
       "en": "Smart phrases",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ymadroddion call",
+      "ga": "Frásaí cliste",
+      "gd": "Abairtean tapaidh"
     },
     "smartIntro": {
       "en": "These are understood directly, including common misspellings (e.g. \"infa red\", \"dew piont\", \"r.h.\").",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Deellir y rhain yn uniongyrchol, gan gynnwys camsillafiadau cyffredin (e.e. \"infa red\", \"dew piont\", \"r.h.\").",
+      "ga": "Tuigtear iad seo go díreach, lena n-áirítear gnáth-mhílitriú (m.sh. \"infa red\", \"dew piont\", \"r.h.\").",
+      "gd": "Tha iad seo air an tuigsinn gu dìreach, a' gabhail a-steach mearachdan-litreachaidh cumanta (m.e. \"infa red\", \"dew piont\", \"r.h.\")."
     },
     "topicsTitle": {
       "en": "All topics & keywords",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pob pwnc a gair allweddol",
+      "ga": "Gach ábhar agus eochairfhocal",
+      "gd": "Gach cuspair agus prìomh-fhacal"
     },
     "topicsIntro": {
       "en": "Outlined keywords are used by more than one topic - add a context word (e.g. pin skirting rather than just pin) so the right wording is chosen; otherwise the section is flagged for review with all candidates suggested.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Defnyddir geiriau allweddol ag amlinelliad gan fwy nag un pwnc - ychwanegwch air cyd-destun (e.e. pin sgyrtin yn hytrach na dim ond pin) fel bod y geiriad cywir yn cael ei ddewis; fel arall bydd yr adran yn cael ei fflagio i'w hadolygu gyda'r holl ymgeiswyr yn cael eu hawgrymu.",
+      "ga": "Úsáideann níos mó ná ábhar amháin na heochairfhocail atá imlínithe - cuir focal comhthéacs leis (m.sh. biorán sciorta in áit biorán amháin) ionas go roghnófar an fhoclaíocht cheart; murach sin beidh an roinn bratachaithe lena hathbhreithniú leis na hiarrthóirí uile molta.",
+      "gd": "Bidh prìomh-fhaclan a tha air am mìneachadh a' tighinn fo chòrr is aon chuspair - cuir facal co-theacsa ris (m.e. prìne sgiortaidh seach dìreach prìne) gus an tèid am briathrachas ceart a thaghadh; air neo bidh an earrann air a chomharrachadh airson lèirmheas leis a h-uile tagraiche air a mholadh."
     },
     "matchingTitle": {
       "en": "How matching works",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Sut mae cyfateb yn gweithio",
+      "ga": "Conas a oibríonn meaitseáil",
+      "gd": "Mar a tha maidseadh ag obair"
     },
     "viewText": {
       "en": "View text",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gweld y testun",
+      "ga": "Féach ar an téacs",
+      "gd": "Seall an teacsa"
     },
     "hideText": {
       "en": "Hide text",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cuddio'r testun",
+      "ga": "Folaigh an téacs",
+      "gd": "Falaich an teacsa"
     },
     "startTutorial": {
       "en": "Start tutorial",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cychwyn y tiwtorial",
+      "ga": "Tosaigh an teagasc",
+      "gd": "Tòisich an t-oideachadh"
     },
     "whatTitle": {
       "en": "What this tool is for",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Pwrpas yr offeryn hwn",
+      "ga": "Cuspóir na huirlise seo",
+      "gd": "Adhbhar an inneil seo"
     },
     "aiKeys": {
       "en": "AI API keys",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Allweddi API AI",
+      "ga": "Eochracha API AI",
+      "gd": "Iuchraichean API AI"
     },
     "homeScreen": {
       "en": "Add to Home Screen",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ychwanegu at y Sgrin Gartref",
+      "ga": "Cuir le Scáileán Baile",
+      "gd": "Cuir ris an Sgrìn Dachaigh"
     },
     "retakeTutorial": {
       "en": "Retake the tutorial",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ail-wneud y tiwtorial",
+      "ga": "Athdhéan an teagasc",
+      "gd": "Ath-dhèan an t-oideachadh"
     },
     "empty": {
       "en": "No guide sections match “{query}”.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oes unrhyw adrannau canllaw yn cyfateb i “{query}”.",
+      "ga": "Ní mheaitseálann aon ranna treorach le “{query}”.",
+      "gd": "Chan eil earrann iùil sam bith a' maidseadh le “{query}”."
     },
     "purposeP1": {
       "en": "This app helps a damp and timber surveyor turn numbered photo field notes into a polished, client-ready report. Start a new report to create field notes with the device camera, or import a Report and Run .docx. Everything stays on this device.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae'r ap hwn yn helpu peiriannydd arolygu lleithder a phren i droi nodiadau maes lluniau wedi'u rhifo yn adroddiad caboledig sy'n barod i'r cleient. Dechreuwch adroddiad newydd i greu nodiadau maes gyda chamera'r ddyfais, neu fewnforiwch ffeil .docx Adroddiad a Rhedeg. Mae popeth yn aros ar y ddyfais hon.",
+      "ga": "Cuidíonn an aip seo le suirbhéir taise agus adhmaid nótaí allamuigh grianghraf uimhrithe a thiontú ina thuairisc shnasta réidh don chliant. Tosaigh tuairisc nua chun nótaí allamuigh a chruthú le ceamara an ghléis, nó iompórtáil .docx Tuairisc agus Rith. Fanann gach rud ar an ngléas seo.",
+      "gd": "Bidh an aplacaid seo a' cuideachadh neach-sgrùdaidh taise is fiodha notaichean-làraich deilbh àireamhaichte a thionndadh gu aithisg lìomhta a tha deiseil airson an neach-dèiligidh. Tòisich aithisg ùr gus notaichean làraich a chruthachadh le camara an inneil, no thoir a-steach .docx Aithisg is Ruith. Bidh a h-uile rud a' fuireach air an inneal seo."
     },
     "purposeP2": {
       "en": "For each photo it tries to match the note to the firm’s approved standard wording, filling in values from the note (such as humidity or pin readings). You then review every section, edit or swap wording, add property and client details, choose which damp issues and recommendations apply, and generate the finished report — cover, contents, photo sections, explainers, costs, and limitations — again entirely on the device.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ar gyfer pob llun mae'n ceisio dopio'r nodyn i eiriad safonol cymeradwy y cwmni, gan lenwi gwerthoedd o'r nodyn (megis lleithder neu ddarlleniadau pin). Yna byddwch yn adolygu pob adran, yn golygu neu'n cyfnewid geiriad, yn ychwanegu manylion yr eiddo a'r cleient, yn dewis pa broblemau lleithder ac argymhellion sy'n berthnasol, ac yn cynhyrchu'r adroddiad terfynol — clawr, cynnwys, adrannau lluniau, eglurwyr, costau, a chyfyngiadau — unwaith eto yn gyfan gwbl ar y ddyfais.",
+      "ga": "I gcás gach grianghraif déanann sé iarracht an nóta a mheaitseáil le foclaíocht chaighdeánach fhormheasta an chomhlachta, ag líonadh luachanna ón nóta (amhail bogthaise nó léamha bioráin). Ansin déanann tú athbhreithniú ar gach roinn, déanann tú eagarthóireacht nó babhtáil ar an bhfoclaíocht, cuireann tú sonraí na réadmhaoine agus an chliaint leis, roghnaíonn tú na fadhbanna agus na moltaí taise atá i gceist, agus gineann tú an tuairisc chríochnaithe — clúdach, ábhar, ranna grianghraf, mínithe, costais agus teorainneacha — arís go hiomlán ar an ngléas.",
+      "gd": "Airson gach dealbh feuchaidh e ris an nota a mhaidseadh ri briathrachas àbhaisteach aontaichte na companaidh, a' lìonadh luachan bhon nota (leithid leughaidhean taise no prìne). An uairsin nì thu lèirmheas air a h-uile earrann, deasaichidh no atharraichidh tu briathrachas, cuiridh tu mion-fhiosrachadh na seilbh is an neach-dèiligidh ris, taghaidh tu na cùisean taiseachd agus na molaidhean a tha iomchaidh, agus cruthaichidh tu an aithisg dheireannach — còmhdach, susbaint, earrannan deilbh, mìneachaidhean, cosgaisean, agus cuingeachaidhean — a-rithist gu tur air an inneal."
     }
   },
   "app": {
     "preparingReport": {
       "en": "Preparing report…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn paratoi'r adroddiad…",
+      "ga": "Ag ullmhú na tuairisce…",
+      "gd": "Ag ullachadh na h-aithisg…"
     },
     "savingFieldNotes": {
       "en": "Saving field notes…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cadw'r nodiadau maes…",
+      "ga": "Ag sábháil na nótaí allamuigh…",
+      "gd": "A' sàbhaladh nan notaichean-làraich…"
     },
     "saving": {
       "en": "Saving…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cadw…",
+      "ga": "Ag sábháil…",
+      "gd": "A' sàbhaladh…"
     },
     "savingExporting": {
       "en": "Saving & exporting…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cadw ac yn allforio…",
+      "ga": "Ag sábháil & ag easpórtáil…",
+      "gd": "A' sàbhaladh is às-mhalairt…"
     },
     "savingDraft": {
       "en": "Saving draft…",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn cadw drafft…",
+      "ga": "Ag sábháil an dréachta…",
+      "gd": "A' sàbhaladh an dreachd…"
     },
     "openingProject": {
       "en": "Opening project...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn agor y prosiect...",
+      "ga": "Ag oscailt an tionscadail...",
+      "gd": "A' fosgladh a' phròiseict..."
     },
     "readingDocument": {
       "en": "Reading document...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn darllen y ddogfen...",
+      "ga": "Ag léamh an doiciméid...",
+      "gd": "A' leughadh na sgrìobhainn..."
     },
     "resumeTitle": {
       "en": "Continue a saved survey?",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau ag arolwg sydd wedi'i gadw?",
+      "ga": "Lean ar aghaidh le suirbhé sábháilte?",
+      "gd": "An lean thu air adhart le sgrùdadh a chaidh a shàbhaladh?"
     },
     "resumeBody": {
       "en": "This field notes document matches {title}{detail}. Continue from that saved work, or start a new report from the import?",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae'r ddogfen nodiadau maes hon yn cyfateb i {title}{detail}. Parhau o'r gwaith hwnnw sydd wedi'i gadw, neu ddechrau adroddiad newydd o'r mewnforiad?",
+      "ga": "Meaitseálann an doiciméad nótaí allamuigh seo le {title}{detail}. Lean ar aghaidh ón obair shábháilte sin, nó tosaigh tuairisc nua ón iompórtáil?",
+      "gd": "Tha an sgrìobhainn notaichean-làraich seo a' maidseadh {title}{detail}. An lean thu air adhart bhon obair a chaidh a shàbhaladh, no an tòisich thu aithisg ùr on in-mhalairt?"
     },
     "startFresh": {
       "en": "Start fresh",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dechrau o'r newydd",
+      "ga": "Tosaigh as an nua",
+      "gd": "Tòisich às ùr"
     },
     "continueSaved": {
       "en": "Continue saved",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Parhau â'r gwaith a gadwyd",
+      "ga": "Lean ar aghaidh leis an gceann sábháilte",
+      "gd": "Lean air adhart leis na chaidh a shàbhaladh"
     },
     "rotatePhone": {
       "en": "Rotate your phone upright to keep using the app",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Trowch eich ffôn i fyny i barhau i ddefnyddio'r ap",
+      "ga": "Rothlaigh do ghuthán ina sheasamh chun leanúint ar aghaidh ag úsáid na haipe",
+      "gd": "Tionndaidh am fòn agad gu h-inghearach gus leantainn air adhart a' cleachdadh na h-aplacaid"
     },
     "askingAi": {
       "en": "Asking AI about section {n}...",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn gofyn i AI am adran {n}...",
+      "ga": "Ag fiafraí d'AI faoi roinn {n}...",
+      "gd": "A' faighneachd do AI mu earrann {n}..."
     }
   },
   "chip": {
     "confirmNote": {
       "en": "Confirm note",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cadarnhau'r nodyn",
+      "ga": "Deimhnigh an nóta",
+      "gd": "Dearbhaich an nota"
     },
     "needsAttention": {
       "en": "Needs attention",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Angen sylw",
+      "ga": "Ag teastáil aird",
+      "gd": "Feumaidh aire"
     },
     "reviewWording": {
       "en": "Review wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Adolygu'r geiriad",
+      "ga": "Athbhreithnigh an fhoclaíocht",
+      "gd": "Dèan lèirmheas air a' bhriathrachas"
     },
     "standard": {
       "en": "Standard wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Geiriad safonol",
+      "ga": "Foclaíocht chaighdeánach",
+      "gd": "Briathrachas àbhaisteach"
     },
     "aiStandard": {
       "en": "AI · standard wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "AI · geiriad safonol",
+      "ga": "AI · foclaíocht chaighdeánach",
+      "gd": "AI · briathrachas àbhaisteach"
     },
     "aiWritten": {
       "en": "AI written",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ysgrifennwyd gan AI",
+      "ga": "Scríofa ag AI",
+      "gd": "Sgrìobhte le AI"
     },
     "crossref": {
       "en": "Cross-reference",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Croesgyfeiriad",
+      "ga": "Tras-tagairt",
+      "gd": "Tar-iomradh"
     },
     "yourWording": {
       "en": "Your wording",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eich geiriad chi",
+      "ga": "D'fhoclaíocht",
+      "gd": "Do bhriathrachas"
     },
     "empty": {
       "en": "Empty",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwag",
+      "ga": "Folamh",
+      "gd": "Falamh"
     }
   },
   "checklist": {
     "front": {
       "en": "front picture",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "llun blaen",
+      "ga": "grianghraf tosaigh",
+      "gd": "dealbh aghaidh"
     },
     "compass": {
       "en": "compass picture",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "llun cwmpawd",
+      "ga": "grianghraf compáis",
+      "gd": "dealbh combaist"
     },
     "airQuality": {
       "en": "air quality picture",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "llun ansawdd aer",
+      "ga": "grianghraf de cháilíocht an aeir",
+      "gd": "dealbh càileachd an adhair"
     },
     "rh": {
       "en": "relative humidity",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "lleithder cymharol",
+      "ga": "taise choibhneasta",
+      "gd": "taiseachd dàimheach"
     },
     "dewPoint": {
       "en": "dew point",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "pwynt gwlith",
+      "ga": "drúchtphointe",
+      "gd": "puing deuchainn"
     },
     "baseline": {
       "en": "baseline",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "gwaelodlin",
+      "ga": "bunlíne",
+      "gd": "bun-loidhne"
     },
     "threeReadings": {
       "en": "3 readings location",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "lleoliad 3 darlleniad",
+      "ga": "suíomh 3 léamh",
+      "gd": "àite 3 leughaidhean"
     },
     "reading1": {
       "en": "reading 1",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "darlleniad 1",
+      "ga": "léamh 1",
+      "gd": "leughadh 1"
     },
     "reading2": {
       "en": "reading 2",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "darlleniad 2",
+      "ga": "léamh 2",
+      "gd": "leughadh 2"
     },
     "reading3": {
       "en": "reading 3",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "darlleniad 3",
+      "ga": "léamh 3",
+      "gd": "leughadh 3"
     },
     "steelPin": {
       "en": "steel pin reading",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "darlleniad pin dur",
+      "ga": "léamh biorán cruach",
+      "gd": "leughadh prìne stàilinn"
     },
     "thermal": {
       "en": "thermal camera cold spots",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "mannau oer camera thermol",
+      "ga": "spotaí fuara an cheamara thearmach",
+      "gd": "àiteachan fuar camara teirmeach"
     },
     "moisture1": {
       "en": "moisture map 1",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "map lleithder 1",
+      "ga": "léarscáil taise 1",
+      "gd": "mapa taiseachd 1"
     },
     "moisture2": {
       "en": "moisture map 2",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "map lleithder 2",
+      "ga": "léarscáil taise 2",
+      "gd": "mapa taiseachd 2"
     },
     "moisture3": {
       "en": "moisture map 3",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "map lleithder 3",
+      "ga": "léarscáil taise 3",
+      "gd": "mapa taiseachd 3"
     }
   },
   "pip": {
     "attention": {
       "en": "Orange",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Oren",
+      "ga": "Oráiste",
+      "gd": "Orains"
     },
     "attentionMeaning": {
       "en": "Needs attention — empty, missing readings, or no confident match",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Angen sylw — gwag, darlleniadau ar goll, neu ddim cyfatebiaeth hyderus",
+      "ga": "Ag teastáil aird — folamh, léamha ar iarraidh, nó gan mheaitseáil mhuiníneach",
+      "gd": "Feumaidh aire — falamh, leughaidhean a dhìth, no gun mhaidseadh cinnteach"
     },
     "noteConfirm": {
       "en": "Yellow / blue stripes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Stribedi melyn / glas",
+      "ga": "Stíocaí buí / gorm",
+      "gd": "Stiallan buidhe / gorm"
     },
     "noteConfirmMeaning": {
       "en": "Long field note — kept as written. Review this section to confirm accuracy and the pip will become blue",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nodyn maes hir — wedi'i gadw fel yr ysgrifennwyd. Adolygwch yr adran hon i gadarnhau cywirdeb a bydd y pip yn dod yn las",
+      "ga": "Nóta allamuigh fada — coinnithe mar a scríobhadh. Athbhreithnigh an roinn seo chun cruinneas a dhearbhú agus éireoidh an píp gorm",
+      "gd": "Nota-làraich fada — air a chumail mar a chaidh a sgrìobhadh. Dèan lèirmheas air an earrann seo gus dearbhadh a dhèanamh air an fhiosrachadh agus bidh a' phìob gorm"
     },
     "manual": {
       "en": "Blue",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Glas",
+      "ga": "Gorm",
+      "gd": "Gorm"
     },
     "manualMeaning": {
       "en": "Your wording — confirmed field note, edited text, or a cross-reference",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Eich geiriad chi — nodyn maes wedi'i gadarnhau, testun wedi'i olygu, neu groesgyfeiriad",
+      "ga": "D'fhoclaíocht — nóta allamuigh deimhnithe, téacs curtha in eagar, nó tras-tagairt",
+      "gd": "Do bhriathrachas — nota-làraich a chaidh a dhearbhadh, teacsa deasaichte, no tar-iomradh"
     },
     "review": {
       "en": "Yellow / green stripes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Stribedi melyn / gwyrdd",
+      "ga": "Stíocaí buí / glas",
+      "gd": "Stiallan buidhe / uaine"
     },
     "reviewMeaning": {
       "en": "Standard text is filled in but confidence is low. Review this section to confirm accuracy and the pip will become green",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae testun safonol wedi'i lenwi ond mae hyder yn isel. Adolygwch yr adran hon i gadarnhau cywirdeb a bydd y pip yn dod yn wyrdd",
+      "ga": "Líontar an gnáth-théacs isteach ach tá an mhuinín íseal. Athbhreithnigh an roinn seo chun cruinneas a dhearbhú agus éireoidh an píp glas",
+      "gd": "Tha teacsa àbhaisteach air a lìonadh ach tha cinnt ìosal. Dèan lèirmheas air an earrann seo gus dearbhadh a dhèanamh air an fhiosrachadh agus bidh a' phìob uaine"
     },
     "library": {
       "en": "Green",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwyrdd",
+      "ga": "Glas",
+      "gd": "Uaine"
     },
     "libraryMeaning": {
       "en": "Standard wording — confident library match, or a soft match you've already reviewed",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Geiriad safonol — cyfatebiaeth hyderus o'r llyfrgell, neu gyfatebiaeth feddal rydych eisoes wedi'i hadolygu",
+      "ga": "Foclaíocht chaighdeánach — meaitseáil leabharlainne mhuiníneach, nó meaitseáil bhog a rinne tú athbhreithniú air cheana",
+      "gd": "Briathrachas àbhaisteach — maidseadh leabharlainn cinnteach, no maidseadh bog air an do rinn thu lèirmheas mu thràth"
     },
     "ai": {
       "en": "Purple",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Porffor",
+      "ga": "Corcra",
+      "gd": "Purpaidh"
     },
     "aiMeaning": {
       "en": "AI written — wording generated using ask AI feature based on picture and notes",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ysgrifennwyd gan AI — geiriad wedi'i gynhyrchu gan ddefnyddio nodwedd gofyn i AI yn seiliedig ar lun a nodiadau",
+      "ga": "Scríofa ag AI — foclaíocht ginte ag baint úsáid as gné fiafraigh d'AI bunaithe ar phictiúr agus nótaí",
+      "gd": "Sgrìobhte le AI — briathrachas a chaidh a chruthachadh le bhith a' cleachdadh feart faighnich do AI stèidhichte air dealbh agus notaichean"
     },
     "error": {
       "en": "Red",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Coch",
+      "ga": "Dearg",
+      "gd": "Dearg"
     },
     "errorMeaning": {
       "en": "AI error — Ask AI failed on this section; open the card overlay to read the message, dismiss it, or try again",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwall AI — Methodd Gofyn i AI ar yr adran hon; agorwch y cerdyn troshaen i ddarllen y neges, ei gwrthod, neu geisio eto",
+      "ga": "Earráid AI — Theip ar Fiafraigh d'AI sa roinn seo; oscail forleagan an chárta chun an teachtaireacht a léamh, é a scriosadh, nó triail eile a bhaint as",
+      "gd": "Mearachd AI — Dh'fhàillig Faighnich do AI air an earrann seo; fosgail còmhdach a' chairt gus an teachdaireachd a leughadh, a cur às, no feuchainn a-rithist"
     },
     "empty": {
       "en": "Grey",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Llwyd",
+      "ga": "Liath",
+      "gd": "Glas"
     },
     "emptyMeaning": {
       "en": "Empty — no text yet and not otherwise flagged",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwag — dim testun eto a heb ei fflagio fel arall",
+      "ga": "Folamh — gan téacs fós agus gan a bheith bratachaithe murach sin",
+      "gd": "Falamh — gun teacsa fhathast agus nach eil air a chomharrachadh air dhòigh eile"
     }
   },
   "coach": {
     "welcomeKicker": {
       "en": "Welcome to Dampmaster report studio",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Croeso i stiwdio adroddiadau Dampmaster",
+      "ga": "Fáilte chuig stiúideo tuairiscithe Dampmaster",
+      "gd": "Fàilte gu stiùidio aithisgean Dampmaster"
     },
     "language": {
       "en": "Please choose a language: English, Welsh, Irish, Scottish.\nYou can change these settings at any time.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewiswch iaith, os gwelwch yn dda: Saesneg, Cymraeg, Gwyddeleg, Gaeleg.\nGallwch newid y gosodiadau hyn unrhyw bryd.",
+      "ga": "Roghnaigh teanga, le do thoil: Béarla, Breatnais, Gaeilge, Gaeilge na hAlban.\nIs féidir leat na socruithe seo a athrú am ar bith.",
+      "gd": "Tagh cànan, mas e do thoil e: Beurla, Cuimris, Gàidhlig na h-Èireann, Gàidhlig.\nFaodaidh tu na roghainnean seo atharrachadh aig àm sam bith."
     },
     "theme": {
       "en": "Please choose a theme: light / dark\nYou can change these settings at any time.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dewiswch thema, os gwelwch yn dda: golau / tywyll\nGallwch newid y gosodiadau hyn unrhyw bryd.",
+      "ga": "Roghnaigh téama, le do thoil: solas / dorcha\nIs féidir leat na socruithe seo a athrú am ar bith.",
+      "gd": "Tagh cuspair, mas e do thoil e: solas / dorcha\nFaodaidh tu na roghainnean seo atharrachadh aig àm sam bith."
     },
     "surveyorName": {
       "en": "What is your name?",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Beth yw eich enw?",
+      "ga": "Cad is ainm duit?",
+      "gd": "Dè an t-ainm a th' ort?"
     },
     "pitch": {
       "en": "Please consider taking this quick interactive tutorial to learn how to use report studio.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ystyriwch ddilyn y tiwtorial rhyngweithiol cyflym hwn i ddysgu sut i ddefnyddio'r stiwdio adroddiadau.",
+      "ga": "Tóg an teagasc gearr idirghníomhach seo le do thoil chun foghlaim conas stiúideo na dtuairiscí a úsáid.",
+      "gd": "Gabh an t-oideachadh goirid eadar-ghnìomhach seo, mas e do thoil e, gus ionnsachadh mar a chleachdas tu stiùidio nan aithisgean."
     },
     "newReport": {
       "en": "**Press the new report button to start.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "**Pwyswch y botwm adroddiad newydd i ddechrau.**",
+      "ga": "**Brúigh cnaipe na tuairisce nua chun tosú.**",
+      "gd": "**Brùth am putan aithisg ùr gus tòiseachadh.**"
     },
     "createFieldNotes": {
       "en": "To import a survey from Report and Run, first press share inside report and run as if you were sending it to a client, then press download to your device, then press import field notes in this app to start.\n\nAlternatively, this app can replace Report and Run using the field notes interface. **Press create new field notes to start.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "I fewnforio arolwg o Adroddiad a Rhedeg, yn gyntaf pwyswch rhannu y tu fewn i Adroddiad a Rhedeg fel pe baech yn ei anfon at gleient, yna pwyswch lawrlwytho i'ch dyfais, yna pwyswch mewnforio nodiadau maes yn yr ap hwn i ddechrau.\n\nFel arall, gall yr ap hwn ddisodli Adroddiad a Rhedeg gan ddefnyddio'r rhyngwyneb nodiadau maes. **Pwyswch creu nodiadau maes newydd i ddechrau.**",
+      "ga": "Chun suirbhé a iompórtáil ó Tuairisc agus Rith, brúigh comhroinn laistigh de thuairisc agus rith ar dtús amhail is dá mbeifeá á sheoladh chuig cliant, ansin brúigh íoslódáil chuig do ghléas, ansin brúigh iompórtáil nótaí allamuigh san aip seo chun tosú.\n\nNó, is féidir leis an aip seo Tuairisc agus Rith a athsholáthar ag baint úsáide as comhéadan na nótaí allamuigh. **Brúigh cruthaigh nótaí allamuigh nua chun tosú.**",
+      "gd": "Gus sgrùdadh a thoirt a-steach bho Aithisg is Ruith, an toiseach brùth co-roinn am broinn na h-aithisg is rith e mar gum biodh tu ga chuir gu teachdaiche, an uairsin brùth luchdaich a-nuas chun inneal agad, agus an uairsin brùth thoir a-steach notaichean làraich san aplacaid seo gus tòiseachadh.\n\nAir neo, faodaidh an aplacaid seo àite Aithisg is Ruith a ghabhail le bhith a' cleachdadh eadar-aghaidh nan notaichean làraich. **Brùth cruthaich notaichean làraich ùra gus tòiseachadh.**"
     },
     "lookAround": {
       "en": "You have now entered the field notes interface. In front of you is a simulation of the old valve house. **Turn your phone to look around.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Rydych bellach wedi mynd i mewn i'r rhyngwyneb nodiadau maes. O'ch blaen mae efelychiad o'r hen dŷ falfiau. **Trowch eich ffôn i edrych o gwmpas.**",
+      "ga": "Tá tú tar éis dul isteach i gcomhéadan na nótaí allamuigh anois. Os do chomhair tá ionsamhlú den sean-teach comhla. **Rothlaigh do ghuthán chun breathnú thart.**",
+      "gd": "Tha thu a-nis air a dhol a-steach don eadar-aghaidh notaichean làraich. Air do bheulaibh tha ath-arrais den t-seann taigh-bhalbhaichean. **Tionndaidh am fòn agad gus coimhead mun cuairt.**"
     },
     "takeFront": {
       "en": "In the top of this interface you can see your camera’s viewfinder and camera controls. **Take a picture of the front elevation of the old valve house**, to be included in the survey report.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn rhan uchaf y rhyngwyneb hwn gallwch weld llygad y camera a'r rheolyddion camera. **Tynnwch lun o ddrychiad blaen yr hen dŷ falfiau**, i'w gynnwys yn adroddiad yr arolwg.",
+      "ga": "Ag barr an chomhéadain seo is féidir leat aimsitheoir do cheamara agus na rialuithe ceamara a fheiceáil. **Tóg grianghraf d'ingearchló tosaigh an tsean-tí comhla**, le cur san áireamh i dtuairisc an tsuirbhé.",
+      "gd": "Aig mullach an eadar-aghaidh seo chì thu sealladair a' chamara agad agus na smachdan camara. **Tog dealbh de dh'aghaidh an t-seann taighe-bhalbhaichean**, gus a bhith air a ghabhail a-steach ann an aithisg an sgrùdaidh."
     },
     "notesIntro": {
       "en": "Well done! Now we move to the bottom of this interface. This is the notes section, here you can add notes about the observations you have made about the associated image.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Da iawn! Nawr rydym yn symud i waelod y rhyngwyneb hwn. Dyma'r adran nodiadau, yma gallwch ychwanegu nodiadau am yr arsylwadau rydych wedi'u gwneud am y llun cysylltiedig.",
+      "ga": "Maith thú! Anois bogaimid go dtí bun an chomhéadain seo. Seo í an chuid do na nótaí, anseo is féidir leat nótaí a chur leis faoi na breathnuithe atá déanta agat ar an íomhá atá ceangailte leis.",
+      "gd": "Glè mhath! A-nis gluaisidh sinn gu bonn an eadar-aghaidh seo. Seo an earrann notaichean, an seo faodaidh tu notaichean a chur ris mu na rudan a chunnaic thu a thaobh an deilbh a tha co-cheangailte ris."
     },
     "typeFront": {
       "en": "You don’t need to make full detailed notes at this point. You can write short notes to finish later, or you may decide to use keywords that automatically activate standard Dampmaster wording for common elements of reports such as the front elevation. In the notes section, **simply type “front”.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Nid oes angen i chi wneud nodiadau manwl llawn ar y pwynt hwn. Gallwch ysgrifennu nodiadau byr i'w gorffen yn ddiweddarach, neu efallai y byddwch yn penderfynu defnyddio geiriau allweddol sy'n actifadu geiriad Dampmaster safonol yn awtomatig ar gyfer elfennau cyffredin adroddiadau megis y drychiad blaen. Yn yr adran nodiadau, **teipiwch “blaen” yn syml.**",
+      "ga": "Ní gá duit nótaí mionsonraithe iomlána a dhéanamh ag an bpointe seo. Is féidir leat nótaí gearra a scríobh le críochnú níos déanaí, nó is féidir leat a roghnú eochairfhocail a úsáid a ghníomhaíonn foclaíocht chaighdeánach Dampmaster go huathoibríoch le haghaidh eilimintí coitianta de thuairiscí amhail an t-ingearchló tosaigh. Sa chuid do na nótaí, **níl le déanamh ach “tosaigh” a chlóscríobh.**",
+      "gd": "Chan fheum thu notaichean mionaideach slàn a dhèanamh aig an ìre seo. Faodaidh tu notaichean goirid a sgrìobhadh gus an crìochnachadh nas fhaide air adhart, no dh'fhaodadh tu prìomh-fhaclan a chleachdadh a bhios a' cur an gnìomh briathrachas àbhaisteach Dampmaster gu fèin-ghluasadach airson pàirtean cumanta de dh'aithisgean leithid an aghaidh. San earrann notaichean, **dìreach sgrìobh “aghaidh”.**"
     },
     "swipeNew": {
       "en": "Great, now we can move on to the next observation. At any point swipe left or right on the screen to move between observations. To new observations, the camera is always located at the rightmost slide. **Swipe the screen to make a new note.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gwych, nawr gallwn symud ymlaen at yr arsylwad nesaf. Ar unrhyw adeg, sbeipiwch i'r chwith neu'r dde ar y sgrin i symud rhwng arsylwadau. I gael arsylwadau newydd, mae'r camera bob amser wedi'i leoli ar y sleid dde eithaf. **Sbeipiwch y sgrin i wneud nodyn newydd.**",
+      "ga": "Ar fheabhas, anois is féidir linn bogadh ar aghaidh go dtí an chéad bhreathnú eile. Ag pointe ar bith svaidhpeáil ar chlé nó ar dheis ar an scáileán chun bogadh idir breathnuithe. Chun breathnuithe nua a dhéanamh, bíonn an ceamara suite ar an sleamhnán is faide ar dheis i gcónaí. **Svaidhpeáil an scáileán chun nóta nua a dhéanamh.**",
+      "gd": "Sgoinneil, a-nis faodaidh sinn gluasad air adhart chun an ath amhairc. Aig àm sam bith, dèan svaidhpeadh clì no deas air an sgrìn gus gluasad eadar amharcan. Airson amharcan ùra, tha an camara an-còmhnaidh air a shuidheachadh air an t-sleamhnag as fhaide deas. **Dèan svaidhpeadh air an sgrìn gus nota ùr a dhèanamh.**"
     },
     "openCompass": {
       "en": "Another standard observation is the direction the property is facing. **Press the compass button in the bottom right corner of the viewfinder** to enter the compass view.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Arsylwad safonol arall yw'r cyfeiriad y mae'r eiddo'n ei wynebu. **Pwyswch y botwm cwmpawd yng nghornel dde isaf llygad y camera** i fynd i mewn i olygfa'r cwmpawd.",
+      "ga": "Gnáthbhreathnú eile is ea an treo a bhfuil an réadmhaoin ag tabhairt aghaidh air. **Brúigh an cnaipe compáis sa chúinne íochtarach ar dheis den aimsitheoir** chun dul isteach san amharc compáis.",
+      "gd": "Is e amharc àbhaisteach eile an taobh a tha an togalach a' coimhead. **Brùth am putan combaist san oisean gu h-ìosal air an taobh cheart de shealladair a' chamara** gus a dhol a-steach don t-sealladh combaist."
     },
     "compassCapture": {
       "en": "While performing a survey, stand outside the front of the property and **point the top of the phone away from the building and press the camera button.** This will automatically insert the correct standard wording into the survey.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Tra'n cynnal arolwg, sefwch y tu allan i flaen yr eiddo a **phwyntio brig y ffôn i ffwrdd o'r adeilad a phwyso botwm y camera.** Bydd hyn yn awtomatig yn mewnosod y geiriad safonol cywir yn yr arolwg.",
+      "ga": "Agus suirbhé á dhéanamh agat, seas taobh amuigh de thosach na réadmhaoine agus **dírigh barr an ghutháin ar shiúl ón bhfoirgneamh agus brúigh cnaipe an cheamara.** Cuirfidh sé seo an fhoclaíocht chaighdeánach cheart isteach sa suirbhé go huathoibríoch.",
+      "gd": "Fhad 's a tha thu a' dèanamh sgrùdaidh, seas taobh a-muigh beulaibh an togalaich agus **cuir mullach an fhòn a' coimhead air falbh bhon togalach is brùth putan a' chamara.** Cuiridh seo am briathrachas àbhaisteach ceart a-steach don sgrùdadh gu fèin-ghluasadach."
     },
     "walking": {
       "en": "Please wait while we walk around the back of the building.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Arhoswch, os gwelwch yn dda, tra byddwn yn cerdded o amgylch cefn yr adeilad.",
+      "ga": "Fan le do thoil agus muid ag siúl timpeall chúl an fhoirgnimh.",
+      "gd": "Fuirich ort, mas e do thoil e, fhad 's a tha sinn a' coiseachd air cùl an togalaich."
     },
     "takeTrees": {
       "en": "A small tree has begun to grow from the roof and side of the building. This may be creating an opening for damp and moisture to enter the building. **Take a picture of the trees in the roof.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae coeden fach wedi dechrau tyfu o do ac ochr yr adeilad. Efallai bod hyn yn creu agoriad i leithder fynd i mewn i'r adeilad. **Tynnwch lun o'r coed yn y to.**",
+      "ga": "Tá crann beag tar éis tosú ag fás ó dhíon agus ó thaobh an fhoirgnimh. D'fhéadfadh sé seo a bheith ag cruthú oscailt do thaise le dul isteach san fhoirgneamh. **Tóg grianghraf de na crainn sa díon.**",
+      "gd": "Tha craobh bheag air tòiseachadh a' fàs bho mhullach agus taobh an togalaich. Dh'fhaodadh seo a bhith a' cruthachadh fosgladh airson taiseachd a dhol a-steach don togalach. **Tog dealbh de na craobhan sa mhullach.**"
     },
     "typeTrees": {
       "en": "**Now write a short note about the trees.** You can come back and add more before annotating.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "**Nawr ysgrifennwch nodyn byr am y coed.** Gallwch ddod yn ôl ac ychwanegu mwy cyn anodi.",
+      "ga": "**Anois scríobh nóta gearr faoi na crainn.** Is féidir leat teacht ar ais agus tuilleadh a chur leis sula ndéanann tú anótáil.",
+      "gd": "**A-nis sgrìobh nota goirid mu na craobhan.** Faodaidh tu tilleadh agus barrachd a chur ris mus dèan thu anótachadh."
     },
     "pressAnnotate": {
       "en": "Similar to Report and Run, this app can also write annotations inside images to show exactly what is being discussed in the attached text segment. You can still edit the tree notes below. **Press annotate to edit this image.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn debyg i Adroddiad a Rhedeg, gall yr ap hwn hefyd ysgrifennu anodiadau y tu mewn i luniau i ddangos yn union yr hyn sy'n cael ei drafod yn y segment testun atodedig. Gallwch barhau i olygu nodiadau'r coed isod. **Pwyswch anodi i olygu'r llun hwn.**",
+      "ga": "Cosúil le Tuairisc agus Rith, is féidir leis an aip seo anótálacha a scríobh laistigh d'íomhánna freisin chun a thaispeáint go díreach cad atá á phlé sa chuid téacs atá ceangailte. Is féidir leat na nótaí faoi na crainn a chur in eagar thíos fós. **Brúigh anótáil chun an íomhá seo a chur in eagar.**",
+      "gd": "Coltach ri Aithisg is Ruith, faodaidh an aplacaid seo anótachaidhean a sgrìobhadh am broinn dhealbhan cuideachd gus sealltainn gu dìreach dè a tha air a dheasbad anns a' phìos teacsa ceangailte. Faodaidh tu fhathast notaichean nan craobhan a dheasachadh gu h-ìosal. **Brùth anótachadh gus an dealbh seo a dheasachadh.**"
     },
     "drawCircleKicker": {
       "en": "Welcome to the annotate screen",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Croeso i'r sgrin anodi",
+      "ga": "Fáilte go dtí an scáileán anótála",
+      "gd": "Fàilte chun an sgrìn anótachaidh"
     },
     "drawCircle": {
       "en": "**Try drawing a circle.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "**Ceisiwch dynnu cylch.**",
+      "ga": "**Déan iarracht ciorcal a tharraingt.**",
+      "gd": "**Feuch ri cearcall a tharraing.**"
     },
     "moveCircle": {
       "en": "**Now move it to the tree in the roof.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "**Nawr symudwch ef at y goeden yn y to.**",
+      "ga": "**Anois bog é chuig an gcrann sa díon.**",
+      "gd": "**A-nis gluais e chun na craoibhe sa mhullach.**"
     },
     "drawArrow": {
       "en": "**Now try drawing an arrow instead.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "**Nawr ceisiwch dynnu saeth yn lle.**",
+      "ga": "**Anois déan iarracht saighead a tharraingt ina áit sin.**",
+      "gd": "**A-nis feuch ri saighead a tharraing an àite sin.**"
     },
     "annotateFree": {
       "en": "You can turn off the auto shape detection with the toggle in the bottom. You can also switch between brush and eraser at the bottom or by double tapping quickly anywhere in the image. **Press finished when you are done.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Gallwch ddiffodd y broses ganfod siâp awtomatig gyda'r togl ar y gwaelod. Gallwch hefyd newid rhwng brwsh a rhwbiwr ar y gwaelod neu drwy dapio ddwywaith yn gyflym unrhyw le yn y llun. **Pwyswch gorffennwyd pan fyddwch wedi gorffen.**",
+      "ga": "Is féidir leat an brath uath-chrutha a mhúchadh leis an scorán ag an mbun. Is féidir leat aistriú idir scuab agus scriosán ag an mbun freisin nó trí thapáil faoi dhó go tapa áit ar bith san íomhá. **Brúigh críochnaithe nuair atá tú réidh.**",
+      "gd": "Faodaidh tu lorg fèin-chruth a thionndadh dheth leis an togail aig a' bhonn. Faodaidh tu cuideachd gluasad eadar bruis agus suathadair aig a' bhonn no le bhith a' toirt gnogag dhùbailte gu luath àite sam bith san dealbh. **Brùth deiseil nuair a bhios tu deiseil.**"
     },
     "typeRh": {
       "en": "Some more notes have been added to this survey for you. Some keywords contain two parts, the first part is the keyword and the second is the value. For example this image is of a relative humidity detector. It has determined that the relative humidity here is 45%. In the notes section **type “rh 45”** to note this down.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Mae rhai nodiadau ychwanegol wedi'u hychwanegu at yr arolwg hwn ar eich cyfer chi. Mae rhai geiriau allweddol yn cynnwys dwy ran, y rhan gyntaf yw'r gair allweddol a'r ail ran yw'r gwerth. Er enghraifft mae'r llun hwn o ganfodydd lleithder cymharol. Mae wedi penderfynu bod y lleithder cymharol yma yn 45%. Yn yr adran nodiadau **teipiwch “rh 45”** i nodi hyn i lawr.",
+      "ga": "Tá roinnt nótaí eile curtha leis an suirbhé seo duit. Tá dhá chuid i roinnt eochairfhocal, is é an chéad chuid an t-eochairfhocal agus is é an dara chuid an luach. Mar shampla tá an íomhá seo de bhrathadóir taise coibhneasta. Chinn sé go bhfuil an taise choibhneasta anseo ag 45%. Sa chuid do na nótaí **clóscríobh “rh 45”** chun é seo a thabhairt faoi deara.",
+      "gd": "Tha barrachd notaichean air an cur ris an sgrùdadh seo dhut. Tha dà phàirt ann an cuid de phrìomh-fhaclan, is e a' chiad phàirt am prìomh-fhacal agus an dàrna pàirt an luach. Mar eisimpleir tha an dealbh seo de lorgaire taiseachd dàimheach. Tha e air a dhearbhadh gu bheil an taiseachd dhàimheach an seo aig 45%. San earrann notaichean **sgrìobh “rh 45”** gus seo a sgrìobhadh sìos."
     },
     "typeBaseline": {
       "en": "This baseline reading was taken in the kitchen. **Type “baseline kitchen” in the notes section.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Cymerwyd y darlleniad gwaelodlin hwn yn y gegin. **Teipiwch “baseline cegin” yn yr adran nodiadau.**",
+      "ga": "Tógadh an léamh bunlíne seo sa chistin. **Clóscríobh “baseline cistin” sa chuid do na nótaí.**",
+      "gd": "Chaidh an leughadh bun-loidhne seo a ghabhail sa chidsin. **Sgrìobh “baseline cidsin” san earrann notaichean.**"
     },
     "summary": {
       "en": "On the bottom half of the screen you can see standard sections that you may want to consider adding on the left, and information about the notes you have taken on the right.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ar hanner gwaelod y sgrin gallwch weld adrannau safonol y gallech fod am ystyried eu hychwanegu ar y chwith, a gwybodaeth am y nodiadau rydych wedi'u cymryd ar y dde.",
+      "ga": "Ar leath íochtarach an scáileáin is féidir leat ranna caighdeánacha a fheiceáil a d'fhéadfá a bheith ag iarraidh a chur leis ar chlé, agus faisnéis faoi na nótaí atá tógtha agat ar dheis.",
+      "gd": "Air leth ìosal na sgrìn chì thu earrannan àbhaisteach a dh'fhaodadh tu beachdachadh air an cur ris air an taobh chlì, agus fiosrachadh mu na notaichean a rinn thu air an taobh cheart."
     },
     "continueDoc": {
       "en": "In the bottom right you can save your notes as a survey file that is unique to this app, or as a Word document that will appear similar to ones produced by Report and Run. Alternatively you can continue straight into the document creation section of this app. This is what we will do now. **Press continue to document.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Ar y gwaelod ar y dde gallwch gadw eich nodiadau fel ffeil arolwg sy'n unigryw i'r ap hwn, neu fel dogfen Word a fydd yn edrych yn debyg i'r rhai a gynhyrchir gan Adroddiad a Rhedeg. Fel arall, gallwch barhau yn syth ymlaen at yr adran creu dogfennau yn yr ap hwn. Dyma beth y byddwn yn ei wneud nawr. **Pwyswch parhau i'r ddogfen.**",
+      "ga": "Sa bhun ar dheis is féidir leat do chuid nótaí a shábháil mar chomhad suirbhé atá uathúil don aip seo, nó mar dhoiciméad Word a mbeidh cuma chosúil air agus a dhéanfadh Tuairisc agus Rith. Nó, is féidir leat leanúint ar aghaidh díreach go dtí rannán cruthaithe doiciméad na haipe seo. Is é seo a dhéanfaimid anois. **Brúigh ar aghaidh go dtí an doiciméad.**",
+      "gd": "Gu h-ìosal air an taobh cheart faodaidh tu na notaichean agad a shàbhaladh mar fhaidhle sgrùdaidh a tha sònraichte don aplacaid seo, no mar sgrìobhainn Word a nochdas coltach ris an fheadhainn a bhios Aithisg is Ruith a' cruthachadh. Air neo, faodaidh tu leantainn air adhart gu dìreach a-steach gu earrann cruthachadh sgrìobhainnean na h-aplacaid seo. Is e seo a nì sinn a-nis. **Brùth lean air adhart chun sgrìobhainn.**"
     },
     "reviewIntro": {
       "en": "This is the first page of the document process. Here you can organise and word your observations in a client ready format. If you wish to go back and add more notes, you can switch between document and field notes mode freely. On the right you can see the navigation bar. Each segment on this bar represents an image and its associated text. The colour of the segment represents the status of that segment according to these rules (also viewable in guide):",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dyma dudalen gyntaf y broses ddogfen. Yma gallwch drefnu a geirio'ch arsylwadau mewn fformat sy'n barod ar gyfer cleientiaid. Os dymunwch fynd yn ôl ac ychwanegu rhagor o nodiadau, gallwch newid rhwng modd dogfen a nodiadau maes yn rhydd. Ar y dde gallwch weld y bar llywio. Mae pob segment ar y bar hwn yn cynrychioli llun a'i destun cysylltiedig. Mae lliw y segment yn cynrychioli statws y segment hwnnw yn ôl y rheolau hyn (y gellir eu gweld hefyd yn y canllaw):",
+      "ga": "Seo í an chéad leathanach den phróiseas doiciméid. Anseo is féidir leat do bhreathnuithe a eagrú agus a fhoclaíocht i bhformáid atá réidh do chliaint. Más mian leat dul ar ais agus tuilleadh nótaí a chur leis, is féidir leat aistriú idir mód an doiciméid agus mód na nótaí allamuigh gan srian. Ar dheis is féidir leat an barra nascleanúna a fheiceáil. Léiríonn gach teascán ar an mbarra seo íomhá agus an téacs a ghabhann léi. Léiríonn dath an teascáin stádas an teascáin sin de réir na rialacha seo (atá le feiceáil sa treoir freisin):",
+      "gd": "Seo a' chiad duilleag den phròiseas sgrìobhainn. An seo faodaidh tu na h-amharcan agad a chur air dòigh agus a sgrìobhadh ann an cruth a tha deiseil airson an neach-dèiligidh. Ma tha thu airson a dhol air ais is barrachd notaichean a chur ris, faodaidh tu gluasad eadar modh sgrìobhainn agus modh notaichean-làraich gu saor. Air an taobh cheart chì thu am bàr seòlaidh. Tha gach pìos air a' bhàr seo a' riochdachadh dealbh agus an teacsa a tha co-cheangailte ris. Tha dath a' phìos a' riochdachadh inbhe a' phìos sin a rèir nan riaghailtean seo (rim faicinn cuideachd san iùl):"
     },
     "reviewAi": {
       "en": "In addition to a convenient interface to access Dampmaster standard wording for common observations, this app also gives surveyors the option to use an integrated AI agent to help convert short field notes into professional paragraphs. The AI has access to the image, field notes, and any additional information in the text area. If you are happy with the field note, **press the Ask AI button** to help convert the field notes about the trees into a full and professional sounding segment.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn ogystal â rhyngwyneb cyfleus i gael mynediad at eiriad safonol Dampmaster ar gyfer arsylwadau cyffredin, mae'r ap hwn hefyd yn rhoi'r opsiwn i arolygwyr ddefnyddio asiant AI integredig i helpu i drosi nodiadau maes byr yn baragraffau proffesiynol. Mae gan yr AI fynediad i'r llun, y nodiadau maes, ac unrhyw wybodaeth ychwanegol yn yr ardal destun. Os ydych chi'n fodlon â'r nodyn maes, **pwyswch y botwm Gofyn i AI** i helpu i drosi'r nodiadau maes am y coed yn segment llawn sy'n swnio'n broffesiynol.",
+      "ga": "Chomh maith le comhéadan áisiúil chun teacht ar fhoclaíocht chaighdeánach Dampmaster le haghaidh gnáthbhreathnuithe, tugann an aip seo an rogha freisin do shuirbhéirí gníomhaire AI comhtháite a úsáid chun cabhrú le nótaí allamuigh gearra a thiontú ina bparagraif ghairmiúla. Tá rochtain ag an AI ar an íomhá, ar na nótaí allamuigh, agus ar aon fhaisnéis bhreise sa limistéar téacs. Má tá tú sásta leis an nóta allamuigh, **brúigh an cnaipe Fiafraigh d'AI** chun cabhrú leis na nótaí allamuigh faacha na crainn a thiontú ina mír iomlán a fhuaimeann go gairmiúil.",
+      "gd": "A bharrachd air eadar-aghaidh goireasach gus faighinn gu briathrachas àbhaisteach Dampmaster airson amharcan cumanta, tha an aplacaid seo cuideachd a' toirt cothrom do luchd-sgrùdaidh àidseant AI amalaichte a chleachdadh gus cuideachadh le notaichean-làraich goirid a thionndadh gu paragrafan proifeasanta. Tha cothrom aig an AI air an dealbh, na notaichean-làraich, agus fiosrachadh a bharrachd sam bith san raon teacsa. Ma tha thu toilichte leis an nota-làraich, **brùth air a' phutan Faighnich do AI** gus cuideachadh le bhith a' tionndadh nan notaichean-làraich mu na craobhan gu earrann slàn a tha a' faireachdainn proifeasanta."
     },
     "reviewAiAfter": {
       "en": "You should always read AI responses to ensure they are correct. In order to use AI features within this app you must get an API key from one of the numerous providers supported by this app. Some providers such as Open Router offer free plans, while paid options may produce faster and higher quality results. See instructions in the guide page after this tutorial.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Dylech bob amser ddarllen ymatebion AI i sicrhau eu bod yn gywir. Er mwyn defnyddio nodweddion AI o fewn yr ap hwn, rhaid i chi gael allwedd API gan un o'r darparwyr niferus a gefnogir gan yr ap hwn. Mae rhai darparwyr fel Open Router yn cynnig cynlluniau am ddim, tra gall opsiynau taledig gynhyrchu canlyniadau cyflymach ac o ansawdd uwch. Gweler y cyfarwyddiadau yn y dudalen ganllaw ar ôl y tiwtorial hwn.",
+      "ga": "Ba cheart duit freagraí AI a léamh i gcónaí chun a chinntiú go bhfuil siad ceart. Chun gnéithe AI a úsáid san aip seo ní mór duit eochair API a fháil ó cheann de na soláthraithe iomadúla a thacaíonn an aip seo leo. Cuireann soláthraithe áirithe mar Open Router pleananna saor in aisce ar fáil, agus d'fhéadfadh torthaí níos tapúla agus ar chaighdeán níos airde a bheith mar thoradh ar roghanna íoctha. Féach ar na treoracha ar leathanach na treorach i ndiaidh an teagaisc seo.",
+      "gd": "Bu chòir dhut freagairtean AI a leughadh an-còmhnaidh gus dèanamh cinnteach gu bheil iad ceart. Gus feartan AI a chleachdadh san aplacaid seo feumaidh tu iuchair API fhaighinn bho aon den iomadh solaraiche air a bheil an aplacaid seo a' toirt taic. Tha cuid de sholaraichean leithid Open Router a' tabhann planaichean an-asgaidh, agus dh'fhaodadh roghainnean pàighte toraidhean nas luaithe agus nas àirde inbhe a thoirt seachad. Faic an stiùireadh air duilleag an iùil às deidh an oideachaidh seo."
     },
     "reviewReorder": {
       "en": "From this interface you can rearrange the order of the segments by holding your finger on a segment and then dragging it above or below other segments. **Try to move any segment.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "O'r rhyngwyneb hwn gallwch ad-drefnu trefn y segmentau drwy ddal eich bys ar segment ac yna ei lusgo uwchben neu islaw segmentau eraill. **Ceisiwch symud unrhyw segment.**",
+      "ga": "Ón gcomhéadan seo is féidir leat ord na dteascán a athshocrú trí do mhéar a choinneáil ar theascán agus é a tharraingt ansin os cionn nó faoi theascáin eile. **Déan iarracht teascán ar bith a bhogadh.**",
+      "gd": "Bhon eadar-aghaidh seo faodaidh tu òrdugh nam pìosan ath-rèiteachadh le bhith a' cumail do chorrag air pìos agus an uairsin ga shlaodadh os cionn no fo phìosan eile. **Feuch ri pìos sam bith a ghluasad.**"
     },
     "reviewContinue": {
       "en": "In this interface you can also choose to add standard wording segments from the standard wording search feature, enter the annotation screen to draw on pictures, and manually write the segments. When you are happy with your observations, **press the continue button at the bottom of the screen.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn y rhyngwyneb hwn gallwch hefyd ddewis ychwanegu segmentau geiriad safonol o'r nodwedd chwilio geiriad safonol, mynd i mewn i'r sgrin anodi i dynnu lluniau, ac ysgrifennu'r segmentau â llaw. Pan fyddwch chi'n fodlon â'ch arsylwadau, **pwyswch y botwm parhau ar waelod y sgrin.**",
+      "ga": "Sa chomhéadan seo is féidir leat a roghnú freisin teascáin d'fhoclaíocht chaighdeánach a chur leis ón ngné chuardaigh d'fhoclaíocht chaighdeánach, dul isteach sa scáileán anótála chun tarraingt ar phictiúir, agus na teascáin a scríobh de láimh. Nuair atá tú sásta le do bhreathnuithe, **brúigh an cnaipe ar aghaidh ag bun an scáileáin.**",
+      "gd": "San eadar-aghaidh seo faodaidh tu cuideachd roghnachadh pìosan briathrachais àbhaisteach a chur ris bhon fheart lorg briathrachais àbhaisteach, a dhol a-steach don sgrìn anótachaidh gus tarraing air dealbhan, agus na pìosan a sgrìobhadh le làimh. Nuair a tha thu toilichte leis na h-amharcan agad, **brùth air a' phutan lean air adhart aig bonn na sgrìn.**"
     },
     "detailsIntro": {
       "en": "Welcome to the report details page. You have finished the part of the document explaining what observations you made at the client property. You can now fill in the details of the property and select which overarching issues you have identified and which recommendations you choose to give the client. The AI agent can help here by making suggestions for which options to pick based on the observations made on the previous page, but you should still always check its answers. **Scroll down to continue.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Croeso i dudalen manylion yr adroddiad. Rydych wedi gorffen rhan y ddogfen sy'n egluro pa arsylwadau a wnaethoch yn eiddo'r cleient. Gallwch nawr lenwi manylion yr eiddo a dewis pa broblemau trosfwaol rydych wedi'u nodi a pha argymhellion rydych chi'n dewis eu rhoi i'r cleient. Gall yr asiant AI helpu yma drwy wneud awgrymiadau ar gyfer pa opsiynau i'w dewis yn seiliedig ar yr arsylwadau a wnaed ar y dudalen flaenorol, ond dylech o hyd bob amser wirio ei atebion. **Sgroliwch i lawr i barhau.**",
+      "ga": "Fáilte go dtí leathanach sonraí na tuairisce. Tá an chuid den doiciméad a mhíníonn na breathnuithe a rinne tú ag réadmhaoin an chliaint críochnaithe agat. Is féidir leat sonraí na réadmhaoine a líonadh isteach anois agus a roghnú cé na fadhbanna cuimsitheacha a d'aithin tú agus cé na moltaí a roghnaíonn tú a thabhairt don chliant. Is féidir leis an ngníomhaire AI cabhrú anseo trí mholtaí a dhéanamh maidir le cé na roghanna is ceart a roghnú bunaithe ar na breathnuithe a rinneadh ar an leathanach roimhe seo, ach ba cheart duit a chuid freagraí a sheiceáil i gcónaí. **Scrollaigh síos chun leanúint ar aghaidh.**",
+      "gd": "Fàilte gu duilleag mion-fhiosrachadh na h-aithisg. Tha thu air crìoch a chur air a' phàirt den sgrìobhainn a tha a' mìneachadh dè na h-amharcan a rinn thu aig seilbh an neach-dèiligidh. Faodaidh tu a-nis mion-fhiosrachadh na seilbh a lìonadh is na cùisean farsaing a chomharrachadh a thaghadh agus na molaidhean a tha thu a' roghnachadh a thoirt don neach-dèiligidh. Faodaidh an t-àidseant AI cuideachadh an seo le bhith a' dèanamh mholaidhean airson dè na roghainnean a thaghas tu stèidhichte air na h-amharcan a chaidh a dhèanamh air an duilleag roimhe, ach bu chòir dhut a fhreagairtean a sgrùdadh an-còmhnaidh. **Sgrolaich sìos gus leantainn air adhart.**"
     },
     "detailsPlan": {
       "en": "Finally, you can provide a project plan and costs. First you choose what services you can provide for this property by checking the appropriate boxes. Once you have chosen which projects may be necessary, you scroll down further and fill in the cost for each service. Not all surveys require a project plan. You can quickly disable this section and remove all financial boilerplate text from the final document by pressing the Exclude plan & costs toggle at the top of this segment. Once you are finished with your document, **press continue again to generate the document.**",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Yn olaf, gallwch ddarparu cynllun prosiect a chostau. Yn gyntaf rydych chi'n dewis pa wasanaethau y gallwch chi eu darparu ar gyfer yr eiddo hwn drwy dicio'r blychau priodol. Unwaith y byddwch wedi dewis pa brosiectau a all fod yn angenrheidiol, rydych yn sgrolio i lawr ymhellach ac yn llenwi'r gost am bob gwasanaeth. Nid oes angen cynllun prosiect ar bob arolwg. Gallwch analluogi'r adran hon yn gyflym a thynnu'r holl destun ariannol safonol o'r ddogfen derfynol drwy bwyso'r togl Hepgor cynllun a chostau ar frig y segment hwn. Ar ôl i chi orffen gyda'ch dogfen, **pwyswch parhau eto i gynhyrchu'r ddogfen.**",
+      "ga": "Mar fhocal scoir, is féidir leat plean tionscadail agus costais a sholáthar. Ar dtús roghnaíonn tú na seirbhísí is féidir leat a sholáthar don réadmhaoin seo trí na boscaí cuí a sheiceáil. Nuair a bhíonn na tionscadail a d'fhéadfadh a bheith riachtanach roghnaithe agat, scrollaíonn tú níos faide síos agus líonann tú an costas isteach do gach seirbhís. Ní theastaíonn plean tionscadail le gach suirbhé. Is féidir leat an roinn seo a dhíchumasú go tapa agus gach gnáth-théacs airgeadais a bhaint den doiciméad deiridh trí bhrú ar an scorán Fág amach plean & costais ag barr an teascáin seo. Nuair atá tú críochnaithe le do dhoiciméad, **brúigh ar aghaidh arís chun an doiciméad a ghiniúint.**",
+      "gd": "Mu dheireadh, faodaidh tu plana pròiseict agus cosgaisean a sholarachadh. An toiseach taghaidh tu dè na seirbheisean a bheir thu seachad airson na seilbh seo le bhith a' cur strìochag anns na bogsaichean iomchaidh. Aon uair 's gun do thagh thu na pròiseactan a dh'fhaodadh a bhith riatanach, sgrolaichidh tu nas fhaide sìos agus lìonaidh tu a' chosgais a-steach airson gach seirbheis. Chan eil feum air plana pròiseict aig a h-uile sgrùdadh. Faodaidh tu an earrann seo a chur dheth gu sgiobalta agus gach teacsa-cùil ionmhasail a thoirt air falbh bhon sgrìobhainn mu dheireadh le bhith a' brùthadh air an togail Fàg am plana & cosgaisean a-mach aig mullach a' phìos seo. Nuair a bhios tu deiseil leis an sgrìobhainn agad, **brùth lean air adhart a-rithist gus an sgrìobhainn a chruthachadh.**"
     },
     "generateDone": {
       "en": "Congratulations, you have finished your report. You can now share it as a Microsoft Word document or as a PDF. All past reports are always saved inside this app.\n\nIf you want to make any unique changes to the document, you are still capable of opening the document in Microsoft Word or other similar software to add anything this app was not designed for.\n\nThis concludes the tutorial.",
-      "cy": "",
-      "ga": "",
-      "gd": ""
+      "cy": "Llongyfarchiadau, rydych wedi gorffen eich adroddiad. Gallwch nawr ei rannu fel dogfen Microsoft Word neu fel PDF. Mae'r holl hen adroddiadau bob amser yn cael eu cadw y tu mewn i'r ap hwn.\n\nOs ydych am wneud unrhyw newidiadau unigryw i'r ddogfen, rydych yn dal i allu agor y ddogfen yn Microsoft Word neu feddalwedd debyg arall i ychwanegu unrhyw beth nad oedd yr ap hwn wedi'i ddylunio ar ei gyfer.\n\nMae hyn yn dod â'r tiwtorial i ben.",
+      "ga": "Comhghairdeas, tá do thuairisc críochnaithe agat. Is féidir leat í a chomhroinnt anois mar dhoiciméad Microsoft Word nó mar PDF. Sábháiltear gach sean-thuairisc i gcónaí laistigh den aip seo.\n\nMá theastaíonn uait aon athruithe uathúla a dhéanamh ar an doiciméad, tá tú in ann an doiciméad a oscailt fós in Microsoft Word nó i mbogearraí comhchosúla eile chun aon rud nár dearadh an aip seo dó a chur leis.\n\nCuireann sé seo deireadh leis an teagasc.",
+      "gd": "Meal do naidheachd, tha thu air crìoch a chur air an aithisg agad. Faodaidh tu a-nis a roinn mar sgrìobhainn Microsoft Word no mar PDF. Tha a h-uile seann aithisg an-còmhnaidh air an sàbhaladh am broinn na h-aplacaid seo.\n\nMa tha thu airson atharrachaidhean sònraichte sam bith a dhèanamh air an sgrìobhainn, tha comas agad fhathast an sgrìobhainn fhosgladh ann am Microsoft Word no bathar-bog coltach ris eile gus rud sam bith nach deach an aplacaid seo a dhealbhadh air a shon a chur ris.\n\nTha seo a' cur crìoch air an oideachadh."
     }
   }
 }

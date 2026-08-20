@@ -21,6 +21,7 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  UnderlineType,
   VerticalAlign,
   WidthType
 } from "docx";
@@ -60,6 +61,8 @@ export interface ReportInput {
 const FONT = "Calibri";
 /** Body text: 12pt, matching the example document's default. */
 const BODY_SIZE = 24;
+/** Contents page title + section titles: 14pt underlined. */
+const CONTENTS_SIZE = 28;
 /** Blue used for the services paragraph in the example. */
 const SERVICES_BLUE = "0070C0";
 
@@ -114,6 +117,27 @@ function heading(text: string, size = 32): Paragraph {
   return new Paragraph({
     spacing: { before: 240, after: 200 },
     children: [new TextRun({ text, bold: true, font: FONT, size })]
+  });
+}
+
+/** CONTENTS page title / section titles: Calibri 14pt bold underlined. */
+function contentsHeading(
+  text: string,
+  opts: { isPageTitle?: boolean } = {}
+): Paragraph {
+  return new Paragraph({
+    spacing: opts.isPageTitle
+      ? { before: 240, after: 200 }
+      : { after: 160 },
+    children: [
+      new TextRun({
+        text,
+        bold: true,
+        font: FONT,
+        size: CONTENTS_SIZE,
+        underline: { type: UnderlineType.SINGLE }
+      })
+    ]
   });
 }
 
@@ -325,10 +349,10 @@ function coverPage(meta: ReportMetadata): Paragraph[] {
 }
 
 function contentsPage(includeEstimates: boolean): Paragraph[] {
-  const out: Paragraph[] = [heading("CONTENTS", 36)];
+  const out: Paragraph[] = [contentsHeading("CONTENTS", { isPageTitle: true })];
   for (const s of CONTENTS_SECTIONS) {
     if (!includeEstimates && s.title === "Estimates/Costs") continue;
-    out.push(body(s.title, { bold: true }));
+    out.push(contentsHeading(s.title));
     out.push(body(s.blurb));
   }
   out.push(pageBreak());
@@ -406,6 +430,7 @@ function createdTable(created: string): Table {
 function entryTable(s: SectionState, img: DocImage | undefined): Table {
   const numberCell = new TableCell({
     width: { size: 462, type: WidthType.DXA },
+    verticalAlign: VerticalAlign.TOP,
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
@@ -444,7 +469,7 @@ function entryTable(s: SectionState, img: DocImage | undefined): Table {
   const imageCell = new TableCell({
     width: { size: 4892, type: WidthType.DXA },
     margins: { top: 0, left: 0, bottom: 0, right: 200 },
-    verticalAlign: VerticalAlign.CENTER,
+    verticalAlign: VerticalAlign.TOP,
     children: imageChildren
   });
 
@@ -600,9 +625,9 @@ function costsPages(extras: ReportExtras, meta: ReportMetadata): Paragraph[] {
       children: [assetRun(FINANCE_IMAGE)]
     })
   );
-  // Blue in the example document.
-  out.push(body(SERVICES_FULL, { color: SERVICES_BLUE }));
+  // Contact note sits above the blue services paragraph (matches example).
   out.push(body(COST_FOOTNOTES.contactNote));
+  out.push(body(SERVICES_FULL, { color: SERVICES_BLUE }));
   return out;
 }
 
